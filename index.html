@@ -29,17 +29,11 @@
               <button class="icon-btn-inline admin-only" id="btnEditTitle" title="編輯儀表板名稱">✎</button>
             </div>
             <!-- Auth Mode & Cloud Sync Indicator -->
-            <div class="auth-subbar-wrapper" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div class="auth-subbar-wrapper" style="display:flex; align-items:center; gap:6px;">
               <span class="auth-status-badge" id="authRoleBadge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:3px 10px; border-radius:999px; background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.25);">
                 <span id="authIcon">☁️</span>
                 <span id="authStatusText">雲端安全連線中...</span>
               </span>
-              <!-- Portfolio Switcher Pill (Supports ?id=...) -->
-              <button type="button" class="btn btn-secondary btn-xs" id="btnSwitchPortfolio" style="padding:2px 8px; font-size:0.75rem; border-radius:var(--radius-full);" title="切換或建立其他專屬投資組合 (支援 ?id=...)">
-                <span>🗂️ 組合:</span>
-                <strong id="currentPortfolioLabel" style="color:var(--cyan-accent); font-family:var(--font-mono);">main</strong>
-                <span style="font-size:0.65rem; opacity:0.8;">▾</span>
-              </button>
             </div>
           </div>
         </div>
@@ -92,28 +86,54 @@
           <span id="refreshBtnText">更新報價</span>
         </button>
 
-        <!-- Remote User Profile / Auth Pill -->
-        <div id="remoteUserPill" class="remote-user-pill" style="display:none;">
-          <img id="userAvatarImg" class="remote-user-avatar" src="" alt="頭像" style="display:none;">
-          <span id="userNameLabel" class="user-name-text">使用者</span>
-          <span id="userRoleBadge" class="role-tag-viewer">檢視者</span>
-          <button id="btnRemoteSignOut" class="btn-signout" title="登出 Google 帳號">登出</button>
-        </div>
-
-        <button class="btn btn-secondary btn-sm" id="btnHeaderSignIn" style="display:none;" title="登入 Google 帳號">
-          <span>🔑 登入</span>
-        </button>
-
-        <!-- Manage ACL Viewers (Admin only) -->
-        <button class="btn btn-secondary btn-sm admin-only" id="btnManageAcl" title="管理允許查看較多資訊的親友 Google Email 名單">
-          <span>👥 授權名單</span>
-        </button>
-
         <!-- Add Transaction (Admin only) -->
         <button class="btn btn-primary btn-sm admin-only" id="btnOpenAddModal">
           <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>新增買賣交易</span>
         </button>
+
+        <!-- Sign In Button (When not logged in) -->
+        <button class="btn btn-secondary btn-sm" id="btnHeaderSignIn" style="display:none;" title="登入 Google 帳號">
+          <span>🔑 登入</span>
+        </button>
+
+        <!-- User Avatar & Dropdown Menu (When logged in, far right) -->
+        <div class="user-menu-wrapper" id="userMenuWrapper" style="display:none;">
+          <button type="button" class="user-avatar-btn" id="btnUserMenu" title="使用者選單">
+            <img id="userAvatarImg" class="remote-user-avatar" src="" alt="頭像" style="display:none;">
+            <div id="userAvatarPlaceholder" class="user-avatar-placeholder" style="display:none;">U</div>
+          </button>
+
+          <div class="user-dropdown-menu" id="userDropdownMenu">
+            <div class="user-dropdown-header">
+              <div class="user-dropdown-email" id="menuUserEmail">使用者</div>
+              <div class="user-dropdown-id">
+                <span>🗂️ 組合 ID:</span>
+                <strong id="menuPortfolioId" style="color:var(--cyan-accent);">main</strong>
+              </div>
+            </div>
+
+            <!-- Daniel Only: 授權名單 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnManageAcl" style="display:none;">
+              <span>👥</span>
+              <span>授權名單管理</span>
+            </button>
+
+            <!-- 切換其他投資組合 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnSwitchPortfolio">
+              <span>🗂️</span>
+              <span>切換/查看其他組合</span>
+            </button>
+
+            <div class="user-dropdown-divider"></div>
+
+            <!-- 登出 -->
+            <button type="button" class="user-dropdown-item danger-item" id="menuBtnSignOut">
+              <span>🚪</span>
+              <span>登出 Google 帳號</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -126,11 +146,11 @@
           <span style="font-size:1.4rem;">✨</span>
           <div>
             <div style="font-weight:600; font-size:0.92rem;" id="newPortfolioBannerTitle">這是全新的專屬投資組合</div>
-            <div style="font-size:0.82rem; color:var(--text-secondary);" id="newPortfolioBannerDesc">此組合尚未初始化。您可以登入自己的 Google 帳號一鍵建立並擁有此組合！</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="newPortfolioBannerDesc">此組合尚未初始化。登入 Google 帳號後即可建立屬於您的專屬投資儀表板。</div>
           </div>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="btnInitNewPortfolio" style="display:none;">
-          <span>🚀 立即初始化為我的專屬儀表板</span>
+          <span>🚀 建立專屬投資組合</span>
         </button>
       </div>
       

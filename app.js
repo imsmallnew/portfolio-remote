@@ -223,11 +223,13 @@
   function handleRemoteAuthChange(user, role) {
     const gateOverlay = document.getElementById('authGateOverlay');
     const gateError = document.getElementById('authGateError');
-    const remotePill = document.getElementById('remoteUserPill');
+    const userMenuWrapper = document.getElementById('userMenuWrapper');
     const headerSignIn = document.getElementById('btnHeaderSignIn');
     const userAvatar = document.getElementById('userAvatarImg');
-    const userNameLabel = document.getElementById('userNameLabel');
-    const userRoleBadge = document.getElementById('userRoleBadge');
+    const userPlaceholder = document.getElementById('userAvatarPlaceholder');
+    const menuEmail = document.getElementById('menuUserEmail');
+    const menuPid = document.getElementById('menuPortfolioId');
+    const menuBtnAcl = document.getElementById('menuBtnManageAcl');
     const authStatusText = document.getElementById('authStatusText');
     const authIcon = document.getElementById('authIcon');
 
@@ -238,9 +240,9 @@
     if (!user) {
       // 1. 未登入 (預設公開閱讀模式：股票/損益可看，保單/現金池/總淨資產隱藏)
       state.authMode = 'view';
-      if (remotePill) remotePill.style.display = 'none';
+      if (userMenuWrapper) userMenuWrapper.style.display = 'none';
       if (headerSignIn) headerSignIn.style.display = 'inline-flex';
-      if (authStatusText) authStatusText.textContent = '公開閱讀模式 (點右上角登入)';
+      if (authStatusText) authStatusText.textContent = '公開閱讀模式';
       if (authIcon) authIcon.textContent = '👁️';
 
       applyAuthMode();
@@ -250,50 +252,51 @@
 
     // 已登入
     if (headerSignIn) headerSignIn.style.display = 'none';
-    if (remotePill) remotePill.style.display = 'inline-flex';
+    if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
 
-    if (userAvatar) {
-      if (user.photoURL) {
-        userAvatar.src = user.photoURL;
-        userAvatar.style.display = 'inline-block';
-      } else {
-        userAvatar.style.display = 'none';
-      }
+    if (menuEmail) {
+      menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
     }
-    if (userNameLabel) {
-      userNameLabel.textContent = user.displayName || user.email.split('@')[0];
+    const pid = window.cloudStore?.currentPortfolioId || 'main';
+    if (menuPid) {
+      menuPid.textContent = pid;
+    }
+
+    // 頭像處理：有圖片載入圖片，否則顯示精緻首字縮寫
+    if (user.photoURL && userAvatar) {
+      userAvatar.src = user.photoURL;
+      userAvatar.style.display = 'block';
+      if (userPlaceholder) userPlaceholder.style.display = 'none';
+    } else if (userPlaceholder) {
+      const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+      userPlaceholder.textContent = initial;
+      userPlaceholder.style.display = 'flex';
+      if (userAvatar) userAvatar.style.display = 'none';
+    }
+
+    // 只有 Daniel (imsmallnew@gmail.com) 顯示「👥 授權名單」選項
+    const isDaniel = (user.email || '').toLowerCase().trim() === 'imsmallnew@gmail.com';
+    if (menuBtnAcl) {
+      menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
     }
 
     if (role === 'owner') {
-      // 2. 擁有者 (最高管理員權限)
+      // 2. 擁有者
       state.authMode = 'admin';
-      if (userRoleBadge) {
-        userRoleBadge.className = 'role-tag-owner';
-        userRoleBadge.textContent = '擁有者 👑';
-      }
-      if (authStatusText) authStatusText.textContent = `擁有者：${user.email}`;
+      if (authStatusText) authStatusText.textContent = '雲端已連線 (管理模式)';
       if (authIcon) authIcon.textContent = '⚡';
       showNotification(`歡迎回來，擁有者 ${user.displayName || user.email}！已啟用完整編輯權限`, 'success');
     } else if (role === 'viewer') {
-      // 3. 授權親友 (解鎖保單與資產儲備池檢視，但不可新增與編輯)
+      // 3. 授權親友
       state.authMode = 'viewer';
-      if (userRoleBadge) {
-        userRoleBadge.className = 'role-tag-viewer';
-        userRoleBadge.textContent = '授權親友 🛡️';
-      }
-      if (authStatusText) authStatusText.textContent = `親友檢視：${user.email}`;
+      if (authStatusText) authStatusText.textContent = '雲端已連線 (親友檢視)';
       if (authIcon) authIcon.textContent = '🛡️';
       showNotification(`您已登入授權親友帳號，已為您解鎖資產配置與儲備細項！`, 'info');
     } else {
-      // 4. 其他未授權 Google 帳號 (維持公開閱讀模式)
+      // 4. 其他未授權帳號 (維持公開閱讀)
       state.authMode = 'view';
-      if (userRoleBadge) {
-        userRoleBadge.className = 'role-tag-viewer';
-        userRoleBadge.textContent = '訪客 👁️';
-      }
-      if (authStatusText) authStatusText.textContent = `訪客：${user.email}`;
+      if (authStatusText) authStatusText.textContent = '雲端已連線 (公開檢視)';
       if (authIcon) authIcon.textContent = '👁️';
-      showNotification(`帳號「${user.email}」未在授權名單中，維持公開閱讀模式。`, 'warning');
     }
 
     applyAuthMode();
@@ -326,20 +329,16 @@
         if (pid !== 'main') {
           // 訪問全新的自訂組合 (例如 ?id=alice)
           if (banner) banner.style.display = 'flex';
-          if (bannerTitle) bannerTitle.textContent = `這是全新的專屬投資組合：【${pid}】`;
+          if (bannerTitle) bannerTitle.textContent = '這是全新的專屬投資組合';
 
           if (window.cloudStore?.currentUser) {
-            if (bannerDesc) bannerDesc.textContent = `此組合尚未建立。您（${window.cloudStore.currentUser.email}）可點擊右側按鈕立即建立並成為此組合的唯一擁有者！`;
-            if (btnInit) {
-              btnInit.style.display = 'inline-flex';
-              btnInit.innerHTML = `<span>🚀 建立並擁有【${pid}】</span>`;
-            }
+            if (bannerDesc) bannerDesc.textContent = `此組合尚未建立。點擊右側按鈕即可立即建立並成為此組合的唯一擁有者！`;
           } else {
-            if (bannerDesc) bannerDesc.textContent = `此組合尚未初始化。登入 Google 帳號即可一鍵建立屬於您的專屬投資組合！`;
-            if (btnInit) {
-              btnInit.style.display = 'inline-flex';
-              btnInit.innerHTML = `<span>🔑 登入以建立【${pid}】</span>`;
-            }
+            if (bannerDesc) bannerDesc.textContent = `此組合尚未初始化。登入 Google 帳號後即可建立屬於您的專屬投資儀表板。`;
+          }
+          if (btnInit) {
+            btnInit.style.display = 'inline-flex';
+            btnInit.innerHTML = `<span>🚀 建立專屬投資組合</span>`;
           }
         } else {
           if (banner) banner.style.display = 'none';
@@ -348,6 +347,7 @@
           }
         }
       }
+
 
       // Realtime listener across all devices
       window.cloudStore.subscribePortfolio((updated) => {
@@ -3634,6 +3634,7 @@
   // 24. ACL Authorized Viewers Management
   function setupAclListeners() {
     const btnOpen = document.getElementById('btnManageAcl');
+    const menuBtnAcl = document.getElementById('menuBtnManageAcl');
     const modal = document.getElementById('aclModalBackdrop');
     const btnClose = document.getElementById('btnAclModalClose');
     const btnCancel = document.getElementById('btnAclModalCancel');
@@ -3674,6 +3675,7 @@
     }
 
     const openModal = async () => {
+      document.getElementById('userDropdownMenu')?.classList.remove('show');
       if (!checkAdminOrPrompt('管理授權名單')) return;
       if (modal) modal.classList.add('show');
 
@@ -3697,6 +3699,7 @@
     };
 
     btnOpen?.addEventListener('click', openModal);
+    menuBtnAcl?.addEventListener('click', openModal);
     btnClose?.addEventListener('click', closeModal);
     btnCancel?.addEventListener('click', closeModal);
 
@@ -3751,6 +3754,7 @@
   // 25. Multi-Tenant Portfolio Switcher & Creation
   function setupPortfolioSwitcherListeners() {
     const btnSwitch = document.getElementById('btnSwitchPortfolio');
+    const menuBtnSwitch = document.getElementById('menuBtnSwitchPortfolio');
     const modal = document.getElementById('switchPortfolioModalBackdrop');
     const btnClose = document.getElementById('btnSwitchPortfolioClose');
     const btnCancel = document.getElementById('btnSwitchPortfolioCancel');
@@ -3758,6 +3762,42 @@
     const inputId = document.getElementById('inputCustomPortfolioId');
     const quickList = document.getElementById('quickPortfolioList');
     const btnInit = document.getElementById('btnInitNewPortfolio');
+
+    // Header User Avatar Dropdown
+    const btnUserMenu = document.getElementById('btnUserMenu');
+    const userDropdown = document.getElementById('userDropdownMenu');
+    const menuBtnSignOut = document.getElementById('menuBtnSignOut');
+    const headerSignIn = document.getElementById('btnHeaderSignIn');
+
+    // 切換選單顯示/關閉
+    btnUserMenu?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userDropdown?.classList.toggle('show');
+      btnUserMenu.classList.toggle('active');
+    });
+
+    // 點擊選單外部關閉
+    document.addEventListener('click', (e) => {
+      if (userDropdown && !userDropdown.contains(e.target) && !btnUserMenu?.contains(e.target)) {
+        userDropdown.classList.remove('show');
+        btnUserMenu?.classList.remove('active');
+      }
+    });
+
+    // 登出按鈕
+    menuBtnSignOut?.addEventListener('click', async () => {
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+      if (confirm('確定要登出 Google 帳號嗎？')) {
+        await window.cloudStore?.signOut();
+        showNotification('已成功登出 Google 帳號', 'info');
+      }
+    });
+
+    // 頂部登入按鈕
+    headerSignIn?.addEventListener('click', async () => {
+      await window.cloudStore?.signInWithGoogle();
+    });
 
     const renderQuickList = () => {
       if (!quickList) return;
@@ -3797,6 +3837,8 @@
     };
 
     const openModal = () => {
+      document.getElementById('userDropdownMenu')?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
       renderQuickList();
       if (inputId) {
         inputId.value = window.cloudStore?.currentPortfolioId === 'main' ? '' : (window.cloudStore?.currentPortfolioId || '');
@@ -3809,6 +3851,7 @@
     };
 
     btnSwitch?.addEventListener('click', openModal);
+    menuBtnSwitch?.addEventListener('click', openModal);
     btnClose?.addEventListener('click', closeModal);
     btnCancel?.addEventListener('click', closeModal);
 
@@ -3881,7 +3924,7 @@
       } finally {
         if (btnInit) {
           btnInit.disabled = false;
-          btnInit.innerHTML = `<span>🚀 建立並擁有【${pid}】</span>`;
+          btnInit.innerHTML = '<span>🚀 建立專屬投資組合</span>';
         }
       }
     });
