@@ -29,11 +29,17 @@
               <button class="icon-btn-inline admin-only" id="btnEditTitle" title="編輯儀表板名稱">✎</button>
             </div>
             <!-- Auth Mode & Cloud Sync Indicator -->
-            <div class="auth-subbar-wrapper">
+            <div class="auth-subbar-wrapper" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <span class="auth-status-badge" id="authRoleBadge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:3px 10px; border-radius:999px; background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.25);">
                 <span id="authIcon">☁️</span>
                 <span id="authStatusText">雲端安全連線中...</span>
               </span>
+              <!-- Portfolio Switcher Pill (Supports ?id=...) -->
+              <button type="button" class="btn btn-secondary btn-xs" id="btnSwitchPortfolio" style="padding:2px 8px; font-size:0.75rem; border-radius:var(--radius-full);" title="切換或建立其他專屬投資組合 (支援 ?id=...)">
+                <span>🗂️ 組合:</span>
+                <strong id="currentPortfolioLabel" style="color:var(--cyan-accent); font-family:var(--font-mono);">main</strong>
+                <span style="font-size:0.65rem; opacity:0.8;">▾</span>
+              </button>
             </div>
           </div>
         </div>
@@ -113,6 +119,20 @@
 
     <!-- Main Container -->
     <main class="main-container">
+      
+      <!-- New / Uninitialized Portfolio Notice Banner -->
+      <div id="newPortfolioBanner" style="display:none; background:linear-gradient(135deg, rgba(6,182,212,0.12), rgba(59,130,246,0.12)); border:1px solid rgba(6,182,212,0.35); border-radius:var(--radius-md); padding:12px 16px; margin-bottom:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.4rem;">✨</span>
+          <div>
+            <div style="font-weight:600; font-size:0.92rem;" id="newPortfolioBannerTitle">這是全新的專屬投資組合</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="newPortfolioBannerDesc">此組合尚未初始化。您可以登入自己的 Google 帳號一鍵建立並擁有此組合！</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="btnInitNewPortfolio" style="display:none;">
+          <span>🚀 立即初始化為我的專屬儀表板</span>
+        </button>
+      </div>
       
       <!-- KPI Stats Section -->
       <section class="kpi-grid">
@@ -1314,6 +1334,40 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnAclModalCancel">取消</button>
           <button type="button" class="btn btn-primary" id="btnSaveAclChanges">儲存名單至雲端</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Switch / Create Portfolio Modal -->
+    <div class="modal-backdrop" id="switchPortfolioModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">🗂️ 切換或建立投資組合</h3>
+          <button class="modal-close-btn" id="btnSwitchPortfolioClose">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+          <p class="modal-desc" style="margin-bottom:0;">
+            每位使用者可透過網址參數 <code>?id=xxx</code> 建立專屬投資儀表板。只有該組合擁有者具備編輯權限，其他人僅可檢視。
+          </p>
+
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px;">
+            <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px; color:var(--text-secondary);">快速切換推薦：</div>
+            <div id="quickPortfolioList" style="display:flex; flex-direction:column; gap:6px;">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <form id="switchPortfolioForm">
+            <label for="inputCustomPortfolioId" style="font-weight:600; font-size:0.85rem; margin-bottom:6px; display:block;">前往自訂投資組合 ID：</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="inputCustomPortfolioId" class="input-sm" style="flex:1;" placeholder="例如：alice 或 tech" required pattern="[A-Za-z0-9_-]{1,30}">
+              <button type="submit" class="btn btn-primary btn-sm">前往切換</button>
+            </div>
+            <span class="form-tip" style="margin-top:4px;">僅支援英文字母、數字、底線與連字號（1~30字）</span>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnSwitchPortfolioCancel">關閉</button>
         </div>
       </div>
     </div>

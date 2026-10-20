@@ -9,6 +9,8 @@
     currentUser: null,
     userRole: 'unauthorized', // 'owner' | 'viewer' | 'unauthorized'
     currentVersion: 0,
+    currentPortfolioId: 'main',
+    portfolioOwnerEmail: '',
     db: null,
     auth: null,
     unsubscribeSnapshot: null,
@@ -17,7 +19,21 @@
       onData: []
     },
 
+    getPortfolioIdFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        let id = (params.get('id') || 'main').toLowerCase().trim();
+        if (id === 'daniel' || id === '') id = 'main';
+        // 僅保留英數字、底線與連字號，長度不超過 30 字元
+        const cleanId = id.replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+        return cleanId || 'main';
+      } catch (e) {
+        return 'main';
+      }
+    },
+
     init() {
+      this.currentPortfolioId = this.getPortfolioIdFromUrl();
       const cfg = window.FIREBASE_CONFIG;
       if (!cfg || cfg.apiKey === "YOUR_API_KEY" || !cfg.apiKey) {
         console.warn("⚠️ Firebase 尚未設定，處於本機展示模式。請於 firebase-config.js 填入您的 Firebase 設定。");
@@ -62,45 +78,82 @@
       }
       const lowerEmail = email.toLowerCase().trim();
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
+      const pid = this.currentPortfolioId || 'main';
 
-      // 1. 優先檢查本地設定檔中的 owner / viewers
-      if (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail) {
-        this.userRole = 'owner';
-        return;
-      }
-      if (Array.isArray(localAcl.viewerEmails)) {
-        const matchesViewer = localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail);
-        if (matchesViewer) {
+      // 1. 若為預設核心儀表板 'main' (Daniel 專屬)
+      if (pid === 'main') {
+        const isDefaultOwner = localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail;
+        if (isDefaultOwner) {
+          this.userRole = 'owner';
+          this.portfolioOwnerEmail = localAcl.ownerEmail;
+          return;
+        }
+        if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
           this.userRole = 'viewer';
           return;
         }
+
+        // 檢查 access/main 雲端名單
+        try {
+          if (this.db) {
+            const aclSnap = await this.db.collection('access').doc('main').get();
+            if (aclSnap.exists) {
+              const data = aclSnap.data() || {};
+              const remoteOwner = (data.owner || '').toLowerCase().trim();
+              const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
+
+              if (remoteOwner && remoteOwner === lowerEmail) {
+                this.userRole = 'owner';
+                this.portfolioOwnerEmail = remoteOwner;
+                return;
+              }
+              if (remoteViewers.includes(lowerEmail)) {
+                this.userRole = 'viewer';
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("讀取 access/main 權限注意:", e);
+        }
+
+        this.userRole = 'unauthorized';
+        return;
       }
 
-      // 2. 嘗試從 Firestore access/main 取得雲端 ACL
+      // 2. 若為自訂多租戶儀表板 (如 ?id=alice, ?id=bob, ?id=mom)
       try {
         if (this.db) {
-          const aclSnap = await this.db.collection('access').doc('main').get();
-          if (aclSnap.exists) {
-            const data = aclSnap.data() || {};
-            const remoteOwner = (data.owner || '').toLowerCase().trim();
-            const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
+          const docSnap = await this.db.collection('portfolios').doc(pid).get();
+          if (docSnap.exists) {
+            const data = docSnap.data() || {};
+            const docOwner = (data.owner || '').toLowerCase().trim();
+            this.portfolioOwnerEmail = docOwner;
+            const docViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
 
-            if (remoteOwner && remoteOwner === lowerEmail) {
+            // 系統最高管理員 (Daniel: imsmallnew@gmail.com) 具備全局查看/維護權限
+            const isSystemAdmin = localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail;
+            if (docOwner === lowerEmail || isSystemAdmin) {
               this.userRole = 'owner';
               return;
             }
-            if (remoteViewers.includes(lowerEmail)) {
+            if (docViewers.includes(lowerEmail)) {
               this.userRole = 'viewer';
               return;
             }
+            this.userRole = 'unauthorized';
+            return;
+          } else {
+            // Document 尚不存在：當前登入者可作為此新組合之建立者 (Owner)
+            this.portfolioOwnerEmail = lowerEmail;
+            this.userRole = 'owner';
+            return;
           }
         }
-      } catch (e) {
-        console.warn("讀取 access/main 權限設定時發生注意事件:", e);
+      } catch (err) {
+        console.warn(`讀取 portfolio [${pid}] 失敗:`, err);
       }
 
-      // 3. 若為首次部署且未設定 ACL，第一位登入的使用者若有提供 ownerEmail 則比對
-      // 若無設定任何名單，預設提示未授權
       this.userRole = 'unauthorized';
     },
 
@@ -151,15 +204,17 @@
         return null;
       }
       try {
-        const docSnap = await this.db.collection('portfolios').doc('main').get();
+        const pid = this.currentPortfolioId || 'main';
+        const docSnap = await this.db.collection('portfolios').doc(pid).get();
         if (docSnap.exists) {
           const data = docSnap.data();
           this.currentVersion = data.version || 1;
+          this.portfolioOwnerEmail = data.owner || '';
           return data;
         }
         return null;
       } catch (err) {
-        console.error("從 Firestore 載入資料失敗:", err);
+        console.error(`從 Firestore 載入 [${this.currentPortfolioId}] 失敗:`, err);
         throw err;
       }
     },
@@ -170,15 +225,17 @@
         this.unsubscribeSnapshot();
       }
 
-      this.unsubscribeSnapshot = this.db.collection('portfolios').doc('main')
+      const pid = this.currentPortfolioId || 'main';
+      this.unsubscribeSnapshot = this.db.collection('portfolios').doc(pid)
         .onSnapshot((doc) => {
           if (doc.exists) {
             const data = doc.data();
             this.currentVersion = data.version || 1;
+            this.portfolioOwnerEmail = data.owner || '';
             callback(data);
           }
         }, (err) => {
-          console.warn("Firestore 即時監聽注意:", err);
+          console.warn(`Firestore 即時監聽 [${pid}] 注意:`, err);
         });
 
       return this.unsubscribeSnapshot;
@@ -189,20 +246,30 @@
         throw new Error("Firebase 尚未配置");
       }
       if (this.userRole !== 'owner') {
-        throw new Error("您無權限修改資料庫內容 (僅限擁有者)");
+        throw new Error("您無權限修改此投資組合內容 (僅限該儀表板擁有者)");
       }
 
-      const docRef = this.db.collection('portfolios').doc('main');
+      const pid = this.currentPortfolioId || 'main';
+      const docRef = this.db.collection('portfolios').doc(pid);
       return await this.db.runTransaction(async (transaction) => {
         const sfDoc = await transaction.get(docRef);
         let newVersion = 1;
+        let originalOwner = this.currentUser ? this.currentUser.email : 'owner';
         if (sfDoc.exists) {
-          const currentRemoteVersion = sfDoc.data().version || 0;
+          const currentData = sfDoc.data() || {};
+          const currentRemoteVersion = currentData.version || 0;
           newVersion = currentRemoteVersion + 1;
+          if (currentData.owner) {
+            originalOwner = currentData.owner;
+          }
+        } else if (pid === 'main') {
+          originalOwner = window.REMOTE_ACCESS_CONFIG?.ownerEmail || (this.currentUser ? this.currentUser.email : 'owner');
         }
 
         const dataToSave = {
           ...payload,
+          portfolioId: pid,
+          owner: originalOwner,
           version: newVersion,
           lastUpdated: new Date().toLocaleString('zh-TW', { hour12: false }),
           updatedBy: this.currentUser ? this.currentUser.email : 'owner',
@@ -211,8 +278,22 @@
 
         transaction.set(docRef, dataToSave, { merge: true });
         this.currentVersion = newVersion;
-        return { success: true, version: newVersion };
+        this.portfolioOwnerEmail = originalOwner;
+        return { success: true, version: newVersion, portfolioId: pid };
       });
+    },
+
+    listUserPortfolios() {
+      const list = [
+        { id: 'main', name: '👑 Daniel 核心投資儀表板 (預設)', isDefault: true }
+      ];
+      if (this.currentUser?.email) {
+        const mySlug = this.currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        if (mySlug && mySlug !== 'imsmallnew' && mySlug !== 'main') {
+          list.push({ id: mySlug, name: `👤 我的專屬組合 (${mySlug})`, isMine: true });
+        }
+      }
+      return list;
     },
 
     async loadAcl() {

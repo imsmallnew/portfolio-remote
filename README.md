@@ -33,34 +33,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 取得存取控制名單
-    function getAcl() {
-      return get(/databases/$(database)/documents/access/main).data;
-    }
-    
-    function isOwner() {
+
+    // 判斷是否為全站管理者 (Daniel Kuo)
+    function isSystemAdmin() {
       return request.auth != null && 
-             request.auth.token.email_verified && 
-             request.auth.token.email.lower() == getAcl().owner.lower();
-    }
-    
-    function isViewer() {
-      return request.auth != null && 
-             request.auth.token.email_verified && 
-             (request.auth.token.email.lower() in getAcl().viewers || isOwner());
+             request.auth.token.email.lower() == 'imsmallnew@gmail.com';
     }
 
-    // 投資數據集合：擁有者可讀寫，檢視者只能讀取
-    match /portfolios/{docId} {
-      allow read: if isViewer();
-      allow write: if isOwner();
+    // 投資數據集合：支援多租戶隔離 (各 Portfolio 擁有者僅能修改自己的組合)
+    match /portfolios/{portfolioId} {
+      // 讀取：公開閱讀模式（訪客瀏覽時敏感儲備金由前端遮蔽）
+      allow read: if true;
+
+      // 寫入：僅限該組合之擁有者，或全站管理者 (imsmallnew@gmail.com)
+      allow write: if request.auth != null && (
+        (portfolioId == 'main' && request.auth.token.email.lower() == 'imsmallnew@gmail.com') ||
+        (resource == null && request.resource.data.owner.lower() == request.auth.token.email.lower()) ||
+        (resource != null && resource.data.owner.lower() == request.auth.token.email.lower()) ||
+        isSystemAdmin()
+      );
     }
 
-    // 權限名單：僅允許檢視者讀取，禁止由前端隨意寫入 (由後台維護)
+    // 權限與授權親友名單
     match /access/{docId} {
-      allow read: if request.auth != null;
-      allow write: if false;
+      allow read: if true;
+      allow write: if request.auth != null && isSystemAdmin();
     }
   }
 }
