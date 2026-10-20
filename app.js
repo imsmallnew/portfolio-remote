@@ -477,6 +477,14 @@
 
   function checkAdminOrPrompt(actionName = '此操作') {
     if (state.authMode === 'admin') return true;
+    if (window.cloudStore && window.cloudStore.isConfigured) {
+      showNotification(`目前為閱讀模式，僅擁有者具備${actionName}權限。請登入擁有者 Google 帳號。`, 'warning');
+      const signInBtn = document.getElementById('btnHeaderSignIn');
+      if (signInBtn && signInBtn.style.display !== 'none') {
+        signInBtn.click();
+      }
+      return false;
+    }
     showNotification(`請先登入管理員模式以進行${actionName}`, 'info');
     openAdminModal();
     return false;
@@ -1153,7 +1161,7 @@
               <span class="weight-text">${h.weightPct.toFixed(1)}%</span>
             </div>
           </td>
-          <td class="col-actions text-center">
+          <td class="col-actions text-center admin-only">
             <div class="row-actions">
               <button class="btn-table-action btn-buy-mini admin-only" onclick="window.fubonApp.openAddTxModalFor('${sym}', '單筆買進')" title="買進加碼">+買</button>
               <button class="btn-table-action btn-sell-mini admin-only" onclick="window.fubonApp.openAddTxModalFor('${sym}', '賣出')" title="減持賣出" ${isZeroShares ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>-賣</button>
@@ -1367,12 +1375,11 @@
               已連動持股
             </span>
           </td>
-          <td class="col-tx-actions text-center">
+          <td class="col-tx-actions text-center admin-only">
             <div class="row-actions admin-only">
               <button class="btn-table-action" onclick="window.fubonApp.openEditTxModal('${tx.id}')" title="編輯此筆交易">編輯</button>
               <button class="btn-table-action text-danger" onclick="window.fubonApp.openDeleteTxModal('${tx.id}')" title="刪除此筆交易">刪除</button>
             </div>
-            <span class="text-tertiary" style="font-size:0.75rem;display:none;" data-auth-hide="admin">檢視模式</span>
           </td>
         </tr>
       `;
@@ -3190,13 +3197,24 @@
     titleEl?.addEventListener('blur', () => finishEditTitle(true));
 
     // CSV Import / Export
-    document.getElementById('btnExportCsv')?.addEventListener('click', exportCsv);
+    document.getElementById('btnExportCsv')?.addEventListener('click', () => {
+      if (checkAdminOrPrompt('匯出 CSV')) exportCsv();
+    });
     document.getElementById('btnImportCsvTrigger')?.addEventListener('click', () => {
       if (checkAdminOrPrompt('匯入 CSV')) {
         document.getElementById('csvFileInput')?.click();
       }
     });
-    document.getElementById('csvFileInput')?.addEventListener('change', handleCsvFileSelect);
+    document.getElementById('csvFileInput')?.addEventListener('change', (e) => {
+      if (!checkAdminOrPrompt('匯入 CSV')) {
+        e.target.value = '';
+        return;
+      }
+      handleCsvFileSelect(e);
+    });
+
+    // Cloud Seed / Import data.json
+    setupCloudSeedListeners();
 
     // Rate & Settings Modal
     document.getElementById('ratePill')?.addEventListener('click', () => {
@@ -3427,6 +3445,119 @@
       if (e.key === 'Escape') {
         closeTvModal();
         document.querySelectorAll('.modal-backdrop.show').forEach(m => m.classList.remove('show'));
+      }
+    });
+  }
+
+  // 23. Cloud Seed & data.json Import Manager
+  let stagedSeedData = null;
+
+  function setupCloudSeedListeners() {
+    const btnOpen = document.getElementById('btnCloudSeedData');
+    const modal = document.getElementById('cloudSeedModalBackdrop');
+    const btnClose = document.getElementById('btnCloudSeedClose');
+    const btnCancel = document.getElementById('btnCloudSeedCancel');
+    const btnSyncEmbedded = document.getElementById('btnSyncEmbeddedSeed');
+    const btnChooseLocal = document.getElementById('btnChooseLocalJson');
+    const fileInput = document.getElementById('cloudSeedFileInput');
+    const fileNameSpan = document.getElementById('chosenFileName');
+    const previewCard = document.getElementById('seedPreviewCard');
+    const summaryText = document.getElementById('seedSummaryText');
+    const btnConfirmUpload = document.getElementById('btnConfirmUploadJson');
+
+    const openModal = () => {
+      if (!checkAdminOrPrompt('同步雲端資料庫')) return;
+      if (modal) modal.classList.add('show');
+    };
+
+    const closeModal = () => {
+      if (modal) modal.classList.remove('show');
+      stagedSeedData = null;
+      if (fileInput) fileInput.value = '';
+      if (fileNameSpan) fileNameSpan.textContent = '尚未選擇檔案';
+      if (previewCard) previewCard.style.display = 'none';
+      if (btnConfirmUpload) btnConfirmUpload.style.display = 'none';
+    };
+
+    btnOpen?.addEventListener('click', openModal);
+    btnClose?.addEventListener('click', closeModal);
+    btnCancel?.addEventListener('click', closeModal);
+
+    // 手動選取本機 data.json 檔案
+    btnChooseLocal?.addEventListener('click', () => {
+      if (checkAdminOrPrompt('上傳資料庫')) fileInput?.click();
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (fileNameSpan) fileNameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (!parsed || typeof parsed !== 'object') {
+            throw new Error('檔案格式不正確，非有效 JSON 物件');
+          }
+
+          stagedSeedData = parsed;
+          const txCount = parsed.transactions?.length || 0;
+          const realCount = parsed.realizedRecords?.length || 0;
+          const divCount = parsed.dividendRecords?.length || 0;
+          const quoteCount = Object.keys(parsed.quotes || {}).length;
+
+          if (summaryText) {
+            summaryText.innerHTML = `
+              <div>• 買賣交易紀錄：<strong>${txCount}</strong> 筆</div>
+              <div>• 已實現損益結算：<strong>${realCount}</strong> 筆</div>
+              <div>• 配息收入明細：<strong>${divCount}</strong> 筆</div>
+              <div>• 投資自訂標的：<strong>${quoteCount}</strong> 檔</div>
+              <div>• 資產儲備池與保單：<strong>${parsed.fundReserves ? '已包含' : '未包含 (保留現有)'}</strong></div>
+            `;
+          }
+
+          if (previewCard) previewCard.style.display = 'block';
+          if (btnConfirmUpload) btnConfirmUpload.style.display = 'inline-block';
+        } catch (err) {
+          alert('解析 JSON 檔案失敗：' + (err.message || err));
+          stagedSeedData = null;
+          if (previewCard) previewCard.style.display = 'none';
+          if (btnConfirmUpload) btnConfirmUpload.style.display = 'none';
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // 確認上傳手動選取的 JSON
+    btnConfirmUpload?.addEventListener('click', async () => {
+      if (!stagedSeedData) return;
+      if (!checkAdminOrPrompt('同步雲端資料庫')) return;
+      if (window.cloudStore?.userRole !== 'owner') {
+        alert('您的帳號非擁有者，無權限寫入 Firestore 雲端資料庫！');
+        return;
+      }
+
+      if (!confirm('確定要將此 JSON 覆蓋同步寫入 Firebase 雲端嗎？')) return;
+
+      try {
+        btnConfirmUpload.disabled = true;
+        btnConfirmUpload.textContent = '⏳ 上傳中...';
+        showNotification('正在寫入 Firebase Firestore...', 'info');
+
+        await window.cloudStore.savePortfolio(stagedSeedData);
+        showNotification('🎉 已成功將本機 JSON 資料匯入至 Firebase 雲端！', 'success');
+        applyLoadedData(stagedSeedData);
+        closeModal();
+      } catch (err) {
+        console.error('上傳失敗:', err);
+        alert('上傳至雲端失敗：' + (err.message || err));
+      } finally {
+        if (btnConfirmUpload) {
+          btnConfirmUpload.disabled = false;
+          btnConfirmUpload.textContent = '確認上傳此 JSON 至雲端';
+        }
       }
     });
   }

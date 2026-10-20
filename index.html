@@ -98,6 +98,11 @@
           <span>🔑 登入</span>
         </button>
 
+        <!-- Cloud Seed / Sync data.json (Admin only) -->
+        <button class="btn btn-secondary btn-sm admin-only" id="btnCloudSeedData" title="將本地 data.json 資料同步至 Firebase 雲端">
+          <span>☁️ 匯入 data.json</span>
+        </button>
+
         <!-- Add New Asset / Symbol (Admin only) -->
         <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="新增自訂標的 (台股/美股/ETF/基金)">
           <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -194,7 +199,7 @@
       </section>
 
       <!-- Fund Reserves & Net Worth Overview Section (Collapsible - Default One Line) -->
-      <section class="fund-reserves-section" id="fundReservesSection">
+      <section class="fund-reserves-section admin-only" id="fundReservesSection">
         <div class="fund-card">
           <!-- 1. Default One-Line Summary Bar -->
           <div class="fund-summary-bar" id="fundSummaryBar">
@@ -346,8 +351,8 @@
           </button>
           <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
 
-          <!-- Export CSV -->
-          <button class="btn btn-secondary btn-sm" id="btnExportCsv" title="匯出最新完整交易清單 CSV">
+          <!-- Export CSV (Admin only) -->
+          <button class="btn btn-secondary btn-sm admin-only" id="btnExportCsv" title="匯出最新完整交易清單 CSV">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>匯出 CSV</span>
           </button>
@@ -420,7 +425,7 @@
                   <th class="col-pl text-right">未實現損益 (NT)</th>
                   <th class="col-roi text-right">帳面報酬率</th>
                   <th class="col-weight text-center">佔比</th>
-                  <th class="col-actions text-center">管理與操作</th>
+                  <th class="col-actions text-center admin-only">管理與操作</th>
                 </tr>
               </thead>
               <tbody id="holdingsTableBody">
@@ -485,7 +490,7 @@
                   <th class="col-tx-amount text-right">總金額</th>
                   <th class="col-tx-curr text-center">幣別</th>
                   <th class="col-tx-linkage">連動狀態</th>
-                  <th class="col-tx-actions text-center">操作</th>
+                  <th class="col-tx-actions text-center admin-only">操作</th>
                 </tr>
               </thead>
               <tbody id="transactionsTableBody">
@@ -602,7 +607,7 @@
       <!-- Tab 5: Analytics -->
       <section id="tab-analytics" class="tab-pane">
         <!-- Asset Overview Banner above charts -->
-        <div class="analytics-overview-card" id="analyticsAssetOverview">
+        <div class="analytics-overview-card admin-only" id="analyticsAssetOverview">
           <div class="analytics-overview-header">
             <div class="overview-title-group">
               <div class="overview-icon">🏛️</div>
@@ -1227,6 +1232,48 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnDeleteModalCancel">取消</button>
           <button type="button" class="btn btn-danger" id="btnDeleteModalConfirm">確認刪除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cloud Seed / Sync data.json Modal (Admin only) -->
+    <div class="modal-backdrop" id="cloudSeedModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">☁️ 匯入本地 data.json 至 Firebase 雲端</h3>
+          <button class="modal-close-btn" id="btnCloudSeedClose">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+          <p class="modal-desc" style="margin-bottom:0;">
+            將本機的完整資產資料庫（包含 312 筆買賣交易、34 筆已實現結算、14 筆配息、資產儲備與報價設定）同步寫入 Firebase Firestore，實現全裝置即時連動。
+          </p>
+
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px;">
+            <div style="font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <span>📂 選取本機 data.json 檔案匯入</span>
+              <span class="badge-pill badge-pill-emerald">安全直傳 Firestore</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">
+              點擊下方按鈕，選取您電腦中的本機資料檔案：<br>
+              <code style="word-break:break-all; font-size:0.8rem;">/Users/daniel_kuo/Documents/projects/portfolio-dashboard/data.json</code>
+            </p>
+            <input type="file" id="cloudSeedFileInput" accept=".json" style="display:none;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="btnChooseLocalJson">
+                <span>📁 選擇電腦中的 data.json 檔案...</span>
+              </button>
+              <span id="chosenFileName" style="font-size:0.85rem; color:var(--text-secondary);">尚未選擇檔案</span>
+            </div>
+          </div>
+
+          <div id="seedPreviewCard" style="display:none; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.3); border-radius:var(--radius-md); padding:14px; font-size:0.85rem;">
+            <div style="font-weight:600; color:var(--cyan-accent); margin-bottom:6px;">📋 待匯入資料摘要：</div>
+            <div id="seedSummaryText" style="line-height:1.6;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCloudSeedCancel">關閉</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmUploadJson" style="display:none;">確認上傳此 JSON 至雲端</button>
         </div>
       </div>
     </div>

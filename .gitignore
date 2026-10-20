@@ -1,5 +1,6 @@
 # Sensitive user data files (NEVER commit to public GitHub)
 data.json
+seed-data.json
 data.js
 source/
 *.csv
