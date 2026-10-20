@@ -10,7 +10,7 @@
 
   const IS_FILE_MODE = window.location.protocol === 'file:';
 
-  // Default Admin Password SHA-256 ("daniel2026")
+  // Default Admin Password Hash (SHA-256)
   const DEFAULT_ADMIN_HASH = '2bb3ecae7bcfd81b4998db4c5ad96d59404ce322749969eb2a3ebf68e98bc011';
 
   // State
@@ -499,7 +499,7 @@
     const pw = document.getElementById('adminPasswordInput').value;
     const inputHash = await sha256(pw);
 
-    if (inputHash === state.adminPasswordHash || pw === 'daniel2026') {
+    if (inputHash === state.adminPasswordHash) {
       state.authMode = 'admin';
       applyAuthMode();
       closeAdminModal();
