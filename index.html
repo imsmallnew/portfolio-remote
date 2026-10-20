@@ -98,20 +98,9 @@
           <span>🔑 登入</span>
         </button>
 
-        <!-- Cloud Seed / Sync data.json (Admin only) -->
-        <button class="btn btn-secondary btn-sm admin-only" id="btnCloudSeedData" title="將本地 data.json 資料同步至 Firebase 雲端">
-          <span>☁️ 匯入 data.json</span>
-        </button>
-
         <!-- Manage ACL Viewers (Admin only) -->
         <button class="btn btn-secondary btn-sm admin-only" id="btnManageAcl" title="管理允許查看較多資訊的親友 Google Email 名單">
           <span>👥 授權名單</span>
-        </button>
-
-        <!-- Add New Asset / Symbol (Admin only) -->
-        <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="新增自訂標的 (台股/美股/ETF/基金)">
-          <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>新增標的</span>
         </button>
 
         <!-- Add Transaction (Admin only) -->
@@ -347,6 +336,12 @@
           <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="擴充新增股票、ETF 或基金標的">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>新增投資標的</span>
+          </button>
+
+          <!-- Cloud Seed / Sync data.json (Admin only) - 位於新增投資標的右方 -->
+          <button class="btn btn-secondary btn-sm admin-only" id="btnCloudSeedData" title="將本地 data.json 資料同步至 Firebase 雲端">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+            <span>☁️ 匯入 data.json</span>
           </button>
 
           <!-- CSV Import/Overwrite (Admin only) -->
