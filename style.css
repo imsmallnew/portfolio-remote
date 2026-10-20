@@ -1606,11 +1606,138 @@ body {
 }
 
 @media (max-width: 768px) {
-  .main-container { padding: 12px; }
-  .kpi-grid { grid-template-columns: 1fr; }
-  .toolbar-card { flex-direction: column; align-items: stretch; }
+  .main-container { padding: 10px; }
+  .kpi-grid { grid-template-columns: 1fr; gap: 10px; }
+  
+  /* Mobile Header Optimization */
+  .header {
+    padding: 8px 12px;
+    gap: 8px;
+    min-height: auto;
+    flex-wrap: wrap;
+  }
+  .header-left {
+    gap: 8px;
+  }
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .brand-title {
+    font-size: 1rem;
+    padding: 0;
+  }
+  .header-right {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .header-right .btn-sm {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+  .header-center {
+    order: 3;
+    width: 100%;
+    margin-top: 4px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .header-center::-webkit-scrollbar {
+    display: none;
+  }
+  .rate-pill, .live-status-pill, .auto-refresh-pill {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+  }
+
+  /* Mobile Tabs Navigation & Actions (目前持有標的 到 匯出 CSV) */
+  .nav-tabs-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* 分頁標籤水平平滑滑動，不折行不破版 */
+  .nav-tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding-bottom: 4px;
+    width: 100%;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  /* 下方操作按鈕 (新增投資標的、匯入 data.json、匯入 CSV、匯出 CSV) 2x2 緊湊整齊排列 */
+  .tab-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .tab-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 6px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab-actions .btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-card { flex-direction: column; align-items: stretch; gap: 10px; }
   .toolbar-left, .toolbar-right { width: 100%; justify-content: space-between; }
   .search-box input { width: 100%; }
+
+  .filter-chips {
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 6px 10px;
+  }
+  .brand-title {
+    font-size: 0.92rem;
+  }
+  .tab-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .tab-actions .btn {
+    font-size: 0.74rem;
+    padding: 6px 4px;
+    gap: 4px;
+  }
 }
 
 /* Auth Mode (View-Only vs Viewer vs Admin Mode) */

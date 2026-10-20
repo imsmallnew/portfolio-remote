@@ -103,6 +103,25 @@
     "SNDK": { price: 1299.30, nightPrice: 1299.30, prevClose: 1394.83, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
   };
 
+  // 訪客預設初始展示持股交易 (當 Firestore 尚未初始化或首次載入時確保不留白)
+  const DEFAULT_DEMO_TRANSACTIONS = [
+    { id: 'tx_demo_1', date: '2026-01-15', symbol: '2330', name: '台積電', action: '單筆買進', shares: 105, price: 2081.62, total_amount: 218570, currency: 'TWD', note: '核心持股' },
+    { id: 'tx_demo_2', date: '2026-01-20', symbol: '0050', name: '元大台灣50', action: '定期定額', shares: 5683.5, price: 89.87, total_amount: 510776, currency: 'TWD', note: '台股ETF基本盤' },
+    { id: 'tx_demo_3', date: '2026-02-10', symbol: 'VOO', name: 'Vanguard 標普500 ETF', action: '定期定額', shares: 1.74, price: 644.04, total_amount: 1120.63, currency: 'USD', note: '美股大盤ETF' },
+    { id: 'tx_demo_4', date: '2026-02-15', symbol: '00981A', name: '統一台灣高息動能/00981A', action: '單筆買進', shares: 4646, price: 38.34, total_amount: 178128, currency: 'TWD', note: '高股息ETF' },
+    { id: 'tx_demo_5', date: '2026-02-20', symbol: '00403A', name: '瀚亞/00403A', action: '單筆買進', shares: 8300, price: 19.71, total_amount: 163593, currency: 'TWD', note: '海外債券/基金' },
+    { id: 'tx_demo_6', date: '2026-03-01', symbol: '00406A', name: '00406A', action: '單筆買進', shares: 3000, price: 9.40, total_amount: 28200, currency: 'TWD', note: '基金配置' },
+    { id: 'tx_demo_7', date: '2026-03-05', symbol: '台達電', name: '台達電', action: '單筆買進', shares: 47, price: 1910.74, total_amount: 89805, currency: 'TWD', note: '綠能與電源龍頭' },
+    { id: 'tx_demo_8', date: '2026-03-10', symbol: '聯發科', name: '聯發科', action: '單筆買進', shares: 13, price: 4996.15, total_amount: 64950, currency: 'TWD', note: 'IC設計權值股' },
+    { id: 'tx_demo_9', date: '2026-03-15', symbol: '南亞科', name: '南亞科', action: '單筆買進', shares: 35, price: 1338.71, total_amount: 46855, currency: 'TWD', note: 'DRAM記憶體' },
+    { id: 'tx_demo_10', date: '2026-03-20', symbol: '瀚亞', name: '瀚亞科技基金', action: '定期定額', shares: 1.104, price: 90.56, total_amount: 99.98, currency: 'USD', note: '科技主題境外基金' },
+    { id: 'tx_demo_11', date: '2026-03-22', symbol: 'MU', name: '美光科技 Micron', action: '單筆買進', shares: 2.132, price: 938.25, total_amount: 2000.35, currency: 'USD', note: '美股半導體' },
+    { id: 'tx_demo_12', date: '2026-03-25', symbol: 'NVDA', name: '輝達 NVIDIA', action: '單筆買進', shares: 1.472, price: 203.24, total_amount: 299.17, currency: 'USD', note: 'AI算力龍頭' },
+    { id: 'tx_demo_13', date: '2026-04-01', symbol: 'MRVL', name: '邁威爾 Marvell', action: '單筆買進', shares: 1.0, price: 266.26, total_amount: 266.26, currency: 'USD', note: '網通晶片' },
+    { id: 'tx_demo_14', date: '2026-04-05', symbol: 'SpaceX', name: 'SpaceX', action: '單筆買進', shares: 4.0, price: 181.39, total_amount: 725.56, currency: 'USD', note: '太空衛星' },
+    { id: 'tx_demo_15', date: '2026-04-10', symbol: 'SNDK', name: 'SNDK', action: '單筆買進', shares: 4.0, price: 1788.50, total_amount: 7154.00, currency: 'USD', note: '快閃記憶體' }
+  ];
+
   // Helper formatting functions
   function formatMoney(num, decimals = 0) {
     if (num === undefined || num === null || isNaN(num)) return '--';
@@ -293,8 +312,7 @@
         recalculatePortfolio();
         updateUi();
         if (window.cloudStore.userRole === 'owner') {
-          await persistState();
-          showNotification('已為您初始化雲端資料庫！', 'success');
+          showNotification('雲端資料庫尚未建立，請點擊「☁️ 匯入 data.json」同步您的完整本機資料！', 'info');
         }
       }
 
@@ -373,7 +391,9 @@
           state.baselineDividendIncome = parsed.baselineDividendIncome !== undefined ? parsed.baselineDividendIncome : 10967.0;
           state.dashboardTitle = parsed.dashboardTitle || state.dashboardTitle;
           state.quotes = parsed.quotes || DEFAULT_QUOTES;
-          state.transactions = parsed.transactions || [];
+          state.transactions = (parsed.transactions && parsed.transactions.length > 0)
+            ? parsed.transactions
+            : [ ...DEFAULT_DEMO_TRANSACTIONS ];
           state.realizedRecords = parsed.realizedRecords !== undefined ? parsed.realizedRecords : [];
           state.dividendRecords = parsed.dividendRecords !== undefined ? parsed.dividendRecords : [];
           state.fundReserves = parsed.fundReserves || state.fundReserves;
@@ -387,7 +407,7 @@
     state.usdRate = 32.51;
     state.baselineRealizedPl = 67493.0;
     state.baselineDividendIncome = 10967.0;
-    state.transactions = [];
+    state.transactions = [ ...DEFAULT_DEMO_TRANSACTIONS ];
   }
 
   function saveStateToLocal() {
