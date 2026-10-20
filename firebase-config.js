@@ -17,7 +17,7 @@ window.FIREBASE_CONFIG = {
 // 權限存取控制 (可在這裡設定預設擁有者與允許檢視的 Email 名單，亦可於 Firestore access/main 文件中維護)
 window.REMOTE_ACCESS_CONFIG = {
   // 擁有者 Email (具有完整查看與編輯修改、新增交易權限)
-  ownerEmail: "",
+  ownerEmail: "imsmallnew@gmail.com",
 
   // 允許遠端檢視的 Email 名單 (僅能查詢與瀏覽，無法編輯)
   viewerEmails: [
