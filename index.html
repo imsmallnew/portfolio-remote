@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark" data-color-mode="tw" data-auth-mode="view">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>富邦投資儀表板 PRO | 即時行情 · 夜盤差額 · TradingView · 配息與已實現損益</title>
+  <meta name="description" content="富邦證券投資即時儀表板，支援目前持有標的股數價格損益計算、夜盤現價差額、TradingView 即時行情、已實現損益與配息表明細、權限管理模式與 CSV 匯入更新。">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="dashboard-layout">
+    
+    <!-- Top Navigation Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <div class="brand-content-col">
+            <div class="title-edit-wrapper">
+              <h1 class="brand-title" id="dashboardTitle" title="點擊或雙擊可修改名稱">富邦投資儀表板 PRO</h1>
+              <button class="icon-btn-inline admin-only" id="btnEditTitle" title="編輯儀表板名稱">✎</button>
+            </div>
+            <!-- Auth Mode & Cloud Sync Indicator -->
+            <div class="auth-subbar-wrapper">
+              <span class="auth-status-badge" id="authRoleBadge" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:3px 10px; border-radius:999px; background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.25);">
+                <span id="authIcon">☁️</span>
+                <span id="authStatusText">雲端安全連線中...</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Live Status Pill -->
+        <div class="live-status-pill" id="liveStatusPill">
+          <span class="status-dot"></span>
+          <span id="liveStatusText">已載入即時行情</span>
+          <span class="status-time" id="lastUpdatedTime">更新中...</span>
+        </div>
+
+        <!-- Auto Refresh Selector -->
+        <div class="auto-refresh-pill" title="設定定時自動更新即時行情">
+          <span class="auto-refresh-icon">⏱️</span>
+          <select id="autoRefreshSelect" class="select-inline">
+            <option value="0">手動更新</option>
+            <option value="30">每 30 秒</option>
+            <option value="60">每 1 分鐘</option>
+            <option value="300">每 5 分鐘</option>
+            <option value="600">每 10 分鐘</option>
+          </select>
+          <span class="auto-refresh-countdown" id="autoRefreshCountdown"></span>
+        </div>
+
+        <!-- USD/TWD Rate -->
+        <div class="rate-pill" id="ratePill" title="點擊檢視/修改美元匯率與歷史基準">
+          <span class="rate-label">USD/TWD</span>
+          <span class="rate-value" id="headerUsdRate">32.45</span>
+          <button class="icon-btn-mini admin-only" id="btnEditRate" title="修改匯率與設定">✎</button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Color Mode Toggle -->
+        <button class="btn btn-secondary btn-sm" id="btnToggleColorMode" title="切換漲跌顏色習慣">
+          <span id="colorModeIcon">📈</span>
+          <span id="colorModeText">台股習慣</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button class="btn btn-icon btn-sm" id="btnToggleTheme" title="切換深淺色外觀">
+          <span id="themeIcon">🌙</span>
+        </button>
+
+        <!-- Refresh Quotes Button -->
+        <button class="btn btn-secondary btn-sm" id="btnRefreshQuotes" title="立即更新所有標的最新報價 (TradingView)">
+          <svg class="btn-icon-svg" id="refreshSvgIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          <span id="refreshBtnText">更新報價</span>
+        </button>
+
+        <!-- Remote User Profile / Auth Pill -->
+        <div id="remoteUserPill" class="remote-user-pill" style="display:none;">
+          <img id="userAvatarImg" class="remote-user-avatar" src="" alt="頭像" style="display:none;">
+          <span id="userNameLabel" class="user-name-text">使用者</span>
+          <span id="userRoleBadge" class="role-tag-viewer">檢視者</span>
+          <button id="btnRemoteSignOut" class="btn-signout" title="登出 Google 帳號">登出</button>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" id="btnHeaderSignIn" style="display:none;" title="登入 Google 帳號">
+          <span>🔑 登入</span>
+        </button>
+
+        <!-- Add New Asset / Symbol (Admin only) -->
+        <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="新增自訂標的 (台股/美股/ETF/基金)">
+          <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>新增標的</span>
+        </button>
+
+        <!-- Add Transaction (Admin only) -->
+        <button class="btn btn-primary btn-sm admin-only" id="btnOpenAddModal">
+          <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>新增買賣交易</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+      
+      <!-- KPI Stats Section -->
+      <section class="kpi-grid">
+        <!-- Market Value -->
+        <div class="kpi-card highlight-card">
+          <div class="kpi-header">
+            <span class="kpi-title">目前投資總市值</span>
+            <span class="kpi-badge badge-blue">即時折合</span>
+          </div>
+          <div class="kpi-value-group">
+            <span class="kpi-value text-gradient-cyan" id="kpiTotalMarketValue">NT$ --</span>
+            <span class="kpi-subvalue" id="kpiTotalMarketValueUsd">約 $-- USD</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-meta">標的總數：<strong id="kpiHoldingCount">0</strong> 檔持有中</span>
+          </div>
+        </div>
+
+        <!-- Invested Cost -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">目前持有總成本</span>
+            <span class="kpi-badge badge-neutral">加權均價成本</span>
+          </div>
+          <div class="kpi-value-group">
+            <span class="kpi-value mono" id="kpiTotalCost">NT$ --</span>
+            <span class="kpi-subvalue" id="kpiTotalCostUsd">折合 $-- USD</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-meta">累計總買入：<span id="kpiGrossBought">NT$ --</span></span>
+          </div>
+        </div>
+
+        <!-- Unrealized P/L -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">未實現損益 (帳面)</span>
+            <span class="kpi-badge" id="kpiUnrealizedBadge">0.00%</span>
+          </div>
+          <div class="kpi-value-group">
+            <span class="kpi-value mono font-semibold" id="kpiUnrealizedPL">NT$ --</span>
+            <span class="kpi-subvalue" id="kpiUnrealizedPLUsd">折合 $-- USD</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-meta">帳面報酬率：<strong id="kpiRoiRate">--%</strong></span>
+          </div>
+        </div>
+
+        <!-- Realized P/L (Aligned with CSV 67,493) -->
+        <div class="kpi-card is-interactive" id="realizedCard" title="點擊切換至「已實現損益明細」頁籤">
+          <div class="kpi-header">
+            <span class="kpi-title">已實現損益 (富邦試算)</span>
+            <span class="kpi-badge badge-gold">點擊看明細 ➔</span>
+          </div>
+          <div class="kpi-value-group">
+            <span class="kpi-value mono font-semibold val-up" id="kpiRealizedPL">NT$ 67,493</span>
+            <span class="kpi-subvalue" id="kpiRealizedPLNote">歷史已結算收益 + 新交易</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-meta">已實現紀錄：<strong id="kpiRealizedCount">16</strong> 筆結算</span>
+          </div>
+        </div>
+
+        <!-- Total Cumulative Return -->
+        <div class="kpi-card highlight-card-gold is-interactive" id="dividendCard" title="點擊切換至「配息收入表」頁籤">
+          <div class="kpi-header">
+            <span class="kpi-title">資產累積總報酬</span>
+            <span class="kpi-badge badge-gold" id="kpiTotalReturnBadge">0.00%</span>
+          </div>
+          <div class="kpi-value-group">
+            <span class="kpi-value text-gradient-gold mono" id="kpiTotalReturn">NT$ --</span>
+            <span class="kpi-subvalue">未實現 + 已實現 + 配息</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-meta">累計配息：<strong id="kpiDividendIncome">NT$ 10,967</strong> (點擊看表)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fund Reserves & Net Worth Overview Section (Collapsible - Default One Line) -->
+      <section class="fund-reserves-section" id="fundReservesSection">
+        <div class="fund-card">
+          <!-- 1. Default One-Line Summary Bar -->
+          <div class="fund-summary-bar" id="fundSummaryBar">
+            <div class="fund-sum-col">
+              <span class="fund-sum-label">💧 現金水位儲備池</span>
+              <span class="fund-sum-val mono text-cyan" id="fundTotalReserves">NT$ 399,607</span>
+            </div>
+            <div class="fund-sum-divider">+</div>
+            <div class="fund-sum-col">
+              <span class="fund-sum-label">🛡️ 儲蓄保單與本金資產</span>
+              <span class="fund-sum-val mono text-purple" id="fundTotalInsurance">NT$ 4,313,902</span>
+            </div>
+            <div class="fund-sum-divider">+</div>
+            <div class="fund-sum-col">
+              <span class="fund-sum-label">📈 證券投資總市值 (即時)</span>
+              <span class="fund-sum-val mono text-cyan" id="fundInvestmentMarketValue">NT$ --</span>
+            </div>
+            <div class="fund-sum-divider">=</div>
+            <div class="fund-sum-col highlight-networth">
+              <div class="networth-title-row">
+                <span class="fund-sum-label">🏛️ 個人總淨資產 (Net Worth)</span>
+                <span class="networth-sublabel" id="fundNetWorthBaseline" title="含投資市值+儲蓄保單+月配本金+現金池">對齊規劃 664 萬</span>
+              </div>
+              <span class="fund-sum-val mono text-gradient-gold" id="fundTotalNetWorth">NT$ --</span>
+            </div>
+
+            <!-- Actions: Edit & Expand/Collapse Toggle -->
+            <div class="fund-bar-actions">
+              <button class="btn btn-secondary btn-xs admin-only" id="btnEditFundReserves" title="修改生活預備金、投資資金、儲蓄保單、月配本金與收支">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>✏️ 編輯</span>
+              </button>
+              <button class="btn btn-secondary btn-xs" id="btnToggleFundDetails" title="展開或收合詳細儲備資產與收支細項">
+                <span id="toggleFundText">展開明細</span>
+                <span id="toggleFundArrow">▼</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Collapsible Details Container (Default Hidden) -->
+          <div class="fund-details-collapse" id="fundDetailsCollapse" style="display: none;">
+            <div class="fund-details-inner">
+              <div class="fund-collapse-header">
+                <span class="text-tertiary-sm">📋 資產儲備細項與年度收支規劃（對齊富邦試算「資產配置規劃」頁籤）</span>
+              </div>
+              <!-- 6 Detailed Cards -->
+              <div class="fund-items-grid">
+                <!-- 1. Living Reserve -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">生活預備金</span>
+                    <span class="badge-pill badge-pill-emerald">流動現金</span>
+                  </div>
+                  <div class="fund-item-val mono" id="fundValLiving">NT$ 117,189</div>
+                  <div class="fund-item-desc">生活日常緊急防護網</div>
+                </div>
+
+                <!-- 2. Investment Capital -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">投資現金池 (待投入)</span>
+                    <span class="badge-pill badge-pill-cyan">逢低加碼金</span>
+                  </div>
+                  <div class="fund-item-val mono text-cyan" id="fundValInvest">NT$ 190,000</div>
+                  <div class="fund-item-desc">伺機進場或每月定額扣款池</div>
+                </div>
+
+                <!-- 3. USD Liquid Savings -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">活存美金現金</span>
+                    <span class="badge-pill badge-pill-gold">中信+玉山外幣</span>
+                  </div>
+                  <div class="fund-item-val mono text-gold" id="fundValUsd">$2,848 USD</div>
+                  <div class="fund-item-desc" id="fundValUsdConverted">折合約 NT$ 92,418 (@ 32.45)</div>
+                </div>
+
+                <!-- 4. Savings Insurance & Principal -->
+                <div class="fund-item highlight-insurance-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">儲蓄保單與本金總額</span>
+                    <span class="badge-pill badge-pill-purple">穩定儲蓄資產</span>
+                  </div>
+                  <div class="fund-item-val mono text-purple" id="fundValSavingsInsurance">NT$ 4,313,902</div>
+                  <div class="fund-item-desc" id="fundValInsuranceDetail">含台幣保單293萬 + 美元保單$8458 + 月配本金110.9萬</div>
+                </div>
+
+                <!-- 5. Monthly & Annual Income -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">個人總收入規劃</span>
+                    <span class="badge-pill badge-pill-emerald">年收 123 萬</span>
+                  </div>
+                  <div class="fund-item-val mono text-emerald" id="fundValMonthlyIncome">月 NT$ 82,255</div>
+                  <div class="fund-item-desc" id="fundValIncomeDesc">薪資實領 6.6萬 + 月配息 1.62萬 + 保單滿期給付</div>
+                </div>
+
+                <!-- 6. Monthly Expense & Savings Flow -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">生活支出與定期定額</span>
+                    <span class="badge-pill badge-pill-cyan">年度結餘 +19.8萬</span>
+                  </div>
+                  <div class="fund-item-val mono" id="fundValMonthlyExpense">支出 NT$ 43,218</div>
+                  <div class="fund-item-desc" id="fundValExpenseDesc">定期定額月扣 4.27萬 ｜ 年度淨結餘 NT$ 198,081</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs-wrapper">
+        <div class="nav-tabs">
+          <button class="nav-tab active" data-tab="tab-holdings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>目前持有標的 (<span id="tabHoldingCountBadge">17</span>)</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-transactions">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <span>買賣交易清單 (<span id="tabTxCountBadge">310</span>)</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-realized">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            <span>已實現損益紀錄 (<span id="tabRealizedCountBadge">16</span>)</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-dividends">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            <span>配息收入表 (<span id="tabDividendCountBadge">5</span>)</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-analytics">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+            <span>資產配置與分析圖表</span>
+          </button>
+        </div>
+
+        <div class="tab-actions">
+          <!-- Add Asset (Admin only) -->
+          <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="擴充新增股票、ETF 或基金標的">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>新增投資標的</span>
+          </button>
+
+          <!-- CSV Import/Overwrite (Admin only) -->
+          <button class="btn btn-secondary btn-sm admin-only" id="btnImportCsvTrigger" title="從 SharePoint 匯出的 CSV 覆蓋/匯入最新投資清單">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>📥 匯入/覆蓋 CSV</span>
+          </button>
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+
+          <!-- Export CSV -->
+          <button class="btn btn-secondary btn-sm" id="btnExportCsv" title="匯出最新完整交易清單 CSV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>匯出 CSV</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- TAB 1: Currently Held Targets (目前持有標的) -->
+      <section id="tab-holdings" class="tab-pane active">
+        <!-- Filter & Control Toolbar -->
+        <div class="toolbar-card">
+          <div class="toolbar-left flex-wrap">
+            <div class="filter-chips" id="holdingCategoryFilters">
+              <button class="chip active" data-cat="all">全部標的</button>
+              <button class="chip" data-cat="tw_stock">台股個股</button>
+              <button class="chip" data-cat="tw_etf">台股 ETF</button>
+              <button class="chip" data-cat="us">美股/ETF</button>
+              <button class="chip" data-cat="fund">基金</button>
+            </div>
+
+            <!-- Hide zero-shares toggle -->
+            <label class="toggle-checkbox" title="勾選後自動隱藏已釋出全部股數 (股數為 0) 的標的">
+              <input type="checkbox" id="toggleHideZeroShares" checked>
+              <span>隱藏已出清標的 (股數 0)</span>
+            </label>
+
+            <!-- Show manually hidden toggle -->
+            <label class="toggle-checkbox" title="顯示手動勾選隱藏的標的">
+              <input type="checkbox" id="toggleShowHidden">
+              <span>顯示隱藏標的</span>
+            </label>
+
+            <!-- Sorting selector -->
+            <div class="sort-selector-wrapper">
+              <label for="holdingSortSelect">排序方式：</label>
+              <select id="holdingSortSelect" class="select-sm">
+                <option value="custom">⋮⋮ 自訂拖動排序</option>
+                <option value="marketValue">依市值高低</option>
+                <option value="pl">依未實現損益</option>
+                <option value="roi">依報酬率高低</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toolbar-right">
+            <span class="hidden-info-hint" id="hiddenAssetsInfo"></span>
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="holdingSearchInput" placeholder="搜尋代號、名稱、TradingView...">
+              <button class="search-clear-btn" id="holdingSearchClear">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Holdings Table Card -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="holdingsTable">
+              <thead>
+                <tr>
+                  <th class="col-drag" title="按住拖動上下調整排序">順序</th>
+                  <th class="col-symbol">標的代號 / 名稱 / TradingView</th>
+                  <th class="col-type">類別</th>
+                  <th class="col-shares text-right">持有股數</th>
+                  <th class="col-cost text-right">平均成本</th>
+                  <th class="col-price text-right">即時現價 (昨收)</th>
+                  <th class="col-night-price text-right highlight-col-th" title="夜盤/盤後現價，下方灰色為與即時現價之差額">夜盤現價 (差額)</th>
+                  <th class="col-chg text-right">今日漲跌</th>
+                  <th class="col-invested text-right">總投入成本 (NT)</th>
+                  <th class="col-marketval text-right">目前市值 (NT)</th>
+                  <th class="col-pl text-right">未實現損益 (NT)</th>
+                  <th class="col-roi text-right">帳面報酬率</th>
+                  <th class="col-weight text-center">佔比</th>
+                  <th class="col-actions text-center">管理與操作</th>
+                </tr>
+              </thead>
+              <tbody id="holdingsTableBody">
+                <!-- Injected via JavaScript -->
+              </tbody>
+              <tfoot id="holdingsTableFoot">
+                <!-- Total summary row -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Transactions Ledger (買賣交易清單) -->
+      <section id="tab-transactions" class="tab-pane">
+        <!-- Transactions Toolbar -->
+        <div class="toolbar-card">
+          <div class="toolbar-left flex-wrap">
+            <div class="form-group-inline">
+              <label for="txFilterSymbol">標的：</label>
+              <select id="txFilterSymbol" class="select-sm">
+                <option value="all">所有標的</option>
+                <!-- Injected dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group-inline">
+              <label for="txFilterAction">類別：</label>
+              <select id="txFilterAction" class="select-sm">
+                <option value="all">所有型態</option>
+                <option value="定期定額">定期定額</option>
+                <option value="單筆買進">單筆買進</option>
+                <option value="賣出">賣出</option>
+              </select>
+            </div>
+
+            <div class="form-group-inline">
+              <label for="txSearchInput">搜尋：</label>
+              <input type="text" id="txSearchInput" class="input-sm" placeholder="日期、金額、備註...">
+            </div>
+          </div>
+
+          <div class="toolbar-right">
+            <span class="tx-stats-text" id="txStatsCount">顯示 0 / 0 筆交易</span>
+            <button class="btn btn-primary btn-sm admin-only" id="btnTxAdd">
+              <span>+ 新增交易</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Transactions Table Card -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="transactionsTable">
+              <thead>
+                <tr>
+                  <th class="col-tx-date">交易日期</th>
+                  <th class="col-tx-symbol">標的代號 / 名稱</th>
+                  <th class="col-tx-action">型態</th>
+                  <th class="col-tx-shares text-right">成交股數</th>
+                  <th class="col-tx-price text-right">成交單價</th>
+                  <th class="col-tx-amount text-right">總金額</th>
+                  <th class="col-tx-curr text-center">幣別</th>
+                  <th class="col-tx-linkage">連動狀態</th>
+                  <th class="col-tx-actions text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="table-pagination">
+            <div class="pagination-info" id="paginationInfo">顯示第 1 到 50 筆，共 310 筆</div>
+            <div class="pagination-controls">
+              <button class="btn btn-secondary btn-xs" id="btnPagePrev" disabled>&laquo; 上一頁</button>
+              <span class="page-current" id="pageCurrent">1 / 7</span>
+              <button class="btn btn-secondary btn-xs" id="btnPageNext">下一頁 &raquo;</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: Realized P/L Details (已實現損益紀錄) - NEW -->
+      <section id="tab-realized" class="tab-pane">
+        <div class="toolbar-card">
+          <div class="toolbar-left flex-wrap">
+            <div class="summary-pill-highlight">
+              <span>富邦試算歷史已實現損益累計：</span>
+              <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="realizedSummaryText">NT$ 67,493</strong>
+            </div>
+            <span class="text-tertiary-sm">（對齊「富邦試算」已實現損益頁籤結算明細）</span>
+          </div>
+
+          <div class="toolbar-right">
+            <button class="btn btn-primary btn-sm admin-only" id="btnAddRealized">
+              <span>+ 新增已實現結算紀錄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="realizedTable">
+              <thead>
+                <tr>
+                  <th>結算日期</th>
+                  <th>標的代號 / 名稱</th>
+                  <th class="text-right">賣出股數</th>
+                  <th class="text-right">成交賣價</th>
+                  <th class="text-right">買入均價/成本</th>
+                  <th class="text-center">幣別</th>
+                  <th class="text-right">已實現損益 (NT$)</th>
+                  <th class="text-right">投資報酬率</th>
+                  <th>備註說明</th>
+                  <th class="text-center admin-only">操作</th>
+                </tr>
+              </thead>
+              <tbody id="realizedTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+              <tfoot id="realizedTableFoot">
+                <!-- Total realized footer -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: Dividend Ledger (配息收入表) - NEW -->
+      <section id="tab-dividends" class="tab-pane">
+        <div class="toolbar-card">
+          <div class="toolbar-left flex-wrap">
+            <div class="summary-pill-highlight">
+              <span>歷史總配息收入累計：</span>
+              <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="dividendSummaryText">NT$ 10,967</strong>
+            </div>
+            <span class="text-tertiary-sm">（對齊「富邦試算」配息表頁籤紀錄）</span>
+          </div>
+
+          <div class="toolbar-right">
+            <button class="btn btn-primary btn-sm admin-only" id="btnAddDividend">
+              <span>+ 新增配息紀錄</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="dividendTable">
+              <thead>
+                <tr>
+                  <th>發放/除息日</th>
+                  <th>標的代號 / 名稱</th>
+                  <th>配息型態</th>
+                  <th class="text-right">每股配息</th>
+                  <th class="text-right">參與配息股數</th>
+                  <th class="text-right">實領配息金額</th>
+                  <th class="text-center">幣別</th>
+                  <th class="text-right">折合台幣 (NT$)</th>
+                  <th>備註</th>
+                  <th class="text-center admin-only">操作</th>
+                </tr>
+              </thead>
+              <tbody id="dividendTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+              <tfoot id="dividendTableFoot">
+                <!-- Total dividend footer -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: Visual Analytics (資產分析與配置) -->
+      <!-- Tab 5: Analytics -->
+      <section id="tab-analytics" class="tab-pane">
+        <!-- Asset Overview Banner above charts -->
+        <div class="analytics-overview-card" id="analyticsAssetOverview">
+          <div class="analytics-overview-header">
+            <div class="overview-title-group">
+              <div class="overview-icon">🏛️</div>
+              <div>
+                <h3 class="overview-title">個人總淨資產與三大配置總覽</h3>
+                <p class="overview-subtitle">依據富邦「資產配置規劃」即時聯動 · 即時市值 + 儲備池 + 儲蓄保單</p>
+              </div>
+            </div>
+            <div class="overview-networth-badge">
+              <span class="overview-nw-label">目前總淨資產 (Net Worth)</span>
+              <span class="overview-nw-val mono" id="analyticsNetWorthVal">NT$ --</span>
+              <span class="overview-nw-target">對齊規劃基準: NT$ 6,642,812</span>
+            </div>
+          </div>
+
+          <div class="analytics-pillars-grid">
+            <!-- Pillar 1: Savings & Insurance -->
+            <div class="pillar-card pillar-savings">
+              <div class="pillar-top">
+                <span class="pillar-name">🛡️ 儲蓄保單與本金</span>
+                <span class="pillar-pct mono" id="pillarSavingsPct">65.4%</span>
+              </div>
+              <div class="pillar-val mono text-purple" id="pillarSavingsVal">NT$ 4,313,902</div>
+              <div class="pillar-progress-track">
+                <div class="pillar-progress-bar bar-purple" id="pillarSavingsBar" style="width: 65.4%;"></div>
+              </div>
+              <div class="pillar-footer">
+                <span>規劃目標: 55%</span>
+                <span class="text-tertiary-xs">含台幣保單+美保+月配本金</span>
+              </div>
+            </div>
+
+            <!-- Pillar 2: Securities Investment -->
+            <div class="pillar-card pillar-investment">
+              <div class="pillar-top">
+                <span class="pillar-name">📈 證券投資總市值 (即時)</span>
+                <span class="pillar-pct mono" id="pillarInvestPct">29.0%</span>
+              </div>
+              <div class="pillar-val mono text-cyan" id="pillarInvestVal">NT$ --</div>
+              <div class="pillar-progress-track">
+                <div class="pillar-progress-bar bar-cyan" id="pillarInvestBar" style="width: 29.0%;"></div>
+              </div>
+              <div class="pillar-footer">
+                <span>規劃目標: 30%</span>
+                <span class="text-tertiary-xs">依目前台美股現價與夜盤</span>
+              </div>
+            </div>
+
+            <!-- Pillar 3: Cash Reserves Pool -->
+            <div class="pillar-card pillar-cash">
+              <div class="pillar-top">
+                <span class="pillar-name">💧 現金水位儲備池</span>
+                <span class="pillar-pct mono" id="pillarCashPct">5.6%</span>
+              </div>
+              <div class="pillar-val mono text-emerald" id="pillarCashVal">NT$ 399,607</div>
+              <div class="pillar-progress-track">
+                <div class="pillar-progress-bar bar-emerald" id="pillarCashBar" style="width: 5.6%;"></div>
+              </div>
+              <div class="pillar-footer">
+                <span>規劃目標: 15%</span>
+                <span class="text-tertiary-xs">生活預備金+投資池+美金活存</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-grid">
+          <!-- Allocation by Category -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">資產大類配置比重</h3>
+              <span class="chart-badge">類別分佈</span>
+            </div>
+            <div class="chart-body">
+              <div class="donut-chart-container">
+                <svg id="categoryDonutSvg" viewBox="0 0 220 220" width="220" height="220"></svg>
+                <div class="donut-center-info">
+                  <span class="donut-center-title">總市值</span>
+                  <span class="donut-center-val" id="donutTotalVal">--</span>
+                </div>
+              </div>
+              <div class="chart-legend" id="categoryLegend">
+                <!-- Injected -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Allocation by Symbol -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">核心持股標的佔比</h3>
+              <span class="chart-badge">標的權重</span>
+            </div>
+            <div class="chart-body">
+              <div class="donut-chart-container">
+                <svg id="symbolDonutSvg" viewBox="0 0 220 220" width="220" height="220"></svg>
+                <div class="donut-center-info">
+                  <span class="donut-center-title">最大標的</span>
+                  <span class="donut-center-val" id="donutTopSymbol">0050</span>
+                </div>
+              </div>
+              <div class="chart-legend" id="symbolLegend">
+                <!-- Injected -->
+              </div>
+            </div>
+          </div>
+
+          <!-- P/L Performance Ranking -->
+          <div class="chart-card full-width">
+            <div class="chart-header">
+              <h3 class="chart-title">各持有標的未實現損益排行榜 (NTD)</h3>
+              <span class="chart-badge">損益貢獻</span>
+            </div>
+            <div class="chart-body">
+              <div class="bar-chart-container" id="plBarChartContainer">
+                <!-- Bar chart items injected dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- Modals Section -->
+
+    <!-- 0. Admin Login Modal (管理員密碼驗證) -->
+    <div class="modal-backdrop" id="adminModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">🔐 管理員登入</h3>
+          <button class="modal-close-btn" id="btnAdminModalClose">&times;</button>
+        </div>
+        <form id="adminLoginForm" class="modal-body">
+          <p class="modal-desc">目前為訪客檢視模式。請輸入管理員密碼以解鎖編輯、新增、刪除、設定與 CSV 匯入功能：</p>
+          
+          <div class="form-group">
+            <label for="adminPasswordInput">管理員密碼 <span class="req">*</span></label>
+            <input type="password" id="adminPasswordInput" placeholder="請輸入密碼..." autocomplete="current-password" required>
+            <span class="form-hint">預設密碼為 <code>daniel2026</code>（可在登入後於設定中變更）</span>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnAdminModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">確認解鎖</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 1. TradingView Interactive Modal -->
+    <div class="modal-backdrop" id="tvModalBackdrop">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="tv-modal-title-group">
+            <h3 class="modal-title" id="tvModalTitle">標的即時行情 · TradingView</h3>
+            <span class="tv-modal-sub" id="tvModalSub">即時走勢與技術指標</span>
+          </div>
+          <div class="tv-header-actions">
+            <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs" id="tvOpenExternalLink">
+              <span>在 TradingView 開啟</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+            <button class="modal-close-btn" id="btnTvModalClose">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body tv-modal-body">
+          <!-- TradingView Symbol Info Bar -->
+          <div id="tvSymbolInfoContainer" class="tv-widget-row"></div>
+          <!-- Advanced Real-Time Chart -->
+          <div id="tvAdvancedChartContainer" class="tv-chart-box"></div>
+          <!-- Technical Analysis Gauge -->
+          <div id="tvTechnicalsContainer" class="tv-technicals-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Add / Edit Target Asset Modal -->
+    <div class="modal-backdrop" id="assetModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title" id="assetModalTitle">新增 / 編輯投資標的</h3>
+          <button class="modal-close-btn" id="btnAssetModalClose">&times;</button>
+        </div>
+        <form id="assetForm" class="modal-body">
+          <input type="hidden" id="assetOrigSymbol" value="">
+          
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assetSymbol">標的代號 <span class="req">*</span></label>
+              <input type="text" id="assetSymbol" placeholder="例如：2330、0050、NVDA" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="assetCategory">資產類別 <span class="req">*</span></label>
+              <select id="assetCategory" required>
+                <option value="tw_stock">台股 個股</option>
+                <option value="tw_etf">台股 ETF</option>
+                <option value="us">美股 / ETF</option>
+                <option value="fund">基金 / 境外資產</option>
+                <option value="other">其他自訂資產</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="assetName">標的名稱 (中文或全稱) <span class="req">*</span></label>
+            <input type="text" id="assetName" placeholder="例如：台積電、元大台灣50、輝達" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="assetCurrency">計價幣別 <span class="req">*</span></label>
+              <select id="assetCurrency" required>
+                <option value="TWD">TWD (新台幣)</option>
+                <option value="USD">USD (美元)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="assetPrice">當前參考現價</label>
+              <input type="number" id="assetPrice" step="any" min="0" placeholder="例如 107.55">
+            </div>
+            <div class="form-group flex-1">
+              <label for="assetNightPrice">夜盤現價</label>
+              <input type="number" id="assetNightPrice" step="any" min="0" placeholder="例如 108.20">
+            </div>
+            <div class="form-group flex-1">
+              <label for="assetPrev">昨收價格</label>
+              <input type="number" id="assetPrev" step="any" min="0" placeholder="例如 108.95">
+            </div>
+          </div>
+
+          <!-- TradingView & Online Symbols -->
+          <div class="form-group">
+            <div class="label-with-hint">
+              <label for="assetTvSymbol">TradingView 報價代碼</label>
+              <button type="button" class="btn-link" id="btnAutoGuessTv">自動推薦代號</button>
+            </div>
+            <input type="text" id="assetTvSymbol" placeholder="例如：TWSE:2330、TWSE:0050、NASDAQ:SNDK、NASDAQ:NVDA、AMEX:VOO">
+            <span class="form-hint">填入後可在列表直接開啟 TradingView 官方即時圖表</span>
+          </div>
+
+          <div class="form-group">
+            <label for="assetYahooSymbol">Yahoo Finance 即時代號 (選填)</label>
+            <input type="text" id="assetYahooSymbol" placeholder="例如：2330.TW、0050.TW、NVDA、VOO">
+          </div>
+
+          <!-- Hide Toggle in Asset Modal -->
+          <div class="form-group">
+            <label class="toggle-checkbox">
+              <input type="checkbox" id="assetHidden">
+              <span>在持有列表中隱藏此標的</span>
+            </label>
+          </div>
+
+          <div class="modal-info-box" id="assetTxInfo">
+            此標的已有歷史交易紀錄，修改名稱將同步更新顯示。
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger btn-sm" id="btnAssetDelete" style="margin-right:auto;display:none;">刪除此標的</button>
+            <button type="button" class="btn btn-secondary" id="btnAssetModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">儲存標的設定</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. Add / Edit Transaction Modal -->
+    <div class="modal-backdrop" id="txModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title" id="txModalTitle">新增買賣交易</h3>
+          <button class="modal-close-btn" id="btnTxModalClose">&times;</button>
+        </div>
+        <form id="txForm" class="modal-body">
+          <input type="hidden" id="txFormId" value="">
+          
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="txFormDate">交易日期 <span class="req">*</span></label>
+              <input type="date" id="txFormDate" required>
+            </div>
+            <div class="form-group flex-1">
+              <label for="txFormAction">交易型態 <span class="req">*</span></label>
+              <select id="txFormAction" required>
+                <option value="單筆買進">單筆買進</option>
+                <option value="定期定額">定期定額</option>
+                <option value="賣出">賣出 (減持)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="txFormSymbol">選擇標的 <span class="req">*</span></label>
+            <select id="txFormSymbol" required>
+              <!-- Filled via JS -->
+            </select>
+          </div>
+
+          <!-- Live Price Helper Banner -->
+          <div class="quote-helper-banner" id="quoteHelperBanner">
+            <span>當前參考現價：<strong id="helperCurrentPrice">--</strong> <span id="helperCurrency">TWD</span></span>
+            <span>目前持有股數：<strong id="helperCurrentShares">0</strong> 股</span>
+            <button type="button" class="btn-link" id="btnApplyCurrentPrice">帶入現價</button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="txFormShares">成交股數 <span class="req">*</span></label>
+              <input type="number" id="txFormShares" step="any" min="0.0001" placeholder="例如 100" required>
+              <span class="form-hint" id="sharesAvailableHint"></span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="txFormPrice">成交單價 <span class="req">*</span></label>
+              <input type="number" id="txFormPrice" step="any" min="0.0001" placeholder="例如 107.55" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="txFormTotal">總成交金額 (<span id="formCurrLabel">TWD</span>) <span class="req">*</span></label>
+            <div class="input-with-action">
+              <input type="number" id="txFormTotal" step="any" min="0.01" placeholder="自動計算" required>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnAutoCalcTotal" title="依 股數 × 單價 計算">重新計算</button>
+            </div>
+            <span class="form-hint">金額由股數與單價自動計算，可手動微調含手續費實付金額</span>
+          </div>
+
+          <div class="form-group">
+            <label for="txFormNote">備註 (選填)</label>
+            <input type="text" id="txFormNote" placeholder="例如：加碼、逢低承接...">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnTxModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary" id="btnTxModalSubmit">確認儲存並連動持有股數</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. Edit Quote Modal (含白盤與夜盤現價) -->
+    <div class="modal-backdrop" id="quoteModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">更新標的價格</h3>
+          <button class="modal-close-btn" id="btnQuoteModalClose">&times;</button>
+        </div>
+        <form id="quoteForm" class="modal-body">
+          <input type="hidden" id="quoteSymbol" value="">
+          <p class="modal-desc">手動更新或修正 <strong id="quoteModalName">--</strong> (<span id="quoteModalSymbol">--</span>) 的白盤與夜盤價格：</p>
+          
+          <div class="form-group">
+            <label for="quoteModalPrice">白盤最新價格 (<span id="quoteModalCurr">TWD</span>) <span class="req">*</span></label>
+            <input type="number" id="quoteModalPrice" step="any" min="0.0001" required>
+          </div>
+
+          <div class="form-group">
+            <label for="quoteModalNightPrice">夜盤/盤後價格 (<span id="quoteModalNightCurr">TWD</span>)</label>
+            <input type="number" id="quoteModalNightPrice" step="any" min="0.0001" placeholder="夜盤交易價格">
+            <span class="form-hint">列表會自動計算並顯示與白盤之差額</span>
+          </div>
+
+          <div class="form-group">
+            <label for="quoteModalPrev">昨天收盤價 (<span id="quoteModalPrevCurr">TWD</span>)</label>
+            <input type="number" id="quoteModalPrev" step="any" min="0.0001">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnQuoteModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">確認更新現價</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. Settings Modal -->
+    <div class="modal-backdrop" id="rateModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">匯率、損益與權限密碼設定</h3>
+          <button class="modal-close-btn" id="btnRateModalClose">&times;</button>
+        </div>
+        <form id="rateForm" class="modal-body">
+          <p class="modal-desc">設定用於換算美股市值之匯率，以及對齊 CSV 頁籤之基準數字：</p>
+          
+          <div class="form-group">
+            <label for="rateInput">USD / TWD 基準匯率 <span class="req">*</span></label>
+            <input type="number" id="rateInput" step="0.01" min="1" max="100" value="32.51" required>
+          </div>
+
+          <div class="form-group">
+            <label for="baselineRealizedInput">歷史已實現損益基數 (NT$) <span class="req">*</span></label>
+            <input type="number" id="baselineRealizedInput" step="1" value="67493" required>
+            <span class="form-hint">對齊「富邦試算(投資清單).csv」第 60 欄已實現損益（預設 67,493）</span>
+          </div>
+
+          <div class="form-group">
+            <label for="baselineDividendInput">總配息收入基數 (NT$) <span class="req">*</span></label>
+            <input type="number" id="baselineDividendInput" step="1" value="10967" required>
+            <span class="form-hint">對齊「富邦試算(投資清單).csv」第 61 欄總配息收入（預設 10,967）</span>
+          </div>
+
+          <div class="form-group admin-only" style="border-top:1px solid var(--border-subtle);padding-top:12px;">
+            <label for="newAdminPassword">變更管理員編輯密碼 (選填)</label>
+            <input type="password" id="newAdminPassword" placeholder="留空代表不變更（預設為 daniel2026）">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnRateModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">儲存設定</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 6. Add/Edit Dividend Modal -->
+    <div class="modal-backdrop" id="dividendModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="dividendModalTitle">新增配息紀錄</h3>
+          <button class="modal-close-btn" id="btnDividendModalClose">&times;</button>
+        </div>
+        <form id="dividendForm" class="modal-body">
+          <input type="hidden" id="dividendFormId" value="">
+          
+          <div class="form-group">
+            <label for="divFormDate">除息/發放日期 <span class="req">*</span></label>
+            <input type="date" id="divFormDate" required>
+          </div>
+
+          <div class="form-group">
+            <label for="divFormSymbol">標的代號 <span class="req">*</span></label>
+            <select id="divFormSymbol" required>
+              <!-- Filled via JS -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="divFormType">配息型式</label>
+              <select id="divFormType">
+                <option value="現金股利">現金股利</option>
+                <option value="股票股利">股票股利</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="divFormDps">每股配息</label>
+              <input type="number" id="divFormDps" step="any" min="0" placeholder="例如 1.0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="divFormShares">參與股數</label>
+              <input type="number" id="divFormShares" step="any" min="0" placeholder="例如 1000">
+            </div>
+            <div class="form-group flex-1">
+              <label for="divFormAmount">實領總額 (<span id="divCurrLabel">TWD</span>) <span class="req">*</span></label>
+              <input type="number" id="divFormAmount" step="any" min="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="divFormNote">備註 (選填)</label>
+            <input type="text" id="divFormNote" placeholder="例如：114年度下半年現金股利">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnDividendModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">儲存配息紀錄</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add / Edit Realized Settlement Modal -->
+    <div class="modal-backdrop" id="realizedModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="realizedModalTitle">新增已實現結算紀錄</h3>
+          <button class="modal-close-btn" id="btnRealizedModalClose">&times;</button>
+        </div>
+        <form id="realizedForm" class="modal-body">
+          <input type="hidden" id="realizedFormId" value="">
+          
+          <div class="form-group">
+            <label for="realFormDate">結算日期 <span class="req">*</span></label>
+            <input type="date" id="realFormDate" required>
+          </div>
+
+          <div class="form-group">
+            <label for="realFormSymbol">標的代號 / 名稱 <span class="req">*</span></label>
+            <select id="realFormSymbol" required>
+              <!-- Filled via JS -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="realFormShares">賣出股數 <span class="req">*</span></label>
+              <input type="number" id="realFormShares" step="any" min="0.0001" required placeholder="例如 1000">
+            </div>
+            <div class="form-group flex-1">
+              <label for="realFormSellPrice">成交賣價 <span class="req">*</span></label>
+              <input type="number" id="realFormSellPrice" step="any" min="0.0001" required placeholder="例如 110.5">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="realFormBuyPrice">買入均價/成本 <span class="req">*</span></label>
+              <input type="number" id="realFormBuyPrice" step="any" min="0.0001" required placeholder="例如 95.0">
+            </div>
+            <div class="form-group flex-1">
+              <label for="realFormPlTwd">已實現損益 (<span id="realCurrLabel">NT$</span>) <span class="req">*</span></label>
+              <input type="number" id="realFormPlTwd" step="any" required placeholder="自動計算或手動調整">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="realFormNote">備註說明 (選填)</label>
+            <input type="text" id="realFormNote" placeholder="例如：停利出場、富邦試算結算紀錄">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnRealizedModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">儲存結算紀錄</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 7. Edit Fund Reserves Modal -->
+    <div class="modal-backdrop" id="fundModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">💰 編輯資金水位與資產儲備</h3>
+          <button class="modal-close-btn" id="btnFundModalClose">&times;</button>
+        </div>
+        <form id="fundForm" class="modal-form">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="fundFormLiving">生活預備金 (NT$)</label>
+              <input type="number" id="fundFormLiving" step="1" min="0" required placeholder="例如：117189">
+              <span class="form-tip">日常生活開銷緊急備用金</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormInvest">投資現金池 (待投入 NT$)</label>
+              <input type="number" id="fundFormInvest" step="1" min="0" required placeholder="例如：190000">
+              <span class="form-tip">待加碼或每月定期定額扣款活存</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="fundFormSavingsInsurance">台幣儲蓄型保單 (NT$)</label>
+              <input type="number" id="fundFormSavingsInsurance" step="1" min="0" required placeholder="例如：2930000">
+              <span class="form-tip">已存入台幣儲蓄型保單現值</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormUsdInsurance">美元保單現值 ($ USD)</label>
+              <input type="number" id="fundFormUsdInsurance" step="any" min="0" required placeholder="例如：8458">
+              <span class="form-tip">美元保單現值（例如 2/6年期）</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormMonthlyDeposit">月配本金 (NT$)</label>
+              <input type="number" id="fundFormMonthlyDeposit" step="1" min="0" required placeholder="例如：1108932">
+              <span class="form-tip">月配息投資本金資產</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="fundFormUsd">活存美金現金 ($ USD)</label>
+              <input type="number" id="fundFormUsd" step="any" min="0" required placeholder="例如：2848">
+              <span class="form-tip">中信 + 玉山美金活存合計</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormMonthlyIncome">每月總收入 (NT$)</label>
+              <input type="number" id="fundFormMonthlyIncome" step="1" min="0" required placeholder="例如：82255">
+              <span class="form-tip">含薪資實領 66,000 + 月配息 16,255</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="fundFormMonthlyExpense">每月生活總支出 (NT$)</label>
+              <input type="number" id="fundFormMonthlyExpense" step="1" min="0" required placeholder="例如：43218">
+              <span class="form-tip">約會、家用、聚餐、醫療保單等生活開銷</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormMonthlyDca">每月固定定期定額 (NT$)</label>
+              <input type="number" id="fundFormMonthlyDca" step="1" min="0" required placeholder="例如：42757">
+              <span class="form-tip">0050、路博邁、VOO、瀚亞月投入</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fundFormNote">備註說明 (選填)</label>
+            <input type="text" id="fundFormNote" placeholder="例如：對齊富邦資產配置規劃試算">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnFundModalCancel">取消</button>
+            <button type="submit" class="btn btn-primary">儲存資產儲備與收支</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 8. Confirm Delete Modal -->
+    <div class="modal-backdrop" id="deleteModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title text-danger">確認刪除</h3>
+          <button class="modal-close-btn" id="btnDeleteModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="deleteModalMsg">您確定要刪除此筆記錄嗎？</p>
+          <div class="delete-tx-preview" id="deleteTxPreview"></div>
+          <p class="text-warning-sm">⚠️ 刪除後將即刻重新計算持有股數與損益，此操作無法復原。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnDeleteModalCancel">取消</button>
+          <button type="button" class="btn btn-danger" id="btnDeleteModalConfirm">確認刪除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Remote Access Auth Gate Overlay -->
+    <div class="auth-gate-overlay" id="authGateOverlay" style="display: none;">
+      <div class="auth-gate-card">
+        <div class="auth-gate-icon">🔐</div>
+        <h2 class="auth-gate-title">富邦投資儀表板</h2>
+        <p class="auth-gate-desc">
+          本版本支援手機、筆電、公司與家庭跨裝置遠端即時查詢。<br>
+          請登入已獲授權的 Google 帳號以檢視資產明細與即時損益。
+        </p>
+        
+        <button class="auth-btn-google" id="btnGoogleSignIn" type="button">
+          <svg viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>使用 Google 帳號登入</span>
+        </button>
+
+        <div id="authGateNotice" class="auth-notice-box">
+          <strong>🔒 權限與資料隔離：</strong><br>
+          所有資產數據皆儲存於獨立 Firestore 雲端資料庫。擁有者具備編輯與新增交易權限，授權親友僅能以檢視模式瀏覽。
+        </div>
+
+        <div id="authGateError" class="auth-unauthorized-box" style="display: none;">
+          <strong>⚠️ 帳號未授權存取</strong><br>
+          <span id="authErrorMsg">您目前登入的 Google 帳號未在授權名單中。請聯繫管理者將您的信箱加入允許名單。</span>
+          <div style="margin-top: 12px; display:flex; gap:8px; justify-content:center;">
+            <button class="btn btn-secondary btn-xs" id="btnSwitchAccount" type="button">切換帳號</button>
+            <button class="btn btn-danger btn-xs" id="btnGateSignOut" type="button">登出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase SDK (v10 compat via official Google CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+  <!-- Cloud Store & Remote Config (No sensitive data) -->
+  <script src="firebase-config.js"></script>
+  <script src="cloud.js"></script>
+
+  <!-- Core Dashboard Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

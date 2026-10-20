@@ -1,0 +1,19 @@
+# Sensitive user data files (NEVER commit to public GitHub)
+data.json
+data.js
+source/
+*.csv
+*.pem
+.env
+.env.local
+
+# System & OS
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+
+# Node / Cloudflare
+node_modules/
+.wrangler/
+dist/
