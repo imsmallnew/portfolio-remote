@@ -1613,8 +1613,14 @@ body {
   .search-box input { width: 100%; }
 }
 
-/* Auth Mode (View-Only vs Admin Edit Mode) */
-[data-auth-mode="view"] .admin-only {
+/* Auth Mode (View-Only vs Viewer vs Admin Mode) */
+[data-auth-mode="view"] .admin-only,
+[data-auth-mode="viewer"] .admin-only {
+  display: none !important;
+}
+
+/* Sensitive reserves (Insurance, Cash Pool, Net Worth) hidden in public view mode */
+[data-auth-mode="view"] .sensitive-reserves {
   display: none !important;
 }
 

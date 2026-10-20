@@ -204,7 +204,6 @@
   function handleRemoteAuthChange(user, role) {
     const gateOverlay = document.getElementById('authGateOverlay');
     const gateError = document.getElementById('authGateError');
-    const authErrorMsg = document.getElementById('authErrorMsg');
     const remotePill = document.getElementById('remoteUserPill');
     const headerSignIn = document.getElementById('btnHeaderSignIn');
     const userAvatar = document.getElementById('userAvatarImg');
@@ -213,33 +212,26 @@
     const authStatusText = document.getElementById('authStatusText');
     const authIcon = document.getElementById('authIcon');
 
-    if (!user) {
-      // Not logged in -> Show gate overlay
-      if (gateOverlay) gateOverlay.style.display = 'flex';
-      if (gateError) gateError.style.display = 'none';
-      if (remotePill) remotePill.style.display = 'none';
-      if (headerSignIn) headerSignIn.style.display = 'inline-flex';
-      if (authStatusText) authStatusText.textContent = '請先登入 Google 帳號';
-      if (authIcon) authIcon.textContent = '🔒';
-      return;
-    }
-
-    if (role === 'unauthorized') {
-      // Logged in with unauthorized email
-      if (gateOverlay) gateOverlay.style.display = 'flex';
-      if (gateError) gateError.style.display = 'block';
-      if (authErrorMsg) authErrorMsg.textContent = `您登入的 Google 帳號「${user.email}」未在授權名單中。請聯繫管理者加入名單。`;
-      if (remotePill) remotePill.style.display = 'none';
-      if (headerSignIn) headerSignIn.style.display = 'inline-flex';
-      if (authStatusText) authStatusText.textContent = '未授權存取';
-      if (authIcon) authIcon.textContent = '🚫';
-      return;
-    }
-
-    // Authorized (Owner or Viewer)
+    // 預設閱讀模式：絕不以全螢幕遮罩阻擋訪客
     if (gateOverlay) gateOverlay.style.display = 'none';
-    if (remotePill) remotePill.style.display = 'inline-flex';
+    if (gateError) gateError.style.display = 'none';
+
+    if (!user) {
+      // 1. 未登入 (預設公開閱讀模式：股票/損益可看，保單/現金池/總淨資產隱藏)
+      state.authMode = 'view';
+      if (remotePill) remotePill.style.display = 'none';
+      if (headerSignIn) headerSignIn.style.display = 'inline-flex';
+      if (authStatusText) authStatusText.textContent = '公開閱讀模式 (點右上角登入)';
+      if (authIcon) authIcon.textContent = '👁️';
+
+      applyAuthMode();
+      loadAndSubscribeCloudData();
+      return;
+    }
+
+    // 已登入
     if (headerSignIn) headerSignIn.style.display = 'none';
+    if (remotePill) remotePill.style.display = 'inline-flex';
 
     if (userAvatar) {
       if (user.photoURL) {
@@ -254,6 +246,7 @@
     }
 
     if (role === 'owner') {
+      // 2. 擁有者 (最高管理員權限)
       state.authMode = 'admin';
       if (userRoleBadge) {
         userRoleBadge.className = 'role-tag-owner';
@@ -261,14 +254,27 @@
       }
       if (authStatusText) authStatusText.textContent = `擁有者：${user.email}`;
       if (authIcon) authIcon.textContent = '⚡';
+      showNotification(`歡迎回來，擁有者 ${user.displayName || user.email}！已啟用完整編輯權限`, 'success');
+    } else if (role === 'viewer') {
+      // 3. 授權親友 (解鎖保單與資產儲備池檢視，但不可新增與編輯)
+      state.authMode = 'viewer';
+      if (userRoleBadge) {
+        userRoleBadge.className = 'role-tag-viewer';
+        userRoleBadge.textContent = '授權親友 🛡️';
+      }
+      if (authStatusText) authStatusText.textContent = `親友檢視：${user.email}`;
+      if (authIcon) authIcon.textContent = '🛡️';
+      showNotification(`您已登入授權親友帳號，已為您解鎖資產配置與儲備細項！`, 'info');
     } else {
+      // 4. 其他未授權 Google 帳號 (維持公開閱讀模式)
       state.authMode = 'view';
       if (userRoleBadge) {
         userRoleBadge.className = 'role-tag-viewer';
-        userRoleBadge.textContent = '遠端檢視者 👁️';
+        userRoleBadge.textContent = '訪客 👁️';
       }
-      if (authStatusText) authStatusText.textContent = `檢視者：${user.email}`;
+      if (authStatusText) authStatusText.textContent = `訪客：${user.email}`;
       if (authIcon) authIcon.textContent = '👁️';
+      showNotification(`帳號「${user.email}」未在授權名單中，維持公開閱讀模式。`, 'warning');
     }
 
     applyAuthMode();
@@ -465,13 +471,17 @@
     const text = document.getElementById('authStatusText');
 
     if (state.authMode === 'admin') {
-      if (icon) icon.textContent = '🔓';
-      if (text) text.textContent = '管理員模式 (已啟用)';
-      if (btn) btn.title = '點擊登出切換為訪客檢視模式';
+      if (icon) icon.textContent = '⚡';
+      if (text) text.textContent = '擁有者管理員模式';
+      if (btn) btn.title = '點擊切換為訪客檢視模式';
+    } else if (state.authMode === 'viewer') {
+      if (icon) icon.textContent = '🛡️';
+      if (text) text.textContent = '授權親友檢視模式';
+      if (btn) btn.title = '授權親友模式 (可看完整配置與保單)';
     } else {
-      if (icon) icon.textContent = '🔒';
-      if (text) text.textContent = '訪客檢視模式';
-      if (btn) btn.title = '點擊輸入密碼進入管理員編輯模式';
+      if (icon) icon.textContent = '👁️';
+      if (text) text.textContent = '公開閱讀模式';
+      if (btn) btn.title = '點擊登入管理員模式';
     }
   }
 
@@ -3216,6 +3226,9 @@
     // Cloud Seed / Import data.json
     setupCloudSeedListeners();
 
+    // Manage ACL Viewers
+    setupAclListeners();
+
     // Rate & Settings Modal
     document.getElementById('ratePill')?.addEventListener('click', () => {
       if (checkAdminOrPrompt('修改設定')) openRateModal();
@@ -3557,6 +3570,123 @@
         if (btnConfirmUpload) {
           btnConfirmUpload.disabled = false;
           btnConfirmUpload.textContent = '確認上傳此 JSON 至雲端';
+        }
+      }
+    });
+  }
+
+  // 24. ACL Authorized Viewers Management
+  function setupAclListeners() {
+    const btnOpen = document.getElementById('btnManageAcl');
+    const modal = document.getElementById('aclModalBackdrop');
+    const btnClose = document.getElementById('btnAclModalClose');
+    const btnCancel = document.getElementById('btnAclModalCancel');
+    const btnSave = document.getElementById('btnSaveAclChanges');
+    const btnAdd = document.getElementById('btnAddViewerEmail');
+    const inputEmail = document.getElementById('inputNewViewerEmail');
+    const listContainer = document.getElementById('aclViewerListContainer');
+    const emptyNotice = document.getElementById('aclEmptyNotice');
+    const ownerText = document.getElementById('aclOwnerEmailText');
+
+    let currentViewers = [];
+
+    function renderViewerList() {
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+      if (currentViewers.length === 0) {
+        if (emptyNotice) emptyNotice.style.display = 'block';
+        return;
+      }
+      if (emptyNotice) emptyNotice.style.display = 'none';
+
+      currentViewers.forEach((email, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:6px 10px; font-size:0.85rem;';
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span>🛡️</span>
+            <span style="font-family:var(--font-mono);">${escapeHtml(email)}</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-xs text-danger" style="padding:2px 8px;" title="移除此授權 Email" data-idx="${index}">&times; 移除</button>
+        `;
+        item.querySelector('button')?.addEventListener('click', () => {
+          currentViewers.splice(index, 1);
+          renderViewerList();
+        });
+        listContainer.appendChild(item);
+      });
+    }
+
+    const openModal = async () => {
+      if (!checkAdminOrPrompt('管理授權名單')) return;
+      if (modal) modal.classList.add('show');
+
+      try {
+        if (listContainer) listContainer.innerHTML = '<div style="color:var(--text-tertiary); font-size:0.85rem;">正在讀取雲端授權名單...</div>';
+        const acl = await window.cloudStore?.loadAcl();
+        if (ownerText && acl?.owner) {
+          ownerText.textContent = acl.owner;
+        }
+        currentViewers = [...(acl?.viewers || [])];
+        renderViewerList();
+      } catch (err) {
+        console.error('讀取授權名單失敗:', err);
+        showNotification('讀取授權名單失敗：' + (err.message || err), 'error');
+      }
+    };
+
+    const closeModal = () => {
+      if (modal) modal.classList.remove('show');
+      if (inputEmail) inputEmail.value = '';
+    };
+
+    btnOpen?.addEventListener('click', openModal);
+    btnClose?.addEventListener('click', closeModal);
+    btnCancel?.addEventListener('click', closeModal);
+
+    // 新增 Email
+    btnAdd?.addEventListener('click', () => {
+      const email = (inputEmail?.value || '').trim().toLowerCase();
+      if (!email) {
+        alert('請輸入 Email！');
+        return;
+      }
+      if (!email.includes('@') || !email.includes('.')) {
+        alert('請輸入有效的 Google Email 信箱格式！');
+        return;
+      }
+      if (currentViewers.includes(email)) {
+        alert('此 Email 已在授權名單中！');
+        return;
+      }
+      currentViewers.push(email);
+      if (inputEmail) inputEmail.value = '';
+      renderViewerList();
+    });
+
+    inputEmail?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnAdd?.click();
+      }
+    });
+
+    // 儲存名單至雲端
+    btnSave?.addEventListener('click', async () => {
+      if (!checkAdminOrPrompt('儲存授權名單')) return;
+      try {
+        btnSave.disabled = true;
+        btnSave.textContent = '⏳ 儲存中...';
+        await window.cloudStore?.saveAcl(currentViewers);
+        showNotification(`🎉 授權親友名單已成功儲存至雲端 (共 ${currentViewers.length} 位)！`, 'success');
+        closeModal();
+      } catch (err) {
+        console.error('儲存授權名單失敗:', err);
+        alert('儲存失敗：' + (err.message || err));
+      } finally {
+        if (btnSave) {
+          btnSave.disabled = false;
+          btnSave.textContent = '儲存名單至雲端';
         }
       }
     });

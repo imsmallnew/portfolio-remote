@@ -213,6 +213,49 @@
         this.currentVersion = newVersion;
         return { success: true, version: newVersion };
       });
+    },
+
+    async loadAcl() {
+      const defaultOwner = (window.REMOTE_ACCESS_CONFIG?.ownerEmail || '').toLowerCase().trim();
+      const defaultViewers = (window.REMOTE_ACCESS_CONFIG?.viewerEmails || []).map(e => (e || '').toLowerCase().trim());
+      if (!this.isConfigured || !this.db) {
+        return { owner: defaultOwner, viewers: defaultViewers };
+      }
+      try {
+        const snap = await this.db.collection('access').doc('main').get();
+        if (snap.exists) {
+          const data = snap.data() || {};
+          return {
+            owner: (data.owner || defaultOwner).toLowerCase().trim(),
+            viewers: Array.isArray(data.viewers) ? data.viewers.map(e => (e || '').toLowerCase().trim()) : defaultViewers
+          };
+        }
+      } catch (err) {
+        console.warn("讀取 access/main 失敗，使用本機設定:", err);
+      }
+      return { owner: defaultOwner, viewers: defaultViewers };
+    },
+
+    async saveAcl(viewers) {
+      if (!this.isConfigured || !this.db) {
+        throw new Error("Firebase 尚未配置");
+      }
+      if (this.userRole !== 'owner') {
+        throw new Error("僅擁有者具備修改授權名單權限");
+      }
+      const cleanViewers = Array.isArray(viewers) 
+        ? viewers.map(v => (v || '').toLowerCase().trim()).filter(Boolean)
+        : [];
+      
+      const owner = (window.REMOTE_ACCESS_CONFIG?.ownerEmail || this.currentUser?.email || '').toLowerCase().trim();
+      await this.db.collection('access').doc('main').set({
+        owner: owner,
+        viewers: cleanViewers,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: this.currentUser?.email || 'owner'
+      }, { merge: true });
+
+      return cleanViewers;
     }
   };
 

@@ -103,6 +103,11 @@
           <span>☁️ 匯入 data.json</span>
         </button>
 
+        <!-- Manage ACL Viewers (Admin only) -->
+        <button class="btn btn-secondary btn-sm admin-only" id="btnManageAcl" title="管理允許查看較多資訊的親友 Google Email 名單">
+          <span>👥 授權名單</span>
+        </button>
+
         <!-- Add New Asset / Symbol (Admin only) -->
         <button class="btn btn-secondary btn-sm admin-only" id="btnAddAsset" title="新增自訂標的 (台股/美股/ETF/基金)">
           <svg class="btn-icon-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -199,7 +204,7 @@
       </section>
 
       <!-- Fund Reserves & Net Worth Overview Section (Collapsible - Default One Line) -->
-      <section class="fund-reserves-section admin-only" id="fundReservesSection">
+      <section class="fund-reserves-section sensitive-reserves" id="fundReservesSection">
         <div class="fund-card">
           <!-- 1. Default One-Line Summary Bar -->
           <div class="fund-summary-bar" id="fundSummaryBar">
@@ -607,7 +612,7 @@
       <!-- Tab 5: Analytics -->
       <section id="tab-analytics" class="tab-pane">
         <!-- Asset Overview Banner above charts -->
-        <div class="analytics-overview-card admin-only" id="analyticsAssetOverview">
+        <div class="analytics-overview-card sensitive-reserves" id="analyticsAssetOverview">
           <div class="analytics-overview-header">
             <div class="overview-title-group">
               <div class="overview-icon">🏛️</div>
@@ -1274,6 +1279,46 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCloudSeedCancel">關閉</button>
           <button type="button" class="btn btn-primary" id="btnConfirmUploadJson" style="display:none;">確認上傳此 JSON 至雲端</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACL / Authorized Viewers Management Modal (Admin only) -->
+    <div class="modal-backdrop" id="aclModalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">👥 授權親友 Email 名單管理</h3>
+          <button class="modal-close-btn" id="btnAclModalClose">&times;</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+          <p class="modal-desc" style="margin-bottom:0;">
+            名單中的 Google 帳號登入後將獲得<strong>「授權親友」</strong>身分，可檢視保單、現金儲備池與三大配置等詳細資訊（但無法進行新增、編輯或 CSV 匯入操作）。
+          </p>
+
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; font-size:0.85rem;">
+            <div style="color:var(--text-secondary); margin-bottom:4px;">👑 系統最高擁有者 (Owner)：</div>
+            <strong id="aclOwnerEmailText" style="color:var(--gold-accent); font-family:var(--font-mono);">imsmallnew@gmail.com</strong>
+          </div>
+
+          <div>
+            <label style="font-weight:600; font-size:0.9rem; margin-bottom:8px; display:block;">已授權親友 Google Email 清單：</label>
+            <div id="aclViewerListContainer" style="display:flex; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding:8px 0;">
+              <!-- Dynamically injected viewer tags -->
+            </div>
+            <div id="aclEmptyNotice" style="display:none; color:var(--text-tertiary); font-size:0.85rem; padding:12px 0;">目前尚未新增授權親友 Email。未在名單中的使用者僅能以公開閱讀模式瀏覽。</div>
+          </div>
+
+          <div style="border-top:1px solid var(--border-subtle); padding-top:14px;">
+            <label for="inputNewViewerEmail" style="font-weight:600; font-size:0.85rem; margin-bottom:6px; display:block;">新增授權親友 Google Email：</label>
+            <div style="display:flex; gap:8px;">
+              <input type="email" id="inputNewViewerEmail" class="input-sm" style="flex:1;" placeholder="例如：family@gmail.com">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnAddViewerEmail">＋ 加入名單</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnAclModalCancel">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSaveAclChanges">儲存名單至雲端</button>
         </div>
       </div>
     </div>
