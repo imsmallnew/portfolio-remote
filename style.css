@@ -919,6 +919,80 @@ body {
   padding-right: 8px !important;
 }
 
+/* ==========================================================================
+   Sticky Holdings Table Columns (固定順序與標的代號)
+   ========================================================================== */
+#holdingsTable .col-drag {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  box-sizing: border-box;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-surface);
+  text-align: center;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#holdingsTable thead th.col-drag {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 25;
+  background: var(--bg-surface-elevated) !important;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+#holdingsTable .col-symbol {
+  position: sticky;
+  left: 44px;
+  z-index: 5;
+  background: var(--bg-surface);
+  min-width: 160px;
+  box-shadow: 4px 0 8px -3px rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+}
+
+#holdingsTable thead th.col-symbol {
+  position: sticky;
+  left: 44px;
+  top: 0;
+  z-index: 25;
+  background: var(--bg-surface-elevated) !important;
+  border-bottom: 1px solid var(--border-medium);
+  border-right: 1px solid var(--border-subtle);
+}
+
+#holdingsTable tbody tr:hover .col-drag,
+#holdingsTable tbody tr:hover .col-symbol {
+  background: var(--bg-surface-elevated) !important;
+}
+
+#holdingsTable tbody tr.dragging .col-drag,
+#holdingsTable tbody tr.dragging .col-symbol {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+#holdingsTable tbody tr.row-hidden .col-drag,
+#holdingsTable tbody tr.row-hidden .col-symbol {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+#holdingsTable tbody tr.row-zero-shares .col-drag,
+#holdingsTable tbody tr.row-zero-shares .col-symbol {
+  background: var(--bg-surface);
+}
+
+@media (max-width: 768px) {
+  #holdingsTable .col-symbol {
+    min-width: 140px;
+  }
+}
+
 .drag-handle {
   display: inline-block;
   color: var(--text-tertiary);
