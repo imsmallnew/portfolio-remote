@@ -41,6 +41,8 @@
       monthlyDcaTwd: 0,
       annualDcaTwd: 0,
       annualSurplusTwd: 0,
+      expenseItems: [],
+      dcaItems: [],
       note: ''
     },
     holdings: {},
@@ -1277,6 +1279,455 @@
     showNotification('資產儲備與收支規劃已成功儲存！', 'success');
   }
 
+  // -------------------------------------------------------------
+  // Market Hours Highlight (14:30 前即時現價，14:30 後夜盤現價)
+  // -------------------------------------------------------------
+  function isNightTradingHours() {
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    return minutes >= 870; // 14:30 後 (含)
+  }
+
+  function updateMarketPriceHighlight() {
+    const isNight = isNightTradingHours();
+    const thRealtime = document.getElementById('thRealtimePrice');
+    const thNight = document.getElementById('thNightPrice');
+    if (thRealtime) {
+      if (!isNight) thRealtime.classList.add('highlight-col-th');
+      else thRealtime.classList.remove('highlight-col-th');
+    }
+    if (thNight) {
+      if (isNight) thNight.classList.add('highlight-col-th');
+      else thNight.classList.remove('highlight-col-th');
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Living Expense Detail Modal Handlers
+  // -------------------------------------------------------------
+  let currentExpenseList = [];
+
+  function openExpenseModal() {
+    if (!checkAdminOrPrompt('編輯生活支出細項明細')) return;
+    const modal = document.getElementById('expenseModalBackdrop');
+    if (!modal) return;
+
+    const res = state.fundReserves || {};
+    currentExpenseList = (res.expenseItems && res.expenseItems.length > 0)
+      ? JSON.parse(JSON.stringify(res.expenseItems))
+      : [
+          { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
+          { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
+          { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
+        ];
+
+    renderExpenseTable();
+    modal.classList.add('show');
+  }
+
+  function closeExpenseModal() {
+    const modal = document.getElementById('expenseModalBackdrop');
+    if (modal) modal.classList.remove('show');
+  }
+
+  function renderExpenseTable() {
+    const tbody = document.getElementById('expenseItemsTableBody');
+    if (!tbody) return;
+
+    if (currentExpenseList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無支出細項，請點擊上方「新增支出項目」</td></tr>`;
+      calcExpenseTotals();
+      return;
+    }
+
+    let html = '';
+    currentExpenseList.forEach((item, idx) => {
+      const amt = Number(item.amount) || 0;
+      const period = item.period || 'monthly';
+      const monthlyEquivalent = period === 'monthly' ? amt : Math.round(amt / 12);
+
+      html += `
+        <tr data-index="${idx}">
+          <td>
+            <input type="text" class="expense-name-input" data-index="${idx}" value="${escapeHtml(item.name || '')}" placeholder="例如：家用、保單、水電">
+          </td>
+          <td class="text-right">
+            <input type="number" class="expense-amount-input text-right" data-index="${idx}" step="1" min="0" value="${amt}">
+          </td>
+          <td class="text-center">
+            <select class="expense-period-select" data-index="${idx}">
+              <option value="monthly" ${period === 'monthly' ? 'selected' : ''}>每月</option>
+              <option value="annual" ${period === 'annual' ? 'selected' : ''}>每年</option>
+            </select>
+          </td>
+          <td class="text-right mono font-semibold" id="expenseMonthlyRow_${idx}">
+            NT$ ${formatMoney(monthlyEquivalent)}
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-secondary btn-xs" onclick="window.fubonApp.deleteExpenseItem(${idx})" title="刪除此項目" style="color: var(--danger-accent);">&times;</button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll('.expense-name-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (currentExpenseList[i]) currentExpenseList[i].name = e.target.value.trim();
+      });
+    });
+
+    tbody.querySelectorAll('.expense-amount-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        const val = parseFloat(e.target.value) || 0;
+        if (currentExpenseList[i]) {
+          currentExpenseList[i].amount = val;
+          const p = currentExpenseList[i].period;
+          const mEq = p === 'monthly' ? val : Math.round(val / 12);
+          const cell = document.getElementById(`expenseMonthlyRow_${i}`);
+          if (cell) cell.textContent = `NT$ ${formatMoney(mEq)}`;
+          calcExpenseTotals();
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.expense-period-select').forEach(select => {
+      select.addEventListener('change', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (currentExpenseList[i]) {
+          currentExpenseList[i].period = e.target.value;
+          const val = Number(currentExpenseList[i].amount) || 0;
+          const mEq = e.target.value === 'monthly' ? val : Math.round(val / 12);
+          const cell = document.getElementById(`expenseMonthlyRow_${i}`);
+          if (cell) cell.textContent = `NT$ ${formatMoney(mEq)}`;
+          calcExpenseTotals();
+        }
+      });
+    });
+
+    calcExpenseTotals();
+  }
+
+  function addExpenseItemRow() {
+    currentExpenseList.push({
+      id: `exp_${Date.now()}`,
+      name: '',
+      amount: 0,
+      period: 'monthly'
+    });
+    renderExpenseTable();
+  }
+
+  function deleteExpenseItemRow(idx) {
+    currentExpenseList.splice(idx, 1);
+    renderExpenseTable();
+  }
+
+  function calcExpenseTotals() {
+    let totalMonthly = 0;
+    currentExpenseList.forEach(item => {
+      const amt = Number(item.amount) || 0;
+      const m = item.period === 'annual' ? Math.round(amt / 12) : amt;
+      totalMonthly += m;
+    });
+    const totalAnnual = totalMonthly * 12;
+
+    const mEl = document.getElementById('expenseSummaryMonthly');
+    const aEl = document.getElementById('expenseSummaryAnnual');
+    if (mEl) mEl.textContent = `NT$ ${formatMoney(totalMonthly)}`;
+    if (aEl) aEl.textContent = `NT$ ${formatMoney(totalAnnual)}`;
+    return { totalMonthly, totalAnnual };
+  }
+
+  async function saveExpenseModal() {
+    if (!checkAdminOrPrompt('儲存生活支出細項')) return;
+    const totals = calcExpenseTotals();
+    const cleaned = currentExpenseList.filter(item => (item.name || '').trim() !== '' || item.amount > 0);
+
+    const res = state.fundReserves || {};
+    const aIncome = Number(res.annualIncomeTwd) || 0;
+    const aDca = Number(res.annualDcaTwd) || 0;
+    const surplus = aIncome - totals.totalAnnual - aDca;
+
+    state.fundReserves = {
+      ...res,
+      expenseItems: cleaned,
+      monthlyExpenseTwd: totals.totalMonthly,
+      annualExpenseTwd: totals.totalAnnual,
+      annualSurplusTwd: surplus,
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+
+    await persistState(['fundReserves']);
+    renderFundReserves();
+    closeExpenseModal();
+    showNotification('生活支出明細與合計金額已成功儲存！', 'success');
+  }
+
+  // -------------------------------------------------------------
+  // DCA Investment Detail Modal Handlers (含小月曆多選投入日)
+  // -------------------------------------------------------------
+  let currentDcaList = [];
+  let activePopover = null;
+
+  function openDcaModal() {
+    if (!checkAdminOrPrompt('編輯定期定額投資明細')) return;
+    const modal = document.getElementById('dcaModalBackdrop');
+    if (!modal) return;
+
+    const res = state.fundReserves || {};
+    currentDcaList = (res.dcaItems && res.dcaItems.length > 0)
+      ? JSON.parse(JSON.stringify(res.dcaItems))
+      : [
+          { id: 'dca_1', symbol: '0050 元大台灣50', amount: 5000, days: [6, 16, 26] },
+          { id: 'dca_2', symbol: '路博邁全球5G', amount: 10000, days: [6] },
+          { id: 'dca_3', symbol: 'VOO 美股標普500', amount: 10000, days: [15] },
+          { id: 'dca_4', symbol: '瀚亞印度基金', amount: 7757, days: [20] }
+        ];
+
+    renderDcaTable();
+    modal.classList.add('show');
+  }
+
+  function closeDcaModal() {
+    closeDayPickerPopover();
+    const modal = document.getElementById('dcaModalBackdrop');
+    if (modal) modal.classList.remove('show');
+  }
+
+  function renderDcaTable() {
+    const tbody = document.getElementById('dcaItemsTableBody');
+    if (!tbody) return;
+
+    if (currentDcaList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無定期定額標的，請點擊上方「新增定額標的」</td></tr>`;
+      calcDcaTotals();
+      return;
+    }
+
+    let html = '';
+    currentDcaList.forEach((item, idx) => {
+      const amt = Number(item.amount) || 0;
+      const days = Array.isArray(item.days) ? item.days.sort((a,b)=>a-b) : [6];
+      const count = days.length > 0 ? days.length : 1;
+      const monthlyTotal = amt * count;
+      const daysText = days.length > 0 ? `${days.join(', ')} 號 (${days.length}次)` : '未設定扣款日';
+
+      html += `
+        <tr data-index="${idx}">
+          <td>
+            <input type="text" class="dca-symbol-input" data-index="${idx}" value="${escapeHtml(item.symbol || '')}" placeholder="例如：0050、VOO">
+          </td>
+          <td class="text-right">
+            <input type="number" class="dca-amount-input text-right" data-index="${idx}" step="1" min="0" value="${amt}">
+          </td>
+          <td>
+            <button type="button" class="btn btn-secondary btn-xs btn-dca-daypicker" data-index="${idx}" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+              <span>📅 ${daysText}</span>
+              <span style="font-size: 0.65rem; color: var(--cyan-accent);">修改</span>
+            </button>
+          </td>
+          <td class="text-right mono font-semibold" id="dcaMonthlyRow_${idx}">
+            NT$ ${formatMoney(monthlyTotal)}
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-secondary btn-xs" onclick="window.fubonApp.deleteDcaItem(${idx})" title="刪除此標的" style="color: var(--danger-accent);">&times;</button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll('.dca-symbol-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (currentDcaList[i]) currentDcaList[i].symbol = e.target.value.trim();
+      });
+    });
+
+    tbody.querySelectorAll('.dca-amount-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        const val = parseFloat(e.target.value) || 0;
+        if (currentDcaList[i]) {
+          currentDcaList[i].amount = val;
+          const days = currentDcaList[i].days || [6];
+          const c = days.length > 0 ? days.length : 1;
+          const cell = document.getElementById(`dcaMonthlyRow_${i}`);
+          if (cell) cell.textContent = `NT$ ${formatMoney(val * c)}`;
+          calcDcaTotals();
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.btn-dca-daypicker').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const i = parseInt(btn.dataset.index, 10);
+        openDayPickerPopover(btn, i);
+      });
+    });
+
+    calcDcaTotals();
+  }
+
+  function addDcaItemRow() {
+    currentDcaList.push({
+      id: `dca_${Date.now()}`,
+      symbol: '',
+      amount: 0,
+      days: [6]
+    });
+    renderDcaTable();
+  }
+
+  function deleteDcaItemRow(idx) {
+    currentDcaList.splice(idx, 1);
+    renderDcaTable();
+  }
+
+  function calcDcaTotals() {
+    let totalMonthly = 0;
+    currentDcaList.forEach(item => {
+      const amt = Number(item.amount) || 0;
+      const days = Array.isArray(item.days) ? item.days : [6];
+      const count = days.length > 0 ? days.length : 1;
+      totalMonthly += amt * count;
+    });
+    const totalAnnual = totalMonthly * 12;
+
+    const mEl = document.getElementById('dcaSummaryMonthly');
+    const aEl = document.getElementById('dcaSummaryAnnual');
+    if (mEl) mEl.textContent = `NT$ ${formatMoney(totalMonthly)}`;
+    if (aEl) aEl.textContent = `NT$ ${formatMoney(totalAnnual)}`;
+    return { totalMonthly, totalAnnual };
+  }
+
+  async function saveDcaModal() {
+    if (!checkAdminOrPrompt('儲存定期定額明細')) return;
+    const totals = calcDcaTotals();
+    const cleaned = currentDcaList.filter(item => (item.symbol || '').trim() !== '' || item.amount > 0);
+
+    const res = state.fundReserves || {};
+    const aIncome = Number(res.annualIncomeTwd) || 0;
+    const aExpense = Number(res.annualExpenseTwd) || 0;
+    const surplus = aIncome - aExpense - totals.totalAnnual;
+
+    state.fundReserves = {
+      ...res,
+      dcaItems: cleaned,
+      monthlyDcaTwd: totals.totalMonthly,
+      annualDcaTwd: totals.totalAnnual,
+      annualSurplusTwd: surplus,
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+
+    await persistState(['fundReserves']);
+    renderFundReserves();
+    closeDcaModal();
+    showNotification('定期定額投資明細與合計已成功儲存！', 'success');
+  }
+
+  function openDayPickerPopover(anchorBtn, itemIndex) {
+    closeDayPickerPopover();
+
+    const item = currentDcaList[itemIndex];
+    if (!item) return;
+    const selectedDays = new Set(Array.isArray(item.days) ? item.days : [6]);
+
+    const popover = document.createElement('div');
+    popover.className = 'day-picker-popover';
+    popover.id = 'activeDayPickerPopover';
+
+    let daysGridHtml = '';
+    for (let d = 1; d <= 31; d++) {
+      const isSel = selectedDays.has(d);
+      daysGridHtml += `<button type="button" class="day-btn ${isSel ? 'selected' : ''}" data-day="${d}">${d}</button>`;
+    }
+
+    popover.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <strong style="font-size: 0.82rem; color: var(--text-primary);">📅 選擇每月扣款日期</strong>
+        <span style="font-size: 0.72rem; color: var(--cyan-accent);" id="popoverCountLabel">已選 ${selectedDays.size} 天</span>
+      </div>
+      <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-bottom: 6px;">點選 1~31 號按鈕多選投入日：</div>
+      <div class="day-grid">
+        ${daysGridHtml}
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 10px; gap: 6px;">
+        <button type="button" class="btn btn-secondary btn-xs" id="btnDayPickerPresets">常用: 6,16,26</button>
+        <button type="button" class="btn btn-primary btn-xs" id="btnDayPickerDone" style="flex: 1;">完成</button>
+      </div>
+    `;
+
+    document.body.appendChild(popover);
+    activePopover = popover;
+
+    const rect = anchorBtn.getBoundingClientRect();
+    popover.style.top = `${rect.bottom + window.scrollY + 6}px`;
+    popover.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 290)}px`;
+
+    popover.querySelectorAll('.day-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const d = parseInt(btn.dataset.day, 10);
+        if (selectedDays.has(d)) {
+          selectedDays.delete(d);
+          btn.classList.remove('selected');
+        } else {
+          selectedDays.add(d);
+          btn.classList.add('selected');
+        }
+        document.getElementById('popoverCountLabel').textContent = `已選 ${selectedDays.size} 天`;
+      });
+    });
+
+    popover.querySelector('#btnDayPickerPresets')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedDays.clear();
+      [6, 16, 26].forEach(d => selectedDays.add(d));
+      popover.querySelectorAll('.day-btn').forEach(b => {
+        const d = parseInt(b.dataset.day, 10);
+        if (selectedDays.has(d)) b.classList.add('selected');
+        else b.classList.remove('selected');
+      });
+      document.getElementById('popoverCountLabel').textContent = `已選 ${selectedDays.size} 天`;
+    });
+
+    popover.querySelector('#btnDayPickerDone')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      applyDaysSelection(itemIndex, selectedDays);
+      closeDayPickerPopover();
+    });
+
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsidePopoverClick);
+    }, 10);
+  }
+
+  function applyDaysSelection(idx, daysSet) {
+    if (!currentDcaList[idx]) return;
+    const sorted = Array.from(daysSet).sort((a,b)=>a-b);
+    currentDcaList[idx].days = sorted.length > 0 ? sorted : [6];
+    renderDcaTable();
+  }
+
+  function handleOutsidePopoverClick(e) {
+    if (activePopover && !activePopover.contains(e.target)) {
+      closeDayPickerPopover();
+    }
+  }
+
+  function closeDayPickerPopover() {
+    if (activePopover) {
+      activePopover.remove();
+      activePopover = null;
+    }
+    document.removeEventListener('click', handleOutsidePopoverClick);
+  }
+
   // 5. Render Holdings Table (含夜盤現價、差額、TradingView、出清隱藏、拖動排序)
   function getVisibleHoldings() {
     let list = Object.values(state.holdings);
@@ -1316,6 +1767,7 @@
   }
 
   function renderHoldingsTable() {
+    updateMarketPriceHighlight();
     const tbody = document.getElementById('holdingsTableBody');
     const tfoot = document.getElementById('holdingsTableFoot');
     if (!tbody) return;
@@ -1380,11 +1832,11 @@
             <span class="price-sub">${h.currency}</span>
           </td>
           <td class="col-price text-right mono">
-            <strong class="price-display" id="priceDisplay_${sym}">${formatMoney(h.currentPrice, 2)}</strong>
+            <strong class="price-display ${!isNightTradingHours() ? 'text-cyan' : ''}" id="priceDisplay_${sym}">${formatMoney(h.currentPrice, 2)}</strong>
             <span class="price-sub">昨收 ${formatMoney(h.prevClose, 2)} ${h.currency}</span>
           </td>
           <td class="col-night-price text-right mono">
-            <span class="night-price-val">${formatMoney(h.nightPrice || h.currentPrice, 2)}</span>
+            <span class="night-price-val ${isNightTradingHours() ? 'text-cyan' : ''}">${formatMoney(h.nightPrice || h.currentPrice, 2)}</span>
             <span class="night-spread-sub">${spreadText}</span>
           </td>
           <td class="col-chg text-right mono ${chgClass}">
@@ -3693,6 +4145,20 @@
     document.getElementById('btnFundModalCancel')?.addEventListener('click', closeFundModal);
     document.getElementById('fundForm')?.addEventListener('submit', handleFundFormSubmit);
 
+    // Living Expense Detail Modal Listeners
+    document.getElementById('fundCardExpense')?.addEventListener('click', openExpenseModal);
+    document.getElementById('btnExpenseModalClose')?.addEventListener('click', closeExpenseModal);
+    document.getElementById('btnExpenseModalCancel')?.addEventListener('click', closeExpenseModal);
+    document.getElementById('btnAddExpenseItem')?.addEventListener('click', addExpenseItemRow);
+    document.getElementById('btnExpenseModalSave')?.addEventListener('click', saveExpenseModal);
+
+    // DCA Investment Detail Modal Listeners
+    document.getElementById('fundCardDca')?.addEventListener('click', openDcaModal);
+    document.getElementById('btnDcaModalClose')?.addEventListener('click', closeDcaModal);
+    document.getElementById('btnDcaModalCancel')?.addEventListener('click', closeDcaModal);
+    document.getElementById('btnAddDcaItem')?.addEventListener('click', addDcaItemRow);
+    document.getElementById('btnDcaModalSave')?.addEventListener('click', saveDcaModal);
+
     // Dividend Modal
     document.getElementById('btnAddDividend')?.addEventListener('click', openAddDividendModal);
     document.getElementById('btnDividendModalClose')?.addEventListener('click', closeDividendModal);
@@ -3735,13 +4201,15 @@
       });
     });
 
-    // ESC key closes modals
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeTvModal();
         document.querySelectorAll('.modal-backdrop.show').forEach(m => m.classList.remove('show'));
       }
     });
+
+    // Periodic check for 14:30 market hours color switch
+    setInterval(updateMarketPriceHighlight, 30000);
   }
 
   // 23. Cloud Seed & data.json Import Manager
@@ -4282,6 +4750,8 @@
     openAddRealizedModal: () => openAddRealizedModal(),
     editRealizedRecord: (id) => openEditRealizedModal(id),
     deleteRealizedRecord: (id) => deleteRealizedRecord(id),
+    deleteExpenseItem: (idx) => deleteExpenseItemRow(idx),
+    deleteDcaItem: (idx) => deleteDcaItemRow(idx),
     switchToPortfolio: (pid) => {
       const clean = (pid || 'main').trim().toLowerCase();
       try {

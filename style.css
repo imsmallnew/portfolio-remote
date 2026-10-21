@@ -1945,11 +1945,39 @@ body {
   transform: translateY(-2px);
 }
 
+.fund-item-clickable {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.fund-item-clickable:hover {
+  border-color: rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.18);
+}
+
 .fund-item-top {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin-bottom: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.fund-click-hint {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.68rem;
+  color: var(--cyan-accent);
+  opacity: 0.75;
+  transition: var(--transition-fast);
+}
+.fund-item-clickable:hover .fund-click-hint {
+  opacity: 1;
+  font-weight: 600;
+  transform: scale(1.05);
 }
 
 .fund-item-label {
@@ -1963,6 +1991,8 @@ body {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-full);
+  align-self: flex-start;
+  text-align: left;
 }
 .badge-pill-emerald {
   background: rgba(16, 185, 129, 0.15);
@@ -1986,15 +2016,137 @@ body {
 }
 
 .fund-item-val {
-  font-size: 1.25rem;
+  font-size: 1.22rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .fund-item-desc {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--text-tertiary);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  line-height: 1.4;
+  transform: translateY(-4px);
+  transition: opacity 0.25s ease, max-height 0.3s ease, transform 0.25s ease, margin 0.25s ease;
+  margin-top: 0;
+  pointer-events: none;
+}
+
+.fund-item:hover .fund-item-desc {
+  opacity: 1;
+  max-height: 90px;
+  transform: translateY(0);
+  margin-top: 6px;
+}
+
+/* Detail Modals Styling (Expense & DCA) */
+#fundModalBackdrop .modal-card {
+  max-width: 680px;
+}
+.detail-modal-card {
+  max-width: 780px !important;
+}
+.detail-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 16px;
+  font-size: 0.85rem;
+}
+.detail-items-table th {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  text-align: left;
+}
+.detail-items-table th.text-right,
+.detail-items-table td.text-right {
+  text-align: right;
+}
+.detail-items-table th.text-center,
+.detail-items-table td.text-center {
+  text-align: center;
+}
+.detail-items-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+.detail-items-table input,
+.detail-items-table select {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+.detail-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  margin: 12px 0 16px;
+  border: 1px solid var(--border-subtle);
+}
+.detail-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detail-summary-title {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}
+.detail-summary-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+/* Day Picker Popover */
+.day-picker-popover {
+  position: absolute;
+  z-index: 1050;
+  background: #181c24;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  width: 270px;
+}
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: 8px 0;
+}
+.day-btn {
+  padding: 5px 0;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition-fast);
+}
+.day-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+.day-btn.selected {
+  background: var(--cyan-accent);
+  color: #0b0f19;
+  font-weight: 700;
+  border-color: var(--cyan-accent);
 }
 
 .fund-summary-bar {

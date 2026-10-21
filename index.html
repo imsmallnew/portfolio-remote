@@ -366,20 +366,22 @@
                 </div>
 
                 <!-- 6. Monthly Living Expense -->
-                <div class="fund-item">
+                <div class="fund-item fund-item-clickable" id="fundCardExpense" title="點擊直接維護生活支出細項明細">
                   <div class="fund-item-top">
                     <span class="fund-item-label">每月生活總支出</span>
                     <span class="badge-pill badge-pill-cyan" id="fundValExpenseBadge">年支出 -- 萬</span>
+                    <span class="fund-click-hint">✏️ 點擊維護明細</span>
                   </div>
                   <div class="fund-item-val mono" id="fundValMonthlyExpense">NT$ --</div>
                   <div class="fund-item-desc" id="fundValExpenseDesc">年度生活支出約 NT$ -- (日常開銷、家用、聚餐與保單)</div>
                 </div>
 
                 <!-- 7. Monthly DCA Investment -->
-                <div class="fund-item">
+                <div class="fund-item fund-item-clickable" id="fundCardDca" title="點擊直接維護定期定額標的與扣款日明細">
                   <div class="fund-item-top">
                     <span class="fund-item-label">每月定期定額</span>
                     <span class="badge-pill badge-pill-cyan" id="fundValDcaBadge">年度結餘 -- 萬</span>
+                    <span class="fund-click-hint">📅 點擊維護明細</span>
                   </div>
                   <div class="fund-item-val mono text-cyan" id="fundValMonthlyDca">NT$ --</div>
                   <div class="fund-item-desc" id="fundValDcaDesc">年扣款 NT$ -- ｜ 扣除開銷後年度淨結餘 NT$ --</div>
@@ -537,8 +539,8 @@
                   <th class="col-type">類別</th>
                   <th class="col-shares text-right">持有股數</th>
                   <th class="col-cost text-right">平均成本</th>
-                  <th class="col-price text-right">即時現價 (昨收)</th>
-                  <th class="col-night-price text-right highlight-col-th" title="夜盤/盤後現價，下方灰色為與即時現價之差額">夜盤現價 (差額)</th>
+                  <th class="col-price text-right" id="thRealtimePrice">即時現價 (昨收)</th>
+                  <th class="col-night-price text-right" id="thNightPrice" title="夜盤/盤後現價，下方灰色為與即時現價之差額">夜盤現價 (差額)</th>
                   <th class="col-chg text-right">今日漲跌</th>
                   <th class="col-invested text-right">總投入成本 (NT)</th>
                   <th class="col-marketval text-right">目前市值 (NT)</th>
@@ -1279,6 +1281,7 @@
           <button class="modal-close-btn" id="btnFundModalClose">&times;</button>
         </div>
         <form id="fundForm" class="modal-form">
+          <!-- Row 1: 現金儲備與外幣 (2 欄) -->
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="fundFormLiving">生活預備金 (NT$)</label>
@@ -1290,13 +1293,22 @@
               <input type="number" id="fundFormInvest" step="1" min="0" required placeholder="例如：190000">
               <span class="form-tip">待加碼或每月定期定額扣款活存</span>
             </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group flex-1">
               <label for="fundFormUsd">活存美金現金 ($ USD)</label>
               <input type="number" id="fundFormUsd" step="any" min="0" required placeholder="例如：2848">
               <span class="form-tip">中信 + 玉山美金活存合計</span>
             </div>
+            <div class="form-group flex-1">
+              <label for="fundFormMonthlyDeposit">月配本金 (NT$)</label>
+              <input type="number" id="fundFormMonthlyDeposit" step="1" min="0" required placeholder="例如：1108932">
+              <span class="form-tip">月配息投資本金資產</span>
+            </div>
           </div>
 
+          <!-- Row 2: 儲蓄保單 (2 欄) -->
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="fundFormSavingsInsurance">台幣儲蓄型保單 (NT$)</label>
@@ -1306,48 +1318,34 @@
             <div class="form-group flex-1">
               <label for="fundFormUsdInsurance">美元保單現值 ($ USD)</label>
               <input type="number" id="fundFormUsdInsurance" step="any" min="0" required placeholder="例如：8458">
-              <span class="form-tip">美元保單現值（依當前匯率自動折合台幣相加）</span>
-            </div>
-            <div class="form-group flex-1">
-              <label for="fundFormMonthlyDeposit">月配本金 (NT$)</label>
-              <input type="number" id="fundFormMonthlyDeposit" step="1" min="0" required placeholder="例如：1108932">
-              <span class="form-tip">月配息投資本金資產</span>
+              <span class="form-tip">美元保單現值（依即時匯率自動折合台幣相加）</span>
             </div>
           </div>
 
+          <!-- Row 3: 個人總收入細項規劃 (2 欄排列，舒適不破版) -->
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="fundFormSalary">每月薪資實領 (NT$)</label>
               <input type="number" id="fundFormSalary" step="1" min="0" required placeholder="例如：66000">
-              <span class="form-tip">經常性每月工作薪資</span>
+              <span class="form-tip">經常性每月實領薪資</span>
             </div>
             <div class="form-group flex-1">
               <label for="fundFormDividend">每月配息收入 (NT$)</label>
               <input type="number" id="fundFormDividend" step="1" min="0" required placeholder="例如：16255">
               <span class="form-tip">高股息或債券月配息金額</span>
             </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group flex-1">
-              <label for="fundFormInsuranceAnnual">保單滿期給付 (年度 NT$)</label>
+              <label for="fundFormInsuranceAnnual">保單年給付 (年度 NT$)</label>
               <input type="number" id="fundFormInsuranceAnnual" step="1" min="0" required placeholder="例如：13725">
               <span class="form-tip">保單滿期年度給付或分紅</span>
             </div>
             <div class="form-group flex-1">
               <label for="fundFormBonusAnnual">年終獎金 (年度 NT$)</label>
               <input type="number" id="fundFormBonusAnnual" step="1" min="0" required placeholder="例如：100000">
-              <span class="form-tip">年度年終獎金或考績獎勵</span>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="fundFormMonthlyExpense">每月生活總支出 (NT$)</label>
-              <input type="number" id="fundFormMonthlyExpense" step="1" min="0" required placeholder="例如：43218">
-              <span class="form-tip">約會、家用、聚餐、醫療保單等生活開銷</span>
-            </div>
-            <div class="form-group flex-1">
-              <label for="fundFormMonthlyDca">每月固定定期定額 (NT$)</label>
-              <input type="number" id="fundFormMonthlyDca" step="1" min="0" required placeholder="例如：42757">
-              <span class="form-tip">0050、路博邁、VOO、瀚亞月投入</span>
+              <span class="form-tip">年度年終獎金或考績分紅</span>
             </div>
           </div>
 
@@ -1358,9 +1356,99 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="btnFundModalCancel">取消</button>
-            <button type="submit" class="btn btn-primary">儲存資產儲備與收支</button>
+            <button type="submit" class="btn btn-primary">儲存資產儲備與規劃</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- 8. Living Expense Detail Modal -->
+    <div class="modal-backdrop" id="expenseModalBackdrop">
+      <div class="modal-card detail-modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">🧾 每月生活總支出明細維護</h3>
+          <button class="modal-close-btn" id="btnExpenseModalClose">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; max-height: calc(90vh - 140px);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span class="text-tertiary-sm">維護日常各項固定與生活開銷（可選「每月」或「每年」自動換算）</span>
+            <button type="button" class="btn btn-secondary btn-xs" id="btnAddExpenseItem">➕ 新增支出項目</button>
+          </div>
+          <table class="detail-items-table">
+            <thead>
+              <tr>
+                <th style="width: 36%;">支出項目名稱</th>
+                <th style="width: 24%;" class="text-right">金額 (NT$)</th>
+                <th style="width: 18%;" class="text-center">週期</th>
+                <th style="width: 16%;" class="text-right">折合每月</th>
+                <th style="width: 36px;" class="text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="expenseItemsTableBody">
+              <!-- Dynamically injected via JS -->
+            </tbody>
+          </table>
+
+          <div class="detail-summary-bar">
+            <div class="detail-summary-item">
+              <span class="detail-summary-title">每月生活總支出合計</span>
+              <span class="detail-summary-val mono text-cyan" id="expenseSummaryMonthly">NT$ 0</span>
+            </div>
+            <div class="detail-summary-item" style="text-align: right;">
+              <span class="detail-summary-title">換算年度生活總支出</span>
+              <span class="detail-summary-val mono text-emerald" id="expenseSummaryAnnual">NT$ 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnExpenseModalCancel">取消</button>
+          <button type="button" class="btn btn-primary" id="btnExpenseModalSave">儲存生活支出明細</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. DCA Investment Detail Modal -->
+    <div class="modal-backdrop" id="dcaModalBackdrop">
+      <div class="modal-card detail-modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">📅 每月定期定額投資明細維護</h3>
+          <button class="modal-close-btn" id="btnDcaModalClose">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; max-height: calc(90vh - 140px); position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span class="text-tertiary-sm">維護每月投資標的、每次扣款金額與投入日期（點選日曆按鈕多選）</span>
+            <button type="button" class="btn btn-secondary btn-xs" id="btnAddDcaItem">➕ 新增定額標的</button>
+          </div>
+          <table class="detail-items-table">
+            <thead>
+              <tr>
+                <th style="width: 30%;">投資標的代號 / 名稱</th>
+                <th style="width: 22%;" class="text-right">每次扣款金額 (NT$)</th>
+                <th style="width: 26%;">每月投入日期 (小月曆)</th>
+                <th style="width: 16%;" class="text-right">每月扣款小計</th>
+                <th style="width: 36px;" class="text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="dcaItemsTableBody">
+              <!-- Dynamically injected via JS -->
+            </tbody>
+          </table>
+
+          <div class="detail-summary-bar">
+            <div class="detail-summary-item">
+              <span class="detail-summary-title">每月定期定額總額合計</span>
+              <span class="detail-summary-val mono text-cyan" id="dcaSummaryMonthly">NT$ 0</span>
+            </div>
+            <div class="detail-summary-item" style="text-align: right;">
+              <span class="detail-summary-title">換算年度定期定額總額</span>
+              <span class="detail-summary-val mono text-emerald" id="dcaSummaryAnnual">NT$ 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnDcaModalCancel">取消</button>
+          <button type="button" class="btn btn-primary" id="btnDcaModalSave">儲存定期定額明細</button>
+        </div>
       </div>
     </div>
 
