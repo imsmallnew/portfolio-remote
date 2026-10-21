@@ -24,30 +24,26 @@
     realizedRecords: [],
     dividendRecords: [],
     fundReserves: {
-      livingReserveTwd: 117189,
-      investCapitalTwd: 190000,
-      savingsInsuranceTwd: 2930000,
-      usdInsurance: 12900,
-      monthlyDepositPrincipal: 1108932,
-      usdSavings: 2848,
-      salaryMonthlyTwd: 66000,
-      dividendMonthlyTwd: 16255,
-      insuranceAnnualTwd: 13725,
-      bonusAnnualTwd: 100000,
-      monthlyIncomeTwd: 82255,
-      annualIncomeTwd: 1100785,
-      monthlyExpenseTwd: 43218,
-      annualExpenseTwd: 518616,
-      monthlyDcaTwd: 42757,
-      annualDcaTwd: 513084,
-      annualSurplusTwd: 69085,
-      expenseItems: [
-        { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
-        { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
-        { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
-      ],
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
+      usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
+      expenseItems: [],
       dcaItems: [],
-      note: '資產配置規劃'
+      note: ''
     },
     holdings: {},
     lastUpdated: '',
@@ -375,7 +371,7 @@
         if (!isDaniel && mySlug && currentPid !== mySlug) {
           menuBtnMy.style.display = 'flex';
           const textSpan = document.getElementById('menuMyPortfolioText');
-          if (textSpan) textSpan.textContent = `🚀 前往我的專屬維護空間 (?id=${mySlug})`;
+          if (textSpan) textSpan.textContent = `前往我的專屬維護空間 (?id=${mySlug})`;
         } else {
           menuBtnMy.style.display = 'none';
         }
@@ -491,30 +487,19 @@
 
   function applyLoadedData(src) {
     state.usdRate = src.usdRate || 32.51;
-    state.baselineRealizedPl = src.baselineRealizedPl !== undefined ? src.baselineRealizedPl : 67493.0;
-    state.baselineDividendIncome = src.baselineDividendIncome !== undefined ? src.baselineDividendIncome : 10967.0;
+    state.baselineRealizedPl = src.baselineRealizedPl !== undefined ? Number(src.baselineRealizedPl) : 0.0;
+    state.baselineDividendIncome = src.baselineDividendIncome !== undefined ? Number(src.baselineDividendIncome) : 0.0;
     state.dashboardTitle = src.dashboardTitle || state.dashboardTitle;
     state.quotes = src.quotes || DEFAULT_QUOTES;
     state.transactions = src.transactions || [];
     state.realizedRecords = src.realizedRecords || [];
     state.dividendRecords = src.dividendRecords || [];
     const incomingRes = src.fundReserves || {};
-    // 確保生活支出明細 expenseItems 存在並具備預設值
-    let expenseItems = incomingRes.expenseItems;
-    if (!Array.isArray(expenseItems) || expenseItems.length === 0) {
-      expenseItems = (state.fundReserves?.expenseItems?.length)
-        ? state.fundReserves.expenseItems
-        : [
-            { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
-            { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
-            { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
-          ];
-    }
+    // 確保生活支出明細 expenseItems 存在 (未設定時為空陣列)
+    let expenseItems = Array.isArray(incomingRes.expenseItems) ? incomingRes.expenseItems : [];
 
     // 確保定期定額明細 dcaItems 存在 (陣列)
-    let dcaItems = Array.isArray(incomingRes.dcaItems)
-      ? incomingRes.dcaItems
-      : (Array.isArray(state.fundReserves?.dcaItems) ? state.fundReserves.dcaItems : []);
+    let dcaItems = Array.isArray(incomingRes.dcaItems) ? incomingRes.dcaItems : [];
 
     // 自動換算生活支出月額
     let monthlyExpenseTwd = Number(incomingRes.monthlyExpenseTwd) || 0;
@@ -545,13 +530,28 @@
         calcDca += mTwd;
       });
       monthlyDcaTwd = calcDca;
-    } else if (monthlyDcaTwd <= 0 && incomingRes.monthlyDcaTwd === undefined) {
-      monthlyDcaTwd = 42757;
     }
     const annualDcaTwd = monthlyDcaTwd * 12;
 
     state.fundReserves = {
-      ...state.fundReserves,
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
+      usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
+      note: '',
       ...incomingRes,
       expenseItems,
       dcaItems,
@@ -599,6 +599,7 @@
   }
 
   function loadLocalOrEmbedded() {
+    const pid = window.cloudStore?.currentPortfolioId || 'main';
     state.quotes = { ...DEFAULT_QUOTES };
     state.usdRate = 32.51;
     state.baselineRealizedPl = 0.0;
@@ -606,32 +607,60 @@
     state.transactions = [];
     state.realizedRecords = [];
     state.dividendRecords = [];
-    state.fundReserves = {
-      livingReserveTwd: 117189,
-      investCapitalTwd: 190000,
-      savingsInsuranceTwd: 2930000,
-      usdInsurance: 12900,
-      monthlyDepositPrincipal: 1108932,
-      usdSavings: 2848,
-      salaryMonthlyTwd: 66000,
-      dividendMonthlyTwd: 16255,
-      insuranceAnnualTwd: 13725,
-      bonusAnnualTwd: 100000,
-      monthlyIncomeTwd: 82255,
-      annualIncomeTwd: 1100785,
-      monthlyExpenseTwd: 43218,
-      annualExpenseTwd: 518616,
-      monthlyDcaTwd: 42757,
-      annualDcaTwd: 513084,
-      annualSurplusTwd: 69085,
-      expenseItems: [
-        { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
-        { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
-        { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
-      ],
-      dcaItems: [],
-      note: '資產配置規劃'
-    };
+
+    if (pid !== 'main') {
+      // 專屬投資組合（未建立或未同步前）所有資料預設歸零
+      state.fundReserves = {
+        livingReserveTwd: 0,
+        investCapitalTwd: 0,
+        savingsInsuranceTwd: 0,
+        usdInsurance: 0,
+        monthlyDepositPrincipal: 0,
+        usdSavings: 0,
+        salaryMonthlyTwd: 0,
+        dividendMonthlyTwd: 0,
+        insuranceAnnualTwd: 0,
+        bonusAnnualTwd: 0,
+        monthlyIncomeTwd: 0,
+        annualIncomeTwd: 0,
+        monthlyExpenseTwd: 0,
+        annualExpenseTwd: 0,
+        monthlyDcaTwd: 0,
+        annualDcaTwd: 0,
+        annualSurplusTwd: 0,
+        expenseItems: [],
+        dcaItems: [],
+        note: ''
+      };
+    } else {
+      // 僅在 main 核心組合本地離線展示模式時保留展示配置
+      state.fundReserves = {
+        livingReserveTwd: 117189,
+        investCapitalTwd: 190000,
+        savingsInsuranceTwd: 2930000,
+        usdInsurance: 12900,
+        monthlyDepositPrincipal: 1108932,
+        usdSavings: 2848,
+        salaryMonthlyTwd: 66000,
+        dividendMonthlyTwd: 16255,
+        insuranceAnnualTwd: 13725,
+        bonusAnnualTwd: 100000,
+        monthlyIncomeTwd: 82255,
+        annualIncomeTwd: 1100785,
+        monthlyExpenseTwd: 43218,
+        annualExpenseTwd: 518616,
+        monthlyDcaTwd: 42757,
+        annualDcaTwd: 513084,
+        annualSurplusTwd: 69085,
+        expenseItems: [
+          { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
+          { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
+          { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
+        ],
+        dcaItems: [],
+        note: '資產配置規劃'
+      };
+    }
     state.holdings = {};
     state.lastUpdated = '';
   }
@@ -1336,8 +1365,8 @@
     if (savingsInsIn) savingsInsIn.value = reserves.savingsInsuranceTwd ?? 0;
     if (usdInsIn) usdInsIn.value = reserves.usdInsurance ?? 0;
     if (mDepositIn) mDepositIn.value = reserves.monthlyDepositPrincipal ?? 0;
-    if (salaryIn) salaryIn.value = reserves.salaryMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.8) : 0);
-    if (dividendIn) dividendIn.value = reserves.dividendMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.2) : 0);
+    if (salaryIn) salaryIn.value = reserves.salaryMonthlyTwd ?? 0;
+    if (dividendIn) dividendIn.value = reserves.dividendMonthlyTwd ?? 0;
     if (insAnnualIn) insAnnualIn.value = reserves.insuranceAnnualTwd ?? 0;
     if (bonusIn) bonusIn.value = reserves.bonusAnnualTwd ?? 0;
     if (mExpenseIn) mExpenseIn.value = reserves.monthlyExpenseTwd ?? 0;
@@ -1444,11 +1473,7 @@
     const res = state.fundReserves || {};
     currentExpenseList = (res.expenseItems && res.expenseItems.length > 0)
       ? JSON.parse(JSON.stringify(res.expenseItems))
-      : [
-          { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
-          { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
-          { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
-        ];
+      : [];
 
     renderExpenseTable();
     modal.classList.add('show');
@@ -4865,9 +4890,21 @@
           </div>
           <button type="button" class="btn btn-secondary btn-xs text-danger" style="padding:2px 8px;" title="移除此授權 Email" data-idx="${index}">&times; 移除</button>
         `;
-        item.querySelector('button')?.addEventListener('click', () => {
-          currentViewers.splice(index, 1);
-          renderViewerList();
+        item.querySelector('button')?.addEventListener('click', async () => {
+          const removedEmail = currentViewers[index];
+          if (!confirm(`確定要將 ${removedEmail} 從授權親友名單中移除嗎？`)) return;
+          try {
+            item.style.opacity = '0.5';
+            currentViewers.splice(index, 1);
+            await window.cloudStore?.saveAcl(currentViewers);
+            renderViewerList();
+            showNotification(`已從雲端白名單移除 ${removedEmail}`, 'info');
+          } catch (err) {
+            console.error('移除失敗:', err);
+            alert('移除失敗：' + (err.message || err));
+            currentViewers.splice(index, 0, removedEmail);
+            renderViewerList();
+          }
         });
         listContainer.appendChild(item);
       });
@@ -4973,8 +5010,8 @@
     btnClose?.addEventListener('click', closeModal);
     btnCancel?.addEventListener('click', closeModal);
 
-    // 新增 Email
-    btnAdd?.addEventListener('click', () => {
+    // 新增 Email (立即儲存至 Firebase 雲端)
+    btnAdd?.addEventListener('click', async () => {
       const email = (inputEmail?.value || '').trim().toLowerCase();
       if (!email) {
         alert('請輸入 Email！');
@@ -4988,9 +5025,25 @@
         alert('此 Email 已在授權名單中！');
         return;
       }
-      currentViewers.push(email);
-      if (inputEmail) inputEmail.value = '';
-      renderViewerList();
+
+      try {
+        btnAdd.disabled = true;
+        btnAdd.textContent = '⏳ 儲存中...';
+        currentViewers.push(email);
+        await window.cloudStore?.saveAcl(currentViewers);
+        if (inputEmail) inputEmail.value = '';
+        renderViewerList();
+        showNotification(`🎉 已成功將 ${email} 新增至 Firebase 雲端授權名單！`, 'success');
+      } catch (err) {
+        console.error('儲存授權名單失敗:', err);
+        currentViewers.pop();
+        alert('儲存至 Firebase 失敗：' + (err.message || err));
+      } finally {
+        if (btnAdd) {
+          btnAdd.disabled = false;
+          btnAdd.textContent = '＋ 加入名單';
+        }
+      }
     });
 
     inputEmail?.addEventListener('keydown', (e) => {
@@ -5205,18 +5258,35 @@
           version: 1,
           owner: window.cloudStore.currentUser.email,
           dashboardTitle: `${pid.toUpperCase()} 投資儀表板`,
-          quotes: JSON.parse(JSON.stringify(SAMPLE_DEMO_HOLDINGS.quotes)),
-          transactions: JSON.parse(JSON.stringify(SAMPLE_DEMO_HOLDINGS.transactions)),
+          quotes: JSON.parse(JSON.stringify(DEFAULT_QUOTES)),
+          transactions: [],
           realizedRecords: [],
           dividendRecords: [],
           fundReserves: {
-            taiwanInsurance: 0,
-            bankSavings: 0,
-            foreignReservesUsd: 0,
-            note: '可在資產設定中記錄您的個人儲備金'
+            livingReserveTwd: 0,
+            investCapitalTwd: 0,
+            savingsInsuranceTwd: 0,
+            usdInsurance: 0,
+            monthlyDepositPrincipal: 0,
+            usdSavings: 0,
+            salaryMonthlyTwd: 0,
+            dividendMonthlyTwd: 0,
+            insuranceAnnualTwd: 0,
+            bonusAnnualTwd: 0,
+            monthlyIncomeTwd: 0,
+            annualIncomeTwd: 0,
+            monthlyExpenseTwd: 0,
+            annualExpenseTwd: 0,
+            monthlyDcaTwd: 0,
+            annualDcaTwd: 0,
+            annualSurplusTwd: 0,
+            expenseItems: [],
+            dcaItems: [],
+            note: ''
           },
           usdRate: 32.5,
-          baselineRealizedPl: 0
+          baselineRealizedPl: 0,
+          baselineDividendIncome: 0
         };
 
         await window.cloudStore.savePortfolio(initialNewPortfolio);

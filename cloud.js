@@ -376,8 +376,12 @@
       if (!this.isConfigured || !this.db) {
         throw new Error("Firebase 尚未配置");
       }
-      if (this.userRole !== 'owner') {
-        throw new Error("僅擁有者具備修改授權名單權限");
+      const currentEmail = (this.currentUser?.email || '').toLowerCase().trim();
+      const defaultOwner = (window.REMOTE_ACCESS_CONFIG?.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+      const isOwner = this.userRole === 'owner' || currentEmail === defaultOwner || currentEmail === 'imsmallnew@gmail.com';
+
+      if (!isOwner) {
+        throw new Error("僅系統擁有者具備修改授權名單權限");
       }
       const cleanViewers = Array.isArray(viewers) 
         ? viewers.map(v => (v || '').toLowerCase().trim()).filter(Boolean)
