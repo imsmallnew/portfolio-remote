@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>投資儀表板 PRO | 即時行情 · 夜盤差額 · TradingView · 配息與已實現損益</title>
-  <meta name="description" content="富邦證券投資即時儀表板，支援目前持有標的股數價格損益計算、夜盤現價差額、TradingView 即時行情、已實現損益與配息表明細、權限管理模式與 CSV 匯入更新。">
+  <meta name="description" content="個人證券投資即時儀表板，支援目前持有標的股數價格損益計算、夜盤現價差額、TradingView 即時行情、已實現損益與配息表明細、權限管理模式與 CSV 匯入更新。">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,7 +234,7 @@
         <!-- Realized P/L (Aligned with CSV 67,493) -->
         <div class="kpi-card is-interactive" id="realizedCard" title="點擊切換至「已實現損益明細」頁籤">
           <div class="kpi-header">
-            <span class="kpi-title">已實現損益 (富邦試算)</span>
+            <span class="kpi-title">已實現損益 (累計)</span>
             <span class="kpi-badge badge-gold">點擊看明細 ➔</span>
           </div>
           <div class="kpi-value-group">
@@ -311,7 +311,7 @@
           <div class="fund-details-collapse" id="fundDetailsCollapse" style="display: none;">
             <div class="fund-details-inner">
               <div class="fund-collapse-header">
-                <span class="text-tertiary-sm">📋 資產儲備細項與年度收支規劃（對齊富邦試算「資產配置規劃」頁籤）</span>
+                <span class="text-tertiary-sm">📋 資產儲備細項與年度收支規劃</span>
               </div>
               <!-- 6 Detailed Cards -->
               <div class="fund-items-grid">
@@ -638,11 +638,10 @@
         <div class="toolbar-card">
           <div class="toolbar-left flex-wrap">
             <div class="summary-pill-highlight">
-              <span>富邦試算歷史已實現損益累計：</span>
+              <span>歷史已實現損益累計：</span>
               <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="realizedSummaryText">NT$
                 67,493</strong>
             </div>
-            <span class="text-tertiary-sm">（對齊「富邦試算」已實現損益頁籤結算明細）</span>
           </div>
 
           <div class="toolbar-right">
@@ -689,7 +688,6 @@
               <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="dividendSummaryText">NT$
                 10,967</strong>
             </div>
-            <span class="text-tertiary-sm">（對齊「富邦試算」配息表頁籤紀錄）</span>
           </div>
 
           <div class="toolbar-right">
@@ -737,7 +735,7 @@
               <div class="overview-icon">🏛️</div>
               <div>
                 <h3 class="overview-title">個人總淨資產與三大配置總覽</h3>
-                <p class="overview-subtitle">依據富邦「資產配置規劃」即時聯動 · 即時市值 + 儲備池 + 儲蓄保單</p>
+                <p class="overview-subtitle">資產配置即時聯動 · 即時市值 + 儲備池 + 儲蓄保單</p>
               </div>
             </div>
             <div class="overview-networth-badge">
@@ -1134,13 +1132,13 @@
           <div class="form-group">
             <label for="baselineRealizedInput">歷史已實現損益基數 (NT$) <span class="req">*</span></label>
             <input type="number" id="baselineRealizedInput" step="1" value="67493" required>
-            <span class="form-hint">對齊「富邦試算(投資清單).csv」第 60 欄已實現損益（預設 67,493）</span>
+            <span class="form-hint">歷史累計已實現損益基準值（預設 67,493）</span>
           </div>
 
           <div class="form-group">
             <label for="baselineDividendInput">總配息收入基數 (NT$) <span class="req">*</span></label>
             <input type="number" id="baselineDividendInput" step="1" value="10967" required>
-            <span class="form-hint">對齊「富邦試算(投資清單).csv」第 61 欄總配息收入（預設 10,967）</span>
+            <span class="form-hint">歷史累計總配息收入基準值（預設 10,967）</span>
           </div>
 
           <div class="form-group admin-only" style="border-top:1px solid var(--border-subtle);padding-top:12px;">
@@ -1262,7 +1260,7 @@
 
           <div class="form-group">
             <label for="realFormNote">備註說明 (選填)</label>
-            <input type="text" id="realFormNote" placeholder="例如：停利出場、富邦試算結算紀錄">
+            <input type="text" id="realFormNote" placeholder="例如：停利出場、歷史結算紀錄">
           </div>
 
           <div class="modal-footer">
@@ -1351,7 +1349,7 @@
 
           <div class="form-group">
             <label for="fundFormNote">備註說明 (選填)</label>
-            <input type="text" id="fundFormNote" placeholder="例如：對齊富邦資產配置規劃試算">
+            <input type="text" id="fundFormNote" placeholder="例如：資產配置規劃備註">
           </div>
 
           <div class="modal-footer">

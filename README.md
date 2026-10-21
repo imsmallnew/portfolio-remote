@@ -121,7 +121,7 @@ git push -u origin main
 npx wrangler login
 npx wrangler deploy
 ```
-3. 部署完成後會得到一個網址（如 `https://fubon-quotes-worker.你的子網域.workers.dev`），將此網址貼至 `firebase-config.js` 中的 `workerQuoteUrl` 即可！
+3. 部署完成後會得到一個網址（如 `https://portfolio-quotes-worker.你的子網域.workers.dev`），將此網址貼至 `firebase-config.js` 中的 `workerQuoteUrl` 即可！
 
 ---
 

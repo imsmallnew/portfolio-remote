@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker for Fubon Portfolio Dashboard
+ * Cloudflare Worker for Portfolio Dashboard
  * 代抓 TradingView Scanner、TAIFEX 期交所夜盤行情與美元即時匯率
  */
 
@@ -55,7 +55,7 @@ export default {
       });
     }
 
-    return new Response(JSON.stringify({ status: "ok", service: "Fubon Quotes Proxy Worker" }), {
+    return new Response(JSON.stringify({ status: "ok", service: "Quotes Proxy Worker" }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
     });
   }

@@ -1,5 +1,5 @@
 /**
- * Fubon Portfolio Dashboard - Core Application Logic
+ * Portfolio Dashboard - Core Application Logic
  * Reactive investment portfolio calculator, real-time & night market price tracker,
  * TradingView integration, drag & drop reordering, realized P/L and dividend ledger,
  * admin authentication, and CSV import/overwrite.
@@ -2114,7 +2114,7 @@
     tbody.innerHTML = rowsHtml;
   }
 
-  // 7. Render Realized P/L Table (已實現損益紀錄 - 對齊富邦試算頁籤)
+  // 7. Render Realized P/L Table (已實現損益紀錄)
   function renderRealizedTable() {
     const tbody = document.getElementById('realizedTableBody');
     const tfoot = document.getElementById('realizedTableFoot');
@@ -2172,7 +2172,7 @@
     }
   }
 
-  // 8. Render Dividend Table (配息收入表 - 對齊富邦試算頁籤)
+  // 8. Render Dividend Table (配息收入表)
   function renderDividendTable() {
     const tbody = document.getElementById('dividendTableBody');
     const tfoot = document.getElementById('dividendTableFoot');
@@ -3676,7 +3676,7 @@
 
     const header = parseLine(lines[0]);
 
-    // Check if this is the multi-column investment matrix CSV (富邦試算(投資清單).csv)
+    // Check if this is the multi-column investment matrix CSV
     if (header.some(h => h.includes('0050(價格)'))) {
       const assetsMeta = [
         { sym: "0050", name: "元大台灣50", p: 1, q: 2, a: 3, curr: "TWD" },
@@ -3807,7 +3807,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `富邦投資清單_最新連動資料_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `投資清單_最新連動資料_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
