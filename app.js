@@ -1478,14 +1478,9 @@
     if (!modal) return;
 
     const res = state.fundReserves || {};
-    currentDcaList = (res.dcaItems && res.dcaItems.length > 0)
+    currentDcaList = Array.isArray(res.dcaItems)
       ? JSON.parse(JSON.stringify(res.dcaItems))
-      : [
-          { id: 'dca_1', symbol: '0050 元大台灣50', amount: 5000, days: [6, 16, 26] },
-          { id: 'dca_2', symbol: '路博邁全球5G', amount: 10000, days: [6] },
-          { id: 'dca_3', symbol: 'VOO 美股標普500', amount: 10000, days: [15] },
-          { id: 'dca_4', symbol: '瀚亞印度基金', amount: 7757, days: [20] }
-        ];
+      : [];
 
     renderDcaTable();
     modal.classList.add('show');
@@ -1581,6 +1576,10 @@
       days: [6]
     });
     renderDcaTable();
+    const inputs = document.querySelectorAll('#dcaItemsTableBody .dca-symbol-input');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
   }
 
   function deleteDcaItemRow(idx) {
