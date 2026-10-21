@@ -96,23 +96,23 @@
 
   // Base Quote Metadata with TradingView Tickers (SNDK fixed to NASDAQ:SNDK)
   const DEFAULT_QUOTES = {
-    "0050": { price: 108.15, nightPrice: 107.70, prevClose: 109.00, name: "元大台灣50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "0050.TW", tvSymbol: "TWSE:0050", order: 0 },
-    "2330": { price: 2420.00, nightPrice: 2410.00, prevClose: 2420.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 1 },
-    "VOO": { price: 701.61, nightPrice: 701.61, prevClose: 709.43, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 2 },
-    "00981A": { price: 28.94, nightPrice: 28.82, prevClose: 29.38, name: "統一台灣高息動能/00981A", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
-    "00403A": { price: 10.24, nightPrice: 10.20, prevClose: 10.38, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
-    "00406A": { price: 9.18, nightPrice: 9.14, prevClose: 9.30, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
+    "0050": { price: 108.15, nightPrice: 108.80, prevClose: 107.25, name: "元大台灣50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "0050.TW", tvSymbol: "TWSE:0050", order: 0 },
+    "2330": { price: 2420.00, nightPrice: 2433.90, prevClose: 2405.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 1 },
+    "VOO": { price: 706.80, nightPrice: 708.42, prevClose: 704.60, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 2 },
+    "00981A": { price: 28.88, nightPrice: 29.05, prevClose: 28.73, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
+    "00403A": { price: 10.32, nightPrice: 10.38, prevClose: 10.18, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
+    "00406A": { price: 9.22, nightPrice: 9.27, prevClose: 9.15, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
     "路博邁": { price: 92.82, nightPrice: 92.82, prevClose: 98.63, name: "路博邁NB 5G股票基金", type: "境外 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 6 },
     "瀚亞": { price: 111.452, nightPrice: 111.452, prevClose: 116.905, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 7 },
-    "台達電": { price: 1640.00, nightPrice: 1633.20, prevClose: 1635.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
-    "聯發科": { price: 4205.00, nightPrice: 4187.60, prevClose: 4250.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
-    "領袖": { price: 40.06, nightPrice: 39.89, prevClose: 42.48, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
-    "南亞科": { price: 436.00, nightPrice: 434.20, prevClose: 447.50, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 11 },
-    "MU": { price: 878.84, nightPrice: 878.84, prevClose: 931.24, name: "美光科技 Micron", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MU", tvSymbol: "NASDAQ:MU", order: 12 },
-    "NVDA": { price: 214.13, nightPrice: 214.13, prevClose: 217.23, name: "輝達 NVIDIA", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "NVDA", tvSymbol: "NASDAQ:NVDA", order: 13 },
-    "MRVL": { price: 227.83, nightPrice: 227.83, prevClose: 241.24, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 14 },
+    "台達電": { price: 1625.00, nightPrice: 1634.30, prevClose: 1605.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
+    "聯發科": { price: 4140.00, nightPrice: 4163.80, prevClose: 4150.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
+    "領袖": { price: 39.98, nightPrice: 40.21, prevClose: 39.56, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
+    "南亞科": { price: 436.50, nightPrice: 439.00, prevClose: 422.00, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 11 },
+    "MU": { price: 896.07, nightPrice: 927.33, prevClose: 904.90, name: "美光科技 Micron", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MU", tvSymbol: "NASDAQ:MU", order: 12 },
+    "NVDA": { price: 216.47, nightPrice: 220.65, prevClose: 217.09, name: "輝達 NVIDIA", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "NVDA", tvSymbol: "NASDAQ:NVDA", order: 13 },
+    "MRVL": { price: 240.42, nightPrice: 247.77, prevClose: 237.09, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 14 },
     "SpaceX": { price: 146.03, nightPrice: 146.03, prevClose: 148.62, name: "SpaceX", type: "美股 私募", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "", order: 15 },
-    "SNDK": { price: 1299.30, nightPrice: 1299.30, prevClose: 1394.83, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
+    "SNDK": { price: 1365.38, nightPrice: 1413.39, prevClose: 1371.12, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
   };
 
   // 預設持股交易為空（登入後由 Firestore 雲端同步或由管理員匯入真實資產）
@@ -2719,6 +2719,83 @@
     }
   }
 
+  function fetchTradingViewWebSocketQuotes(tickers, timeoutMs = 3000) {
+    return new Promise((resolve) => {
+      if (!tickers || tickers.length === 0 || typeof WebSocket === 'undefined') {
+        return resolve({});
+      }
+
+      let ws;
+      let timer;
+      const results = {};
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+            ws.close();
+          }
+        } catch (e) { }
+        resolve(results);
+      };
+
+      timer = setTimeout(finish, timeoutMs);
+
+      try {
+        ws = new WebSocket('wss://data.tradingview.com/socket.io/websocket');
+
+        const sendMsg = (obj) => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            const str = JSON.stringify(obj);
+            ws.send(`~m~${str.length}~m~${str}`);
+          }
+        };
+
+        ws.onopen = () => {
+          const sid = `qs_${Date.now()}`;
+          sendMsg({ m: 'set_auth_token', p: ['unauthorized_user_token'] });
+          sendMsg({ m: 'quote_create_session', p: [sid] });
+          sendMsg({
+            m: 'quote_set_fields',
+            p: [sid, 'lp', 'ch', 'chp', 'rtc', 'rch', 'rchp', 'ntc', 'nch', 'nchp', 'prev_close_price', 'description']
+          });
+          tickers.forEach(t => {
+            sendMsg({ m: 'quote_add_symbols', p: [sid, t] });
+          });
+        };
+
+        ws.onmessage = (evt) => {
+          const raw = evt.data;
+          if (typeof raw !== 'string') return;
+          const matches = raw.match(/~m~\d+~m~(\{.*?\})(?=~m~|\Z)/g);
+          if (!matches) return;
+          for (const mStr of matches) {
+            try {
+              const jsonStr = mStr.replace(/^~m~\d+~m~/, '');
+              const d = JSON.parse(jsonStr);
+              if (d.m === 'qsd' && d.p && d.p[1]) {
+                const sym = d.p[1].n;
+                const v = d.p[1].v || {};
+                if (!results[sym]) results[sym] = {};
+                Object.assign(results[sym], v);
+              }
+            } catch (e) { }
+          }
+          const allGot = tickers.every(t => results[t] && (results[t].lp || results[t].ntc || results[t].rtc));
+          if (allGot) finish();
+        };
+
+        ws.onerror = () => finish();
+        ws.onclose = () => finish();
+      } catch (e) {
+        finish();
+      }
+    });
+  }
+
   async function fetchBrowserQuotesDirect() {
     let updated = 0;
     const updatedSymbols = new Set();
@@ -2806,7 +2883,7 @@
       }
     }
 
-    // 4. Try TradingView America Scan
+    // 4. Try TradingView America Scan & Direct Live Night WebSocket
     if (usTickers.length > 0) {
       try {
         const usRes = await fetch('https://scanner.tradingview.com/america/scan', {
@@ -2814,7 +2891,7 @@
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             symbols: { tickers: usTickers },
-            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'postmarket_close', 'premarket_close']
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'postmarket_close', 'premarket_close', 'rtc']
           })
         });
         if (usRes.ok) {
@@ -2826,9 +2903,10 @@
               const close = Number(cols[0]);
               const changeAbs = cols[2] !== null && cols[2] !== undefined ? Number(cols[2]) : 0;
               const prev = changeAbs ? Number((close - changeAbs).toFixed(2)) : close;
-              const post = cols[9] !== null && cols[9] !== undefined ? Number(cols[9]) : null;
-              const pre = cols[10] !== null && cols[10] !== undefined ? Number(cols[10]) : null;
-              const night = (post || pre || close);
+              const post = cols[8] !== null && cols[8] !== undefined ? Number(cols[8]) : null;
+              const pre = cols[9] !== null && cols[9] !== undefined ? Number(cols[9]) : null;
+              const rtc = cols[10] !== null && cols[10] !== undefined ? Number(cols[10]) : null;
+              const night = (rtc || post || pre || close);
 
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
@@ -2842,6 +2920,27 @@
         }
       } catch (e) {
         console.warn('TradingView America scan notice (will fallback to Yahoo):', e);
+      }
+
+      // Live WebSocket Overlay for true BOATS Night price (ntc, exactly matching TradingView web symbol-last-value)
+      try {
+        const wsQuotes = await fetchTradingViewWebSocketQuotes(usTickers);
+        for (const [ticker, v] of Object.entries(wsQuotes)) {
+          const lp = v.lp !== undefined && v.lp !== null ? Number(v.lp) : null;
+          const prev = v.prev_close_price !== undefined && v.prev_close_price !== null ? Number(v.prev_close_price) : null;
+          const ntc = v.ntc !== undefined && v.ntc !== null ? Number(v.ntc) : null;
+          const rtc = v.rtc !== undefined && v.rtc !== null ? Number(v.rtc) : null;
+          const night = ntc || rtc || lp;
+
+          for (const sym of (tvMap[ticker] || [])) {
+            if (lp !== null) state.quotes[sym].price = lp;
+            if (prev !== null) state.quotes[sym].prevClose = prev;
+            if (night !== null) state.quotes[sym].nightPrice = night;
+            updatedSymbols.add(sym);
+          }
+        }
+      } catch (err) {
+        console.warn('TradingView WS live quotes notice:', err);
       }
     }
 
