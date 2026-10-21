@@ -351,28 +351,38 @@
                     <span class="fund-item-label">儲蓄保單與本金總額</span>
                     <span class="badge-pill badge-pill-purple">穩定儲蓄資產</span>
                   </div>
-                  <div class="fund-item-val mono text-purple" id="fundValSavingsInsurance">NT$ 4,313,902</div>
-                  <div class="fund-item-desc" id="fundValInsuranceDetail">含台幣保單293萬 + 美元保單$8458 + 月配本金110.9萬</div>
+                  <div class="fund-item-val mono text-purple" id="fundValSavingsInsurance">NT$ --</div>
+                  <div class="fund-item-desc" id="fundValInsuranceDetail">含台幣保單 + 美元保單 (折合台幣) + 月配本金</div>
                 </div>
 
                 <!-- 5. Monthly & Annual Income -->
                 <div class="fund-item">
                   <div class="fund-item-top">
                     <span class="fund-item-label">個人總收入規劃</span>
-                    <span class="badge-pill badge-pill-emerald">年收 123 萬</span>
+                    <span class="badge-pill badge-pill-emerald" id="fundValIncomeBadge">年收 -- 萬</span>
                   </div>
-                  <div class="fund-item-val mono text-emerald" id="fundValMonthlyIncome">月 NT$ 82,255</div>
-                  <div class="fund-item-desc" id="fundValIncomeDesc">薪資實領 6.6萬 + 月配息 1.62萬 + 保單滿期給付</div>
+                  <div class="fund-item-val mono text-emerald" id="fundValMonthlyIncome">月 NT$ --</div>
+                  <div class="fund-item-desc" id="fundValIncomeDesc">薪資 + 月配息 + 保單滿期給付 + 年終</div>
                 </div>
 
-                <!-- 6. Monthly Expense & Savings Flow -->
+                <!-- 6. Monthly Living Expense -->
                 <div class="fund-item">
                   <div class="fund-item-top">
-                    <span class="fund-item-label">生活支出與定期定額</span>
-                    <span class="badge-pill badge-pill-cyan">年度結餘 +19.8萬</span>
+                    <span class="fund-item-label">每月生活總支出</span>
+                    <span class="badge-pill badge-pill-cyan" id="fundValExpenseBadge">年支出 -- 萬</span>
                   </div>
-                  <div class="fund-item-val mono" id="fundValMonthlyExpense">支出 NT$ 43,218</div>
-                  <div class="fund-item-desc" id="fundValExpenseDesc">定期定額月扣 4.27萬 ｜ 年度淨結餘 NT$ 198,081</div>
+                  <div class="fund-item-val mono" id="fundValMonthlyExpense">NT$ --</div>
+                  <div class="fund-item-desc" id="fundValExpenseDesc">年度生活支出約 NT$ -- (日常開銷、家用、聚餐與保單)</div>
+                </div>
+
+                <!-- 7. Monthly DCA Investment -->
+                <div class="fund-item">
+                  <div class="fund-item-top">
+                    <span class="fund-item-label">每月定期定額</span>
+                    <span class="badge-pill badge-pill-cyan" id="fundValDcaBadge">年度結餘 -- 萬</span>
+                  </div>
+                  <div class="fund-item-val mono text-cyan" id="fundValMonthlyDca">NT$ --</div>
+                  <div class="fund-item-desc" id="fundValDcaDesc">年扣款 NT$ -- ｜ 扣除開銷後年度淨結餘 NT$ --</div>
                 </div>
               </div>
             </div>
@@ -1280,6 +1290,11 @@
               <input type="number" id="fundFormInvest" step="1" min="0" required placeholder="例如：190000">
               <span class="form-tip">待加碼或每月定期定額扣款活存</span>
             </div>
+            <div class="form-group flex-1">
+              <label for="fundFormUsd">活存美金現金 ($ USD)</label>
+              <input type="number" id="fundFormUsd" step="any" min="0" required placeholder="例如：2848">
+              <span class="form-tip">中信 + 玉山美金活存合計</span>
+            </div>
           </div>
 
           <div class="form-row">
@@ -1291,7 +1306,7 @@
             <div class="form-group flex-1">
               <label for="fundFormUsdInsurance">美元保單現值 ($ USD)</label>
               <input type="number" id="fundFormUsdInsurance" step="any" min="0" required placeholder="例如：8458">
-              <span class="form-tip">美元保單現值（例如 2/6年期）</span>
+              <span class="form-tip">美元保單現值（依當前匯率自動折合台幣相加）</span>
             </div>
             <div class="form-group flex-1">
               <label for="fundFormMonthlyDeposit">月配本金 (NT$)</label>
@@ -1302,14 +1317,24 @@
 
           <div class="form-row">
             <div class="form-group flex-1">
-              <label for="fundFormUsd">活存美金現金 ($ USD)</label>
-              <input type="number" id="fundFormUsd" step="any" min="0" required placeholder="例如：2848">
-              <span class="form-tip">中信 + 玉山美金活存合計</span>
+              <label for="fundFormSalary">每月薪資實領 (NT$)</label>
+              <input type="number" id="fundFormSalary" step="1" min="0" required placeholder="例如：66000">
+              <span class="form-tip">經常性每月工作薪資</span>
             </div>
             <div class="form-group flex-1">
-              <label for="fundFormMonthlyIncome">每月總收入 (NT$)</label>
-              <input type="number" id="fundFormMonthlyIncome" step="1" min="0" required placeholder="例如：82255">
-              <span class="form-tip">含薪資實領 66,000 + 月配息 16,255</span>
+              <label for="fundFormDividend">每月配息收入 (NT$)</label>
+              <input type="number" id="fundFormDividend" step="1" min="0" required placeholder="例如：16255">
+              <span class="form-tip">高股息或債券月配息金額</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormInsuranceAnnual">保單滿期給付 (年度 NT$)</label>
+              <input type="number" id="fundFormInsuranceAnnual" step="1" min="0" required placeholder="例如：13725">
+              <span class="form-tip">保單滿期年度給付或分紅</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="fundFormBonusAnnual">年終獎金 (年度 NT$)</label>
+              <input type="number" id="fundFormBonusAnnual" step="1" min="0" required placeholder="例如：100000">
+              <span class="form-tip">年度年終獎金或考績獎勵</span>
             </div>
           </div>
 

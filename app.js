@@ -28,7 +28,12 @@
       investCapitalTwd: 0,
       savingsInsuranceTwd: 0,
       usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
       usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
       monthlyIncomeTwd: 0,
       annualIncomeTwd: 0,
       monthlyExpenseTwd: 0,
@@ -526,7 +531,12 @@
       investCapitalTwd: 0,
       savingsInsuranceTwd: 0,
       usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
       usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
       monthlyIncomeTwd: 0,
       annualIncomeTwd: 0,
       monthlyExpenseTwd: 0,
@@ -973,45 +983,73 @@
   // -------------------------------------------------------------
   function renderFundReserves() {
     const reserves = state.fundReserves || {
-      livingReserveTwd: 117189,
-      investCapitalTwd: 190000,
-      savingsInsuranceTwd: 2930000,
-      usdInsurance: 8458,
-      monthlyDepositPrincipal: 1108932,
-      usdSavings: 2848,
-      monthlyIncomeTwd: 82255,
-      annualIncomeTwd: 1229785,
-      monthlyExpenseTwd: 43218,
-      annualExpenseTwd: 518620,
-      monthlyDcaTwd: 42757,
-      annualDcaTwd: 513084,
-      annualSurplusTwd: 198081,
-      note: '對齊富邦試算資產配置規劃'
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
+      usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
+      note: ''
     };
 
     const living = Number(reserves.livingReserveTwd) || 0;
     const invest = Number(reserves.investCapitalTwd) || 0;
     const savingsInsTwd = Number(reserves.savingsInsuranceTwd) || 0;
     const usdIns = Number(reserves.usdInsurance) || 0;
-    const monthlyDepositPrincipal = Number(reserves.monthlyDepositPrincipal ?? 1108932) || 0;
+    const monthlyDepositPrincipal = Number(reserves.monthlyDepositPrincipal) || 0;
     const usdSav = Number(reserves.usdSavings) || 0;
     const rate = Number(state.usdRate) || 32.45;
 
     const usdSavInTwd = Math.round(usdSav * rate);
     const usdInsInTwd = Math.round(usdIns * rate);
 
-    // 1. Cash Reserves Pool (現金水位儲備池)
+    // 1. 現金水位儲備池 (生活預備金 + 投資待投入 + 美元活存折合台幣)
     const totalCashReserves = living + invest + usdSavInTwd;
 
-    // 2. Savings Insurance Assets (儲蓄保單與本金資產: 台幣保單 + 美元保單 + 月配本金)
+    // 2. 儲蓄保單與本金總額 (台幣保單 + 美元保單*匯率折合台幣 + 月配本金)
     const totalInsuranceAssets = savingsInsTwd + usdInsInTwd + monthlyDepositPrincipal;
 
-    // 3. Securities Investment Market Value (證券投資總市值: 即時)
+    // 3. 證券投資總市值: 即時
     const s = state.portfolioSummary;
     const investMarketVal = s ? s.totalMarketValueTwd : 0;
 
-    // 4. Total Net Worth (個人總淨資產: 現金池 + 儲蓄保單與本金 + 投資市值)
+    // 4. 個人總淨資產: 現金池 + 儲蓄保單與本金 + 投資市值
     const totalNetWorth = totalCashReserves + totalInsuranceAssets + investMarketVal;
+
+    // 5. 個人總收入規劃細項 (薪資 + 月配息 + 保單滿期年給付 + 年終)
+    const salaryMonthly = Number(reserves.salaryMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.8) : 0)) || 0;
+    const dividendMonthly = Number(reserves.dividendMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.2) : 0)) || 0;
+    const insuranceAnnual = Number(reserves.insuranceAnnualTwd) || 0;
+    const bonusAnnual = Number(reserves.bonusAnnualTwd) || 0;
+
+    // 年度總收入 = 月薪*12 + 月配息*12 + 保單給付 + 年終
+    const annualIncome = (salaryMonthly * 12) + (dividendMonthly * 12) + insuranceAnnual + bonusAnnual;
+    // 經常性月收入 (薪資 + 配息)
+    const regularMonthlyIncome = salaryMonthly + dividendMonthly;
+    // 平均月收入 (含年終與保單年給付分攤)
+    const avgMonthlyIncome = Math.round(annualIncome / 12);
+
+    // 6. 生活總支出
+    const monthlyExpense = Number(reserves.monthlyExpenseTwd) || 0;
+    const annualExpense = monthlyExpense * 12;
+
+    // 7. 每月定期定額
+    const monthlyDca = Number(reserves.monthlyDcaTwd) || 0;
+    const annualDca = monthlyDca * 12;
+
+    // 年度淨結餘 = 年度總收入 - 年度生活支出 - 年度定期定額
+    const annualSurplus = annualIncome - annualExpense - annualDca;
 
     // Update DOM items
     const livingEl = document.getElementById('fundValLiving');
@@ -1026,23 +1064,53 @@
     const usdConvEl = document.getElementById('fundValUsdConverted');
     if (usdConvEl) usdConvEl.textContent = `折合約 NT$ ${formatMoney(usdSavInTwd)} (@ ${rate.toFixed(2)})`;
 
+    // 儲蓄保單與本金總額
     const insuranceEl = document.getElementById('fundValSavingsInsurance');
     if (insuranceEl) insuranceEl.textContent = `NT$ ${formatMoney(totalInsuranceAssets)}`;
 
     const insDetailEl = document.getElementById('fundValInsuranceDetail');
-    if (insDetailEl) insDetailEl.textContent = `含台幣保單 NT$ ${formatMoney(savingsInsTwd)} + 美元保單 $${formatMoney(usdIns)} + 月配本金 NT$ ${formatMoney(monthlyDepositPrincipal)}`;
+    if (insDetailEl) {
+      insDetailEl.textContent = `含台幣保單 NT$ ${formatMoney(savingsInsTwd)} + 美元保單 $${formatMoney(usdIns)} (折合 NT$ ${formatMoney(usdInsInTwd)}) + 月配本金 NT$ ${formatMoney(monthlyDepositPrincipal)}`;
+    }
 
+    // 個人總收入規劃
     const mIncomeEl = document.getElementById('fundValMonthlyIncome');
-    if (mIncomeEl) mIncomeEl.textContent = `月 NT$ ${formatMoney(reserves.monthlyIncomeTwd || 82255)}`;
+    if (mIncomeEl) mIncomeEl.textContent = `月 NT$ ${formatMoney(regularMonthlyIncome)}`;
 
+    const incBadgeEl = document.getElementById('fundValIncomeBadge');
+    if (incBadgeEl) incBadgeEl.textContent = `年收 ${(annualIncome / 10000).toFixed(1)} 萬`;
+
+    const incDescEl = document.getElementById('fundValIncomeDesc');
+    if (incDescEl) {
+      incDescEl.textContent = `薪資 NT$ ${formatMoney(salaryMonthly)}/月 + 配息 NT$ ${formatMoney(dividendMonthly)}/月 + 保單年給付 NT$ ${formatMoney(insuranceAnnual)} + 年終 NT$ ${formatMoney(bonusAnnual)} (月均約 NT$ ${formatMoney(avgMonthlyIncome)})`;
+    }
+
+    // 區塊 1: 每月生活總支出
     const mExpenseEl = document.getElementById('fundValMonthlyExpense');
-    if (mExpenseEl) mExpenseEl.textContent = `支出 NT$ ${formatMoney(reserves.monthlyExpenseTwd || 43218)}`;
+    if (mExpenseEl) mExpenseEl.textContent = `NT$ ${formatMoney(monthlyExpense)}`;
+
+    const expBadgeEl = document.getElementById('fundValExpenseBadge');
+    if (expBadgeEl) expBadgeEl.textContent = `年支出 ${(annualExpense / 10000).toFixed(1)} 萬`;
 
     const expDescEl = document.getElementById('fundValExpenseDesc');
     if (expDescEl) {
-      const dca = reserves.monthlyDcaTwd || 42757;
-      const surplus = reserves.annualSurplusTwd || 198081;
-      expDescEl.textContent = `定期定額月扣 NT$ ${formatMoney(dca)} ｜ 年度淨結餘 NT$ ${formatMoney(surplus)}`;
+      expDescEl.textContent = `年度生活支出約 NT$ ${formatMoney(annualExpense)} (日常開銷、家用、聚餐與保單)`;
+    }
+
+    // 區塊 2: 每月定期定額
+    const mDcaEl = document.getElementById('fundValMonthlyDca');
+    if (mDcaEl) mDcaEl.textContent = `NT$ ${formatMoney(monthlyDca)}`;
+
+    const dcaBadgeEl = document.getElementById('fundValDcaBadge');
+    if (dcaBadgeEl) {
+      const sign = annualSurplus >= 0 ? '+' : '';
+      dcaBadgeEl.textContent = `年度結餘 ${sign}${(annualSurplus / 10000).toFixed(1)} 萬`;
+    }
+
+    const dcaDescEl = document.getElementById('fundValDcaDesc');
+    if (dcaDescEl) {
+      const sign = annualSurplus >= 0 ? '+' : '';
+      dcaDescEl.textContent = `年扣款 NT$ ${formatMoney(annualDca)} ｜ 扣除開銷後年度淨結餘 ${sign}NT$ ${formatMoney(annualSurplus)}`;
     }
 
     // Top Summary Bar
@@ -1099,42 +1167,52 @@
     if (!modal) return;
 
     const reserves = state.fundReserves || {
-      livingReserveTwd: 117189,
-      investCapitalTwd: 190000,
-      savingsInsuranceTwd: 2930000,
-      usdInsurance: 8458,
-      monthlyDepositPrincipal: 1108932,
-      usdSavings: 2848,
-      monthlyIncomeTwd: 82255,
-      annualIncomeTwd: 1229785,
-      monthlyExpenseTwd: 43218,
-      annualExpenseTwd: 518620,
-      monthlyDcaTwd: 42757,
-      annualDcaTwd: 513084,
-      annualSurplusTwd: 198081,
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      monthlyDepositPrincipal: 0,
+      usdSavings: 0,
+      salaryMonthlyTwd: 0,
+      dividendMonthlyTwd: 0,
+      insuranceAnnualTwd: 0,
+      bonusAnnualTwd: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
       note: ''
     };
 
     const livingIn = document.getElementById('fundFormLiving');
     const investIn = document.getElementById('fundFormInvest');
+    const usdIn = document.getElementById('fundFormUsd');
     const savingsInsIn = document.getElementById('fundFormSavingsInsurance');
     const usdInsIn = document.getElementById('fundFormUsdInsurance');
     const mDepositIn = document.getElementById('fundFormMonthlyDeposit');
-    const usdIn = document.getElementById('fundFormUsd');
-    const mIncomeIn = document.getElementById('fundFormMonthlyIncome');
+    const salaryIn = document.getElementById('fundFormSalary');
+    const dividendIn = document.getElementById('fundFormDividend');
+    const insAnnualIn = document.getElementById('fundFormInsuranceAnnual');
+    const bonusIn = document.getElementById('fundFormBonusAnnual');
     const mExpenseIn = document.getElementById('fundFormMonthlyExpense');
     const mDcaIn = document.getElementById('fundFormMonthlyDca');
     const noteIn = document.getElementById('fundFormNote');
 
-    if (livingIn) livingIn.value = reserves.livingReserveTwd ?? 117189;
-    if (investIn) investIn.value = reserves.investCapitalTwd ?? 190000;
-    if (savingsInsIn) savingsInsIn.value = reserves.savingsInsuranceTwd ?? 2930000;
-    if (usdInsIn) usdInsIn.value = reserves.usdInsurance ?? 8458;
-    if (mDepositIn) mDepositIn.value = reserves.monthlyDepositPrincipal ?? 1108932;
-    if (usdIn) usdIn.value = reserves.usdSavings ?? 2848;
-    if (mIncomeIn) mIncomeIn.value = reserves.monthlyIncomeTwd ?? 82255;
-    if (mExpenseIn) mExpenseIn.value = reserves.monthlyExpenseTwd ?? 43218;
-    if (mDcaIn) mDcaIn.value = reserves.monthlyDcaTwd ?? 42757;
+    if (livingIn) livingIn.value = reserves.livingReserveTwd ?? 0;
+    if (investIn) investIn.value = reserves.investCapitalTwd ?? 0;
+    if (usdIn) usdIn.value = reserves.usdSavings ?? 0;
+    if (savingsInsIn) savingsInsIn.value = reserves.savingsInsuranceTwd ?? 0;
+    if (usdInsIn) usdInsIn.value = reserves.usdInsurance ?? 0;
+    if (mDepositIn) mDepositIn.value = reserves.monthlyDepositPrincipal ?? 0;
+    if (salaryIn) salaryIn.value = reserves.salaryMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.8) : 0);
+    if (dividendIn) dividendIn.value = reserves.dividendMonthlyTwd ?? (reserves.monthlyIncomeTwd ? Math.round(reserves.monthlyIncomeTwd * 0.2) : 0);
+    if (insAnnualIn) insAnnualIn.value = reserves.insuranceAnnualTwd ?? 0;
+    if (bonusIn) bonusIn.value = reserves.bonusAnnualTwd ?? 0;
+    if (mExpenseIn) mExpenseIn.value = reserves.monthlyExpenseTwd ?? 0;
+    if (mDcaIn) mDcaIn.value = reserves.monthlyDcaTwd ?? 0;
     if (noteIn) noteIn.value = reserves.note || '';
 
     modal.classList.add('show');
@@ -1151,16 +1229,22 @@
 
     const living = parseFloat(document.getElementById('fundFormLiving')?.value) || 0;
     const invest = parseFloat(document.getElementById('fundFormInvest')?.value) || 0;
+    const usd = parseFloat(document.getElementById('fundFormUsd')?.value) || 0;
     const savingsIns = parseFloat(document.getElementById('fundFormSavingsInsurance')?.value) || 0;
     const usdIns = parseFloat(document.getElementById('fundFormUsdInsurance')?.value) || 0;
     const mDeposit = parseFloat(document.getElementById('fundFormMonthlyDeposit')?.value) || 0;
-    const usd = parseFloat(document.getElementById('fundFormUsd')?.value) || 0;
-    const mIncome = parseFloat(document.getElementById('fundFormMonthlyIncome')?.value) || 0;
+
+    const salary = parseFloat(document.getElementById('fundFormSalary')?.value) || 0;
+    const dividend = parseFloat(document.getElementById('fundFormDividend')?.value) || 0;
+    const insAnnual = parseFloat(document.getElementById('fundFormInsuranceAnnual')?.value) || 0;
+    const bonus = parseFloat(document.getElementById('fundFormBonusAnnual')?.value) || 0;
+
     const mExpense = parseFloat(document.getElementById('fundFormMonthlyExpense')?.value) || 0;
     const mDca = parseFloat(document.getElementById('fundFormMonthlyDca')?.value) || 0;
     const note = document.getElementById('fundFormNote')?.value.trim() || '';
 
-    const aIncome = mIncome * 12 + 100000 + 13725; // 加上保單給付約11.3萬
+    const aIncome = (salary * 12) + (dividend * 12) + insAnnual + bonus;
+    const mIncome = salary + dividend;
     const aExpense = mExpense * 12;
     const aDca = mDca * 12;
     const aSurplus = aIncome - aExpense - aDca;
@@ -1168,10 +1252,14 @@
     state.fundReserves = {
       livingReserveTwd: living,
       investCapitalTwd: invest,
+      usdSavings: usd,
       savingsInsuranceTwd: savingsIns,
       usdInsurance: usdIns,
       monthlyDepositPrincipal: mDeposit,
-      usdSavings: usd,
+      salaryMonthlyTwd: salary,
+      dividendMonthlyTwd: dividend,
+      insuranceAnnualTwd: insAnnual,
+      bonusAnnualTwd: bonus,
       monthlyIncomeTwd: mIncome,
       annualIncomeTwd: aIncome,
       monthlyExpenseTwd: mExpense,

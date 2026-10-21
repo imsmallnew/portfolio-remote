@@ -1891,14 +1891,20 @@ body {
 
 .fund-items-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }
 
+@media (min-width: 1600px) {
+  .fund-items-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
 @media (max-width: 1400px) {
   .fund-items-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
