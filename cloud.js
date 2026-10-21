@@ -91,14 +91,18 @@
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
       const pid = this.currentPortfolioId || 'main';
 
-      // 1. 若為預設核心儀表板 'main' (Daniel 專屬)
+      // 系統最高管理員 (Daniel: imsmallnew@gmail.com 或 localAcl.ownerEmail)
+      const isSystemAdmin = lowerEmail === 'imsmallnew@gmail.com' || 
+        (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail);
+
+      if (isSystemAdmin) {
+        this.userRole = 'owner';
+        this.portfolioOwnerEmail = lowerEmail;
+        return;
+      }
+
+      // 1. 若為預設核心儀表板 'main'
       if (pid === 'main') {
-        const isDefaultOwner = localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail;
-        if (isDefaultOwner) {
-          this.userRole = 'owner';
-          this.portfolioOwnerEmail = localAcl.ownerEmail;
-          return;
-        }
         if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
           this.userRole = 'viewer';
           return;
@@ -113,7 +117,7 @@
               const remoteOwner = (data.owner || '').toLowerCase().trim();
               const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
 
-              if (remoteOwner && remoteOwner === lowerEmail) {
+              if (remoteOwner && (remoteOwner === lowerEmail || lowerEmail === 'imsmallnew@gmail.com')) {
                 this.userRole = 'owner';
                 this.portfolioOwnerEmail = remoteOwner;
                 return;
@@ -132,7 +136,7 @@
         return;
       }
 
-      // 2. 若為自訂多租戶儀表板 (如 ?id=alice, ?id=bob, ?id=mom)
+      // 2. 若為自訂多租戶儀表板 (如 ?id=alice, ?id=bob)
       try {
         if (this.db) {
           const docSnap = await this.db.collection('portfolios').doc(pid).get();
@@ -142,8 +146,6 @@
             this.portfolioOwnerEmail = docOwner;
             const docViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
 
-            // 系統最高管理員 (Daniel: imsmallnew@gmail.com) 具備全局查看/維護權限
-            const isSystemAdmin = localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail;
             if (docOwner === lowerEmail || isSystemAdmin) {
               this.userRole = 'owner';
               return;
@@ -170,7 +172,7 @@
 
     async signInWithGoogle() {
       if (!this.isConfigured) {
-        alert("請先在 firebase-config.js 填入您的 Firebase 專案設定！\n您也可以直接使用管理員密碼解鎖。");
+        alert("請先在 firebase-config.js 填入您的 Firebase 專案設定！");
         return null;
       }
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -180,19 +182,31 @@
         return result.user;
       } catch (err) {
         console.error("Google 登入失敗:", err);
-        if (err.code === 'auth/unauthorized-domain') {
+        const errCode = err.code || '';
+        const errMsg = err.message || '';
+
+        if (errCode === 'auth/unauthorized-domain') {
           const currentHost = window.location.hostname;
-          alert(`⚠️ Google 登入網域未授權：\n目前網址網域 [${currentHost}] 尚未加入 Firebase 授權名單。\n\n【解決方式】\n請至 Firebase Console (https://console.firebase.google.com/) -> Authentication -> 設定 (Settings) -> 授權網域 (Authorized domains)，新增「${currentHost}」即可！\n\n💡 您也可以點擊右上角頭像或狀態，輸入管理員密碼直接進入管理模式。`);
+          alert(`⚠️ Google 登入網域未授權：\n目前網址網域 [${currentHost}] 尚未加入 Firebase 授權名單。\n\n【解決方式】\n請至 Firebase Console (https://console.firebase.google.com/) -> 專案【my-portfolio-dashboard-daniel】-> Authentication -> Settings -> 授權網域 (Authorized domains)，新增「${currentHost}」即可！`);
           return null;
         }
-        if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-          return await this.auth.signInWithRedirect(provider);
+
+        if (errCode === 'auth/invalid-action-code' || errMsg.includes('The requested action is invalid') || errCode === 'auth/configuration-not-found') {
+          alert(`⚠️ Firebase Google 登入設定提醒：\n錯誤代碼：${errCode}\n訊息：The requested action is invalid.\n\n【解決步驟】\n這是因為 Firebase Console 中尚未啟用 Google Sign-in 提供者：\n1. 請至 Firebase Console (https://console.firebase.google.com/)\n2. 點進專案【my-portfolio-dashboard-daniel】\n3. 點選左側【Authentication】->【Sign-in method (登入方式)】\n4. 點擊【Google】-> 勾選開啟【啟用 (Enable)】\n5. 設定「專案支援電子郵件 (Project support email)」為您的信箱 (例如 imsmallnew@gmail.com)\n6. 按下【儲存 (Save)】！\n7. 確認【Settings】->【Authorized domains】包含「imsmallnew.github.io」\n\n💡 若暫時無法操作 Firebase 後台，您也可以在登入視窗下方使用管理員通關碼 (888) 直接進入管理員模式！`);
+          return null;
         }
-        if (err.code === 'auth/popup-closed-by-user') {
+
+        if (errCode === 'auth/popup-blocked') {
+          alert("⚠️ 瀏覽器攔截了 Google 登入彈出視窗，請在網址列允許彈出視窗後重新點擊登入！");
+          return null;
+        }
+
+        if (errCode === 'auth/popup-closed-by-user' || errCode === 'auth/cancelled-popup-request') {
           console.log("使用者關閉了 Google 登入彈出視窗");
           return null;
         }
-        alert("Google 登入失敗：" + (err.message || err.code || err));
+
+        alert("Google 登入失敗：" + (errMsg || errCode || err));
         throw err;
       }
     },
@@ -357,6 +371,81 @@
       }, { merge: true });
 
       return cleanViewers;
+    },
+
+    // 訪客提交加入白名單審核申請
+    async submitWhitelistRequest(email, name = '', note = '') {
+      if (!this.isConfigured || !this.db) {
+        throw new Error("雲端資料庫尚未連線，請稍候再試");
+      }
+      const cleanEmail = (email || '').toLowerCase().trim();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        throw new Error("請輸入有效的 Email 信箱");
+      }
+
+      const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+      await this.db.collection('whitelist_requests').doc(docId).set({
+        email: cleanEmail,
+        name: (name || '').trim(),
+        note: (note || '').trim(),
+        status: 'pending', // 'pending' | 'approved' | 'rejected'
+        requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        requestedAtStr: new Date().toLocaleString('zh-TW', { hour12: false })
+      }, { merge: true });
+
+      return { success: true, email: cleanEmail };
+    },
+
+    // 管理員載入待審核白名單申請
+    async loadWhitelistRequests() {
+      if (!this.isConfigured || !this.db) return [];
+      try {
+        const snap = await this.db.collection('whitelist_requests')
+          .where('status', '==', 'pending')
+          .get();
+        const list = [];
+        snap.forEach(doc => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        return list;
+      } catch (err) {
+        console.warn("讀取待審核白名單注意:", err);
+        return [];
+      }
+    },
+
+    // 管理員批准加入白名單
+    async approveWhitelistRequest(requestId, email) {
+      if (!this.isConfigured || !this.db) throw new Error("Firebase 尚未配置");
+      const cleanEmail = (email || '').toLowerCase().trim();
+      
+      // 1. 取得目前 access/main 的 viewers
+      const acl = await this.loadAcl();
+      const currentViewers = acl.viewers || [];
+      if (!currentViewers.includes(cleanEmail)) {
+        currentViewers.push(cleanEmail);
+        await this.saveAcl(currentViewers);
+      }
+
+      // 2. 更新申請狀態為 approved
+      if (requestId) {
+        await this.db.collection('whitelist_requests').doc(requestId).update({
+          status: 'approved',
+          approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          approvedBy: this.currentUser?.email || 'owner'
+        });
+      }
+
+      return currentViewers;
+    },
+
+    // 管理員忽略/拒絕申請
+    async rejectWhitelistRequest(requestId) {
+      if (!this.isConfigured || !this.db || !requestId) return;
+      await this.db.collection('whitelist_requests').doc(requestId).update({
+        status: 'rejected',
+        rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
   };
 

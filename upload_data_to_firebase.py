@@ -17,7 +17,7 @@ SERVICE_KEY_FILE = os.path.join(SCRIPT_DIR, "serviceAccountKey.json")
 
 def main():
     print("=" * 60)
-    print("🚀 富邦投資儀表板 - Firestore 資料上傳工具")
+    print("🚀 投資儀表板 - Firestore 資料上傳工具")
     print("=" * 60)
 
     if not os.path.exists(LOCAL_DATA_FILE):

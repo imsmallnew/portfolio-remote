@@ -17,8 +17,8 @@
   const state = {
     dashboardTitle: localStorage.getItem('fubon_dashboard_title') || '投資儀表板 PRO',
     usdRate: 32.51,
-    baselineRealizedPl: 67493.0,     // Aligned with CSV Row 2 Col 60 (富邦試算「已實現損益」)
-    baselineDividendIncome: 10967.0, // Aligned with CSV Row 2 Col 61 (總配息收入)
+    baselineRealizedPl: 0.0,
+    baselineDividendIncome: 0.0,
     quotes: {},
     transactions: [],
     realizedRecords: [],
@@ -104,24 +104,8 @@
     "SNDK": { price: 1299.30, nightPrice: 1299.30, prevClose: 1394.83, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
   };
 
-  // 訪客預設初始展示持股交易 (當 Firestore 尚未初始化或首次載入時確保不留白)
-  const DEFAULT_DEMO_TRANSACTIONS = [
-    { id: 'tx_demo_1', date: '2026-01-15', symbol: '2330', name: '台積電', action: '單筆買進', shares: 105, price: 2081.62, total_amount: 218570, currency: 'TWD', note: '核心持股' },
-    { id: 'tx_demo_2', date: '2026-01-20', symbol: '0050', name: '元大台灣50', action: '定期定額', shares: 5683.5, price: 89.87, total_amount: 510776, currency: 'TWD', note: '台股ETF基本盤' },
-    { id: 'tx_demo_3', date: '2026-02-10', symbol: 'VOO', name: 'Vanguard 標普500 ETF', action: '定期定額', shares: 1.74, price: 644.04, total_amount: 1120.63, currency: 'USD', note: '美股大盤ETF' },
-    { id: 'tx_demo_4', date: '2026-02-15', symbol: '00981A', name: '統一台灣高息動能/00981A', action: '單筆買進', shares: 4646, price: 38.34, total_amount: 178128, currency: 'TWD', note: '高股息ETF' },
-    { id: 'tx_demo_5', date: '2026-02-20', symbol: '00403A', name: '瀚亞/00403A', action: '單筆買進', shares: 8300, price: 19.71, total_amount: 163593, currency: 'TWD', note: '海外債券/基金' },
-    { id: 'tx_demo_6', date: '2026-03-01', symbol: '00406A', name: '00406A', action: '單筆買進', shares: 3000, price: 9.40, total_amount: 28200, currency: 'TWD', note: '基金配置' },
-    { id: 'tx_demo_7', date: '2026-03-05', symbol: '台達電', name: '台達電', action: '單筆買進', shares: 47, price: 1910.74, total_amount: 89805, currency: 'TWD', note: '綠能與電源龍頭' },
-    { id: 'tx_demo_8', date: '2026-03-10', symbol: '聯發科', name: '聯發科', action: '單筆買進', shares: 13, price: 4996.15, total_amount: 64950, currency: 'TWD', note: 'IC設計權值股' },
-    { id: 'tx_demo_9', date: '2026-03-15', symbol: '南亞科', name: '南亞科', action: '單筆買進', shares: 35, price: 1338.71, total_amount: 46855, currency: 'TWD', note: 'DRAM記憶體' },
-    { id: 'tx_demo_10', date: '2026-03-20', symbol: '瀚亞', name: '瀚亞科技基金', action: '定期定額', shares: 1.104, price: 90.56, total_amount: 99.98, currency: 'USD', note: '科技主題境外基金' },
-    { id: 'tx_demo_11', date: '2026-03-22', symbol: 'MU', name: '美光科技 Micron', action: '單筆買進', shares: 2.132, price: 938.25, total_amount: 2000.35, currency: 'USD', note: '美股半導體' },
-    { id: 'tx_demo_12', date: '2026-03-25', symbol: 'NVDA', name: '輝達 NVIDIA', action: '單筆買進', shares: 1.472, price: 203.24, total_amount: 299.17, currency: 'USD', note: 'AI算力龍頭' },
-    { id: 'tx_demo_13', date: '2026-04-01', symbol: 'MRVL', name: '邁威爾 Marvell', action: '單筆買進', shares: 1.0, price: 266.26, total_amount: 266.26, currency: 'USD', note: '網通晶片' },
-    { id: 'tx_demo_14', date: '2026-04-05', symbol: 'SpaceX', name: 'SpaceX', action: '單筆買進', shares: 4.0, price: 181.39, total_amount: 725.56, currency: 'USD', note: '太空衛星' },
-    { id: 'tx_demo_15', date: '2026-04-10', symbol: 'SNDK', name: 'SNDK', action: '單筆買進', shares: 4.0, price: 1788.50, total_amount: 7154.00, currency: 'USD', note: '快閃記憶體' }
-  ];
+  // 預設持股交易為空（登入後由 Firestore 雲端同步或由管理員匯入真實資產）
+  const DEFAULT_DEMO_TRANSACTIONS = [];
 
   // Helper formatting functions
   function formatMoney(num, decimals = 0) {
@@ -189,33 +173,143 @@
   }
 
   function setupRemoteAuthUI() {
-    document.getElementById('btnGoogleSignIn')?.addEventListener('click', async () => {
+    const gateOverlay = document.getElementById('authGateOverlay');
+
+    // Google Sign-In Buttons
+    const handleGoogleLogin = async () => {
       try {
         await window.cloudStore?.signInWithGoogle();
       } catch (err) {
-        alert('Google 登入失敗：' + (err.message || err));
+        console.error('Google 登入注意:', err);
       }
+    };
+
+    document.getElementById('btnGoogleSignIn')?.addEventListener('click', handleGoogleLogin);
+
+    // Header 登入 / 註冊按鈕：開啟門禁卡片
+    document.getElementById('btnHeaderSignIn')?.addEventListener('click', () => {
+      if (gateOverlay) gateOverlay.style.display = 'flex';
     });
 
-    document.getElementById('btnHeaderSignIn')?.addEventListener('click', async () => {
+    // 關閉門禁或以訪客模式進入
+    const closeGate = () => {
+      if (gateOverlay) gateOverlay.style.display = 'none';
+    };
+    document.getElementById('btnGateClose')?.addEventListener('click', closeGate);
+    document.getElementById('btnEnterAsGuest')?.addEventListener('click', closeGate);
+
+    // 登入 vs 註冊 (白名單申請) Tab 切換
+    const tabLogin = document.getElementById('tabBtnLogin');
+    const tabRegister = document.getElementById('tabBtnRegister');
+    const panelLogin = document.getElementById('authPanelLogin');
+    const panelRegister = document.getElementById('authPanelRegister');
+
+    tabLogin?.addEventListener('click', () => {
+      tabLogin.classList.add('active');
+      tabLogin.style.background = 'var(--primary)';
+      tabLogin.style.color = '#fff';
+      tabRegister?.classList.remove('active');
+      if (tabRegister) {
+        tabRegister.style.background = 'transparent';
+        tabRegister.style.color = 'var(--text-secondary)';
+      }
+      if (panelLogin) panelLogin.style.display = 'block';
+      if (panelRegister) panelRegister.style.display = 'none';
+    });
+
+    tabRegister?.addEventListener('click', () => {
+      tabRegister.classList.add('active');
+      tabRegister.style.background = 'var(--primary)';
+      tabRegister.style.color = '#fff';
+      tabLogin?.classList.remove('active');
+      if (tabLogin) {
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.color = 'var(--text-secondary)';
+      }
+      if (panelRegister) panelRegister.style.display = 'block';
+      if (panelLogin) panelLogin.style.display = 'none';
+    });
+
+    // 訪客提交白名單審核申請 (註冊)
+    document.getElementById('formWhitelistRequest')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailInput = document.getElementById('reqGmailInput');
+      const nameInput = document.getElementById('reqNameInput');
+      const submitBtn = document.getElementById('btnSubmitWhitelistReq');
+      const successNotice = document.getElementById('reqSuccessNotice');
+
+      const email = (emailInput?.value || '').trim();
+      const name = (nameInput?.value || '').trim();
+
+      if (!email || !email.includes('@')) {
+        alert('請輸入有效的 Gmail 信箱！');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ 提送審核申請中...</span>';
+      }
+
       try {
-        await window.cloudStore?.signInWithGoogle();
+        await window.cloudStore?.submitWhitelistRequest(email, name);
+        if (successNotice) successNotice.style.display = 'block';
+        if (emailInput) emailInput.value = '';
+        if (nameInput) nameInput.value = '';
+        showNotification('🎉 白名單申請已送出！請等候管理員 (Daniel) 驗證加到名單。', 'success');
       } catch (err) {
-        alert('Google 登入失敗：' + (err.message || err));
+        alert('送出申請失敗：' + (err.message || err));
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 送出審核申請</span>';
+        }
       }
     });
 
+    // Daniel 快速通道 (通行碼備用)
+    document.getElementById('btnToggleAdminCode')?.addEventListener('click', () => {
+      const box = document.getElementById('adminCodeBox');
+      if (box) {
+        box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+      }
+    });
+
+    document.getElementById('btnGateAdminLogin')?.addEventListener('click', () => {
+      const input = document.getElementById('inputGateAdminPw');
+      const val = (input?.value || '').trim();
+      if (val === '888' || val === '8888' || val === 'daniel2026' || val === 'admin') {
+        state.manualAdminUnlocked = true;
+        state.authMode = 'admin';
+        sessionStorage.setItem('fubon_manual_admin', '1');
+        sessionStorage.setItem('fubon_auth_mode', 'admin');
+        if (gateOverlay) gateOverlay.style.display = 'none';
+        applyAuthMode();
+        updateUi();
+        showNotification('🎉 已使用管理員通關碼成功登入管理員模式！', 'success');
+      } else {
+        alert('通行碼不正確！');
+      }
+    });
+
+    // 登出與帳號切換
     document.getElementById('btnRemoteSignOut')?.addEventListener('click', async () => {
       if (confirm('確定登出 Google 帳號？')) {
+        state.manualAdminUnlocked = false;
+        sessionStorage.removeItem('fubon_manual_admin');
         await window.cloudStore?.signOut();
       }
     });
 
     document.getElementById('btnGateSignOut')?.addEventListener('click', async () => {
+      state.manualAdminUnlocked = false;
+      sessionStorage.removeItem('fubon_manual_admin');
       await window.cloudStore?.signOut();
     });
 
     document.getElementById('btnSwitchAccount')?.addEventListener('click', async () => {
+      state.manualAdminUnlocked = false;
+      sessionStorage.removeItem('fubon_manual_admin');
       await window.cloudStore?.signOut();
       await window.cloudStore?.signInWithGoogle();
     });
@@ -231,75 +325,70 @@
     const menuEmail = document.getElementById('menuUserEmail');
     const menuPid = document.getElementById('menuPortfolioId');
     const menuBtnAcl = document.getElementById('menuBtnManageAcl');
-    const authStatusText = document.getElementById('authStatusText');
-    const authIcon = document.getElementById('authIcon');
 
-    // 預設閱讀模式：絕不以全螢幕遮罩阻擋訪客
-    if (gateOverlay) gateOverlay.style.display = 'none';
     if (gateError) gateError.style.display = 'none';
 
-    if (!user) {
-      // 1. 未登入 (預設公開閱讀模式：股票/損益可看，保單/現金池/總淨資產隱藏)
+    // 1. 未登入且未手動解鎖管理員
+    if (!user && !state.manualAdminUnlocked) {
       state.authMode = 'view';
+      if (gateOverlay) gateOverlay.style.display = 'flex'; // 預設顯示登入/註冊畫面
       if (userMenuWrapper) userMenuWrapper.style.display = 'none';
       if (headerSignIn) headerSignIn.style.display = 'inline-flex';
-      if (authStatusText) authStatusText.textContent = '公開閱讀模式';
-      if (authIcon) authIcon.textContent = '👁️';
 
       applyAuthMode();
       loadAndSubscribeCloudData();
       return;
     }
 
-    // 已登入
+    // 2. 已登入或已解鎖
+    if (gateOverlay) gateOverlay.style.display = 'none';
     if (headerSignIn) headerSignIn.style.display = 'none';
     if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
 
-    if (menuEmail) {
-      menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
+    if (user) {
+      if (menuEmail) {
+        menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
+      }
+      if (user.photoURL && userAvatar) {
+        userAvatar.src = user.photoURL;
+        userAvatar.style.display = 'block';
+        if (userPlaceholder) userPlaceholder.style.display = 'none';
+      } else if (userPlaceholder) {
+        const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        userPlaceholder.textContent = initial;
+        userPlaceholder.style.display = 'flex';
+        if (userAvatar) userAvatar.style.display = 'none';
+      }
+
+      // 只有 Daniel (imsmallnew@gmail.com) 顯示「👥 授權名單」選項
+      const isDaniel = (user.email || '').toLowerCase().trim() === 'imsmallnew@gmail.com';
+      if (menuBtnAcl) {
+        menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
+      }
     }
+
     const pid = window.cloudStore?.currentPortfolioId || 'main';
     if (menuPid) {
       menuPid.textContent = pid;
     }
 
-    // 頭像處理：有圖片載入圖片，否則顯示精緻首字縮寫
-    if (user.photoURL && userAvatar) {
-      userAvatar.src = user.photoURL;
-      userAvatar.style.display = 'block';
-      if (userPlaceholder) userPlaceholder.style.display = 'none';
-    } else if (userPlaceholder) {
-      const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-      userPlaceholder.textContent = initial;
-      userPlaceholder.style.display = 'flex';
-      if (userAvatar) userAvatar.style.display = 'none';
-    }
-
-    // 只有 Daniel (imsmallnew@gmail.com) 顯示「👥 授權名單」選項
-    const isDaniel = (user.email || '').toLowerCase().trim() === 'imsmallnew@gmail.com';
-    if (menuBtnAcl) {
-      menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
-    }
-
     if (state.manualAdminUnlocked || role === 'owner') {
-      // 2. 擁有者或已透過密碼解鎖的管理員
+      // 擁有者或管理員
       state.authMode = 'admin';
-      if (authStatusText) authStatusText.textContent = '雲端已連線 (管理員模式)';
-      if (authIcon) authIcon.textContent = '⚡';
-      if (role === 'owner') {
-        showNotification(`歡迎回來，擁有者 ${user.displayName || user.email}！已啟用完整編輯權限`, 'success');
+      if (role === 'owner' && user) {
+        showNotification(`歡迎回來，管理員 ${user.displayName || user.email}！已啟用完整維護權限`, 'success');
       }
     } else if (role === 'viewer') {
-      // 3. 授權親友
+      // 授權親友
       state.authMode = 'viewer';
-      if (authStatusText) authStatusText.textContent = '雲端已連線 (親友檢視)';
-      if (authIcon) authIcon.textContent = '🛡️';
-      showNotification(`您已登入授權親友帳號，已為您解鎖資產配置與儲備細項！`, 'info');
+      showNotification(`您已登入授權親友帳號，已為您解鎖資產配置細項！`, 'info');
     } else {
-      // 4. 其他未授權帳號 (維持公開閱讀)
+      // 其他已登入但未在白名單的使用者
       state.authMode = 'view';
-      if (authStatusText) authStatusText.textContent = '雲端已連線 (公開檢視)';
-      if (authIcon) authIcon.textContent = '👁️';
+      if (gateError) {
+        gateError.style.display = 'block';
+        if (gateOverlay) gateOverlay.style.display = 'flex';
+      }
     }
 
     applyAuthMode();
@@ -429,7 +518,7 @@
           state.quotes = parsed.quotes || DEFAULT_QUOTES;
           state.transactions = (parsed.transactions && parsed.transactions.length > 0)
             ? parsed.transactions
-            : [...DEFAULT_DEMO_TRANSACTIONS];
+            : [];
           state.realizedRecords = parsed.realizedRecords !== undefined ? parsed.realizedRecords : [];
           state.dividendRecords = parsed.dividendRecords !== undefined ? parsed.dividendRecords : [];
           state.fundReserves = parsed.fundReserves || state.fundReserves;
@@ -441,9 +530,9 @@
 
     state.quotes = { ...DEFAULT_QUOTES };
     state.usdRate = 32.51;
-    state.baselineRealizedPl = 67493.0;
-    state.baselineDividendIncome = 10967.0;
-    state.transactions = [...DEFAULT_DEMO_TRANSACTIONS];
+    state.baselineRealizedPl = 0.0;
+    state.baselineDividendIncome = 0.0;
+    state.transactions = [];
   }
 
   function saveStateToLocal() {
@@ -522,25 +611,23 @@
     document.documentElement.setAttribute('data-auth-mode', state.authMode);
     sessionStorage.setItem('fubon_auth_mode', state.authMode);
 
-    const btn = document.getElementById('btnAuthToggle');
     const icon = document.getElementById('authIcon');
     const text = document.getElementById('authStatusText');
+    const badge = document.getElementById('authRoleBadge');
     const menuAdminText = document.getElementById('menuAdminBtnText');
+
+    if (badge) {
+      badge.style.cursor = 'default';
+      badge.removeAttribute('title');
+    }
 
     if (state.authMode === 'admin') {
       if (icon) icon.textContent = '⚡';
-      if (text) text.textContent = '擁有者管理員模式';
-      if (btn) btn.title = '點擊切換為訪客檢視模式';
+      if (text) text.textContent = '管理員模式';
       if (menuAdminText) menuAdminText.textContent = '切換為訪客閱讀模式';
-    } else if (state.authMode === 'viewer') {
-      if (icon) icon.textContent = '🛡️';
-      if (text) text.textContent = '授權親友檢視模式';
-      if (btn) btn.title = '授權親友模式 (可看完整配置與保單)';
-      if (menuAdminText) menuAdminText.textContent = '輸入密碼切換管理模式';
     } else {
       if (icon) icon.textContent = '👁️';
-      if (text) text.textContent = '公開閱讀模式 (點此登入)';
-      if (btn) btn.title = '點擊登入管理員模式';
+      if (text) text.textContent = '訪客模式';
       if (menuAdminText) menuAdminText.textContent = '輸入密碼解鎖管理員';
     }
   }
@@ -3720,6 +3807,76 @@
       });
     }
 
+    const reqContainer = document.getElementById('aclPendingRequestsContainer');
+    const reqCount = document.getElementById('aclPendingCount');
+    const noReqNotice = document.getElementById('aclNoPendingNotice');
+    const btnRefreshReq = document.getElementById('btnRefreshWhitelistRequests');
+
+    async function loadAndRenderPendingRequests() {
+      if (!reqContainer) return;
+      reqContainer.innerHTML = '<div style="color:var(--text-tertiary); font-size:0.8rem;">讀取待審核名單中...</div>';
+      try {
+        const list = await window.cloudStore?.loadWhitelistRequests() || [];
+        if (reqCount) reqCount.textContent = list.length;
+        if (list.length === 0) {
+          reqContainer.innerHTML = '';
+          if (noReqNotice) noReqNotice.style.display = 'block';
+          return;
+        }
+        if (noReqNotice) noReqNotice.style.display = 'none';
+        reqContainer.innerHTML = '';
+
+        list.forEach(req => {
+          const item = document.createElement('div');
+          item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface); border:1px solid rgba(59,130,246,0.25); border-radius:var(--radius-sm); padding:6px 10px; font-size:0.83rem;';
+          item.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-weight:600; color:var(--text-primary);">${escapeHtml(req.email)}</span>
+                ${req.name ? `<span style="color:var(--text-secondary); font-size:0.75rem;">(${escapeHtml(req.name)})</span>` : ''}
+              </div>
+              <span style="color:var(--text-tertiary); font-size:0.72rem;">申請時間：${escapeHtml(req.requestedAtStr || '剛剛')}</span>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+              <button type="button" class="btn btn-primary btn-xs btn-approve-req" style="padding:2px 8px;">✅ 批准</button>
+              <button type="button" class="btn btn-secondary btn-xs btn-reject-req" style="padding:2px 6px;">✕ 忽略</button>
+            </div>
+          `;
+
+          // 點擊批准
+          item.querySelector('.btn-approve-req')?.addEventListener('click', async () => {
+            try {
+              item.style.opacity = '0.5';
+              const updatedViewers = await window.cloudStore?.approveWhitelistRequest(req.id, req.email);
+              currentViewers = updatedViewers || currentViewers;
+              renderViewerList();
+              await loadAndRenderPendingRequests();
+              showNotification(`已批准 ${req.email} 加入授權白名單！`, 'success');
+            } catch (e) {
+              alert('批准失敗：' + (e.message || e));
+            }
+          });
+
+          // 點擊忽略
+          item.querySelector('.btn-reject-req')?.addEventListener('click', async () => {
+            try {
+              await window.cloudStore?.rejectWhitelistRequest(req.id);
+              await loadAndRenderPendingRequests();
+            } catch (e) {
+              console.warn(e);
+            }
+          });
+
+          reqContainer.appendChild(item);
+        });
+      } catch (err) {
+        console.warn('載入待審核白名單注意:', err);
+        if (reqContainer) reqContainer.innerHTML = '<div style="color:var(--text-tertiary); font-size:0.8rem;">目前無待審核申請</div>';
+      }
+    }
+
+    btnRefreshReq?.addEventListener('click', loadAndRenderPendingRequests);
+
     const openModal = async () => {
       document.getElementById('userDropdownMenu')?.classList.remove('show');
       if (!checkAdminOrPrompt('管理授權名單')) return;
@@ -3733,6 +3890,7 @@
         }
         currentViewers = [...(acl?.viewers || [])];
         renderViewerList();
+        loadAndRenderPendingRequests();
       } catch (err) {
         console.error('讀取授權名單失敗:', err);
         showNotification('讀取授權名單失敗：' + (err.message || err), 'error');
@@ -3866,19 +4024,7 @@
       }
     });
 
-    // 點擊頂部狀態徽章切換模式
-    document.getElementById('authRoleBadge')?.addEventListener('click', () => {
-      if (state.authMode === 'admin') {
-        if (confirm('確定切換為訪客檢視模式？')) {
-          state.authMode = 'view';
-          applyAuthMode();
-          updateUi();
-          showNotification('已切換為訪客檢視模式', 'info');
-        }
-      } else {
-        openAdminModal();
-      }
-    });
+
 
     const renderQuickList = () => {
       if (!quickList) return;
