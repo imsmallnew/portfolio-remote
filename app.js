@@ -24,26 +24,30 @@
     realizedRecords: [],
     dividendRecords: [],
     fundReserves: {
-      livingReserveTwd: 0,
-      investCapitalTwd: 0,
-      savingsInsuranceTwd: 0,
-      usdInsurance: 0,
-      monthlyDepositPrincipal: 0,
-      usdSavings: 0,
-      salaryMonthlyTwd: 0,
-      dividendMonthlyTwd: 0,
-      insuranceAnnualTwd: 0,
-      bonusAnnualTwd: 0,
-      monthlyIncomeTwd: 0,
-      annualIncomeTwd: 0,
-      monthlyExpenseTwd: 0,
-      annualExpenseTwd: 0,
-      monthlyDcaTwd: 0,
-      annualDcaTwd: 0,
-      annualSurplusTwd: 0,
-      expenseItems: [],
+      livingReserveTwd: 117189,
+      investCapitalTwd: 190000,
+      savingsInsuranceTwd: 2930000,
+      usdInsurance: 12900,
+      monthlyDepositPrincipal: 1108932,
+      usdSavings: 2848,
+      salaryMonthlyTwd: 66000,
+      dividendMonthlyTwd: 16255,
+      insuranceAnnualTwd: 13725,
+      bonusAnnualTwd: 100000,
+      monthlyIncomeTwd: 82255,
+      annualIncomeTwd: 1100785,
+      monthlyExpenseTwd: 43218,
+      annualExpenseTwd: 518616,
+      monthlyDcaTwd: 42757,
+      annualDcaTwd: 513084,
+      annualSurplusTwd: 69085,
+      expenseItems: [
+        { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
+        { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
+        { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
+      ],
       dcaItems: [],
-      note: ''
+      note: '資產配置規劃'
     },
     holdings: {},
     lastUpdated: '',
@@ -481,7 +485,68 @@
     state.transactions = src.transactions || [];
     state.realizedRecords = src.realizedRecords || [];
     state.dividendRecords = src.dividendRecords || [];
-    state.fundReserves = src.fundReserves || state.fundReserves;
+    const incomingRes = src.fundReserves || {};
+    // 確保生活支出明細 expenseItems 存在並具備預設值
+    let expenseItems = incomingRes.expenseItems;
+    if (!Array.isArray(expenseItems) || expenseItems.length === 0) {
+      expenseItems = (state.fundReserves?.expenseItems?.length)
+        ? state.fundReserves.expenseItems
+        : [
+            { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
+            { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
+            { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
+          ];
+    }
+
+    // 確保定期定額明細 dcaItems 存在 (陣列)
+    let dcaItems = Array.isArray(incomingRes.dcaItems)
+      ? incomingRes.dcaItems
+      : (Array.isArray(state.fundReserves?.dcaItems) ? state.fundReserves.dcaItems : []);
+
+    // 自動換算生活支出月額
+    let monthlyExpenseTwd = Number(incomingRes.monthlyExpenseTwd) || 0;
+    if (expenseItems.length > 0) {
+      let calcExp = 0;
+      expenseItems.forEach(it => {
+        const amt = Number(it.amount) || 0;
+        calcExp += it.period === 'annual' ? Math.round(amt / 12) : amt;
+      });
+      if (monthlyExpenseTwd <= 0 || calcExp > 0) {
+        monthlyExpenseTwd = calcExp;
+      }
+    }
+    const annualExpenseTwd = monthlyExpenseTwd * 12;
+
+    // 自動換算定期定額月額
+    let monthlyDcaTwd = Number(incomingRes.monthlyDcaTwd) || 0;
+    if (dcaItems.length > 0) {
+      const rate = Number(src.usdRate || state.usdRate) || 32.5;
+      let calcDca = 0;
+      dcaItems.forEach(it => {
+        const amt = Number(it.amount) || 0;
+        const curr = it.currency || 'TWD';
+        const days = Array.isArray(it.days) ? it.days : [6];
+        const count = days.length > 0 ? days.length : 1;
+        const mRaw = amt * count;
+        const mTwd = curr === 'USD' ? Math.round(mRaw * rate) : Math.round(mRaw);
+        calcDca += mTwd;
+      });
+      monthlyDcaTwd = calcDca;
+    } else if (monthlyDcaTwd <= 0 && incomingRes.monthlyDcaTwd === undefined) {
+      monthlyDcaTwd = 42757;
+    }
+    const annualDcaTwd = monthlyDcaTwd * 12;
+
+    state.fundReserves = {
+      ...state.fundReserves,
+      ...incomingRes,
+      expenseItems,
+      dcaItems,
+      monthlyExpenseTwd,
+      annualExpenseTwd,
+      monthlyDcaTwd,
+      annualDcaTwd
+    };
     state.lastUpdated = src.lastUpdated || new Date().toLocaleString('zh-TW');
     state.version = src.version || 1;
 
@@ -529,24 +594,30 @@
     state.realizedRecords = [];
     state.dividendRecords = [];
     state.fundReserves = {
-      livingReserveTwd: 0,
-      investCapitalTwd: 0,
-      savingsInsuranceTwd: 0,
-      usdInsurance: 0,
-      monthlyDepositPrincipal: 0,
-      usdSavings: 0,
-      salaryMonthlyTwd: 0,
-      dividendMonthlyTwd: 0,
-      insuranceAnnualTwd: 0,
-      bonusAnnualTwd: 0,
-      monthlyIncomeTwd: 0,
-      annualIncomeTwd: 0,
-      monthlyExpenseTwd: 0,
-      annualExpenseTwd: 0,
-      monthlyDcaTwd: 0,
-      annualDcaTwd: 0,
-      annualSurplusTwd: 0,
-      note: ''
+      livingReserveTwd: 117189,
+      investCapitalTwd: 190000,
+      savingsInsuranceTwd: 2930000,
+      usdInsurance: 12900,
+      monthlyDepositPrincipal: 1108932,
+      usdSavings: 2848,
+      salaryMonthlyTwd: 66000,
+      dividendMonthlyTwd: 16255,
+      insuranceAnnualTwd: 13725,
+      bonusAnnualTwd: 100000,
+      monthlyIncomeTwd: 82255,
+      annualIncomeTwd: 1100785,
+      monthlyExpenseTwd: 43218,
+      annualExpenseTwd: 518616,
+      monthlyDcaTwd: 42757,
+      annualDcaTwd: 513084,
+      annualSurplusTwd: 69085,
+      expenseItems: [
+        { id: 'exp_1', name: '日常生活與家用開銷', amount: 20000, period: 'monthly' },
+        { id: 'exp_2', name: '聚餐社交與休閒約會', amount: 12000, period: 'monthly' },
+        { id: 'exp_3', name: '醫療防護型保單', amount: 134616, period: 'annual' }
+      ],
+      dcaItems: [],
+      note: '資產配置規劃'
     };
     state.holdings = {};
     state.lastUpdated = '';
@@ -1241,17 +1312,19 @@
     const insAnnual = parseFloat(document.getElementById('fundFormInsuranceAnnual')?.value) || 0;
     const bonus = parseFloat(document.getElementById('fundFormBonusAnnual')?.value) || 0;
 
-    const mExpense = parseFloat(document.getElementById('fundFormMonthlyExpense')?.value) || 0;
-    const mDca = parseFloat(document.getElementById('fundFormMonthlyDca')?.value) || 0;
+    const prevRes = state.fundReserves || {};
+    const mExpense = Number(prevRes.monthlyExpenseTwd) || 0;
+    const aExpense = Number(prevRes.annualExpenseTwd) || (mExpense * 12);
+    const mDca = Number(prevRes.monthlyDcaTwd) || 0;
+    const aDca = Number(prevRes.annualDcaTwd) || (mDca * 12);
     const note = document.getElementById('fundFormNote')?.value.trim() || '';
 
     const aIncome = (salary * 12) + (dividend * 12) + insAnnual + bonus;
     const mIncome = salary + dividend;
-    const aExpense = mExpense * 12;
-    const aDca = mDca * 12;
     const aSurplus = aIncome - aExpense - aDca;
 
     state.fundReserves = {
+      ...prevRes,
       livingReserveTwd: living,
       investCapitalTwd: invest,
       usdSavings: usd,

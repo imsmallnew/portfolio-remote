@@ -285,7 +285,7 @@
             <div class="fund-sum-col highlight-networth">
               <div class="networth-title-row">
                 <span class="fund-sum-label">🏛️ 個人總淨資產 (Net Worth)</span>
-                <span class="networth-sublabel" id="fundNetWorthBaseline" title="含投資市值+儲蓄保單+月配本金+現金池">對齊規劃 664 萬</span>
+
               </div>
               <span class="fund-sum-val mono text-gradient-gold" id="fundTotalNetWorth">NT$ --</span>
             </div>
@@ -1413,7 +1413,8 @@
           <h3 class="modal-title">📅 每月定期定額投資明細維護</h3>
           <button class="modal-close-btn" id="btnDcaModalClose">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 24px 28px; overflow-y: auto; max-height: calc(90vh - 140px); position: relative;">
+        <div class="modal-body"
+          style="padding: 24px 28px; overflow-y: auto; max-height: calc(90vh - 140px); position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <span class="text-tertiary-sm">維護每月投資標的、幣別、每次扣款金額與投入日期（USD 自動乘即時匯率折算 NT）</span>
             <button type="button" class="btn btn-secondary btn-xs" id="btnAddDcaItem">➕ 新增定額標的</button>
@@ -1567,10 +1568,12 @@
               </label>
               <button type="button" class="btn btn-secondary btn-xs" id="btnRefreshWhitelistRequests">🔄 重新整理</button>
             </div>
-            <div id="aclPendingRequestsContainer" style="display:flex; flex-direction:column; gap:8px; max-height:140px; overflow-y:auto; padding:2px 0;">
+            <div id="aclPendingRequestsContainer"
+              style="display:flex; flex-direction:column; gap:8px; max-height:140px; overflow-y:auto; padding:2px 0;">
               <!-- Dynamically injected requests -->
             </div>
-            <div id="aclNoPendingNotice" style="color:var(--text-tertiary); font-size:0.82rem; padding:6px 0;">目前無待審核的申請。</div>
+            <div id="aclNoPendingNotice" style="color:var(--text-tertiary); font-size:0.82rem; padding:6px 0;">
+              目前無待審核的申請。</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1655,39 +1658,51 @@
         </div>
 
         <!-- 展開的註冊 (申請白名單) 表單區塊 (點擊「註冊（申請白名單）」後展開) -->
-        <div id="authRegisterBox" style="display:none; margin-top:16px; text-align:left; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px;">
+        <div id="authRegisterBox"
+          style="display:none; margin-top:16px; text-align:left; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <strong style="font-size:0.9rem; color:var(--text-primary);">📝 申請加入授權白名單</strong>
-            <button type="button" id="btnCancelRegister" class="modal-close-btn" style="font-size:1.1rem; line-height:1;" title="收合表單">&times;</button>
+            <button type="button" id="btnCancelRegister" class="modal-close-btn"
+              style="font-size:1.1rem; line-height:1;" title="收合表單">&times;</button>
           </div>
           <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;">
             請輸入您的 Gmail 信箱，送出後將由管理員 (Daniel) 審核加入白名單。
           </div>
 
-          <form id="formWhitelistRequest" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px;">
+          <form id="formWhitelistRequest" onsubmit="return false;"
+            style="display:flex; flex-direction:column; gap:10px;">
             <div>
-              <label for="reqGmailInput" style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的 Gmail 信箱 (必填)：</label>
-              <input type="email" id="reqGmailInput" class="input-sm" style="width:100%;" placeholder="例如：your_name@gmail.com" required>
+              <label for="reqGmailInput"
+                style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的
+                Gmail 信箱 (必填)：</label>
+              <input type="email" id="reqGmailInput" class="input-sm" style="width:100%;"
+                placeholder="例如：your_name@gmail.com" required>
             </div>
             <div>
-              <label for="reqNameInput" style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的稱呼 / 關係 (選填)：</label>
+              <label for="reqNameInput"
+                style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的稱呼
+                / 關係 (選填)：</label>
               <input type="text" id="reqNameInput" class="input-sm" style="width:100%;" placeholder="例如：親友小明、大學同學">
             </div>
-            <button type="submit" class="btn btn-primary" id="btnSubmitWhitelistReq" style="width:100%; justify-content:center; padding:9px; margin-top:4px;">
+            <button type="submit" class="btn btn-primary" id="btnSubmitWhitelistReq"
+              style="width:100%; justify-content:center; padding:9px; margin-top:4px;">
               <span>🚀 送出審核申請</span>
             </button>
           </form>
 
-          <div id="reqSuccessNotice" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#34d399; line-height:1.5;">
+          <div id="reqSuccessNotice"
+            style="display:none; margin-top:12px; padding:10px 12px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#34d399; line-height:1.5;">
             🎉 <strong>申請已送出！</strong><br>
             已成功提送給管理員驗證加入白名單。審核通過後，直接以該 Gmail 登入即可查看完整資料！
           </div>
 
-          <div id="reqPermNotice" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#fca5a5; line-height:1.5;">
+          <div id="reqPermNotice"
+            style="display:none; margin-top:12px; padding:10px 12px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#fca5a5; line-height:1.5;">
             <strong>⚠️ 雲端權限限制：</strong><br>
             目前資料庫未開放未登入直接寫入。<br>
             <div style="margin-top:8px;">
-              <a id="btnMailtoAdmin" href="#" class="btn btn-primary btn-xs" style="text-decoration:none; display:inline-flex;">
+              <a id="btnMailtoAdmin" href="#" class="btn btn-primary btn-xs"
+                style="text-decoration:none; display:inline-flex;">
                 📧 點此一鍵寄信通知管理員 (Daniel) 審核
               </a>
             </div>
