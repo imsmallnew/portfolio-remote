@@ -1,4 +1,4 @@
-# 富邦投資儀表板 (遠端與跨裝置雲端版)
+# 投資儀表板 (遠端與跨裝置雲端版)
 
 > 本版本支援公司電腦、筆電、手機（iOS / Android）異地即時查詢與管理。透過 **GitHub Pages** 託管前端，**Firebase Google 驗證 + Firestore 雲端資料庫** 保障隱私與即時同步。
 
@@ -33,31 +33,34 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // 判斷是否為全站管理者 (Daniel Kuo)
-    function isSystemAdmin() {
+    
+    // 取得存取控制名單
+    function getAcl() {
+      return get(/databases/$(database)/documents/access/main).data;
+    }
+    
+    function isOwner() {
       return request.auth != null && 
-             request.auth.token.email.lower() == 'imsmallnew@gmail.com';
+             request.auth.token.email_verified && 
+             request.auth.token.email.lower() == getAcl().owner.lower();
+    }
+    
+    function isViewer() {
+      return request.auth != null && 
+             request.auth.token.email_verified && 
+             (request.auth.token.email.lower() in getAcl().viewers || isOwner());
     }
 
-    // 投資數據集合：支援多租戶隔離 (各 Portfolio 擁有者僅能修改自己的組合)
-    match /portfolios/{portfolioId} {
-      // 讀取：公開閱讀模式（訪客瀏覽時敏感儲備金由前端遮蔽）
-      allow read: if true;
-
-      // 寫入：僅限該組合之擁有者，或全站管理者 (imsmallnew@gmail.com)
-      allow write: if request.auth != null && (
-        (portfolioId == 'main' && request.auth.token.email.lower() == 'imsmallnew@gmail.com') ||
-        (resource == null && request.resource.data.owner.lower() == request.auth.token.email.lower()) ||
-        (resource != null && resource.data.owner.lower() == request.auth.token.email.lower()) ||
-        isSystemAdmin()
-      );
+    // 投資數據集合：擁有者可讀寫，檢視者只能讀取
+    match /portfolios/{docId} {
+      allow read: if isViewer();
+      allow write: if isOwner();
     }
 
-    // 權限與授權親友名單
+    // 權限名單：僅允許檢視者讀取，禁止由前端隨意寫入 (由後台維護)
     match /access/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null && isSystemAdmin();
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }

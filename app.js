@@ -15,7 +15,7 @@
 
   // State
   const state = {
-    dashboardTitle: localStorage.getItem('fubon_dashboard_title') || '富邦投資儀表板 PRO',
+    dashboardTitle: localStorage.getItem('fubon_dashboard_title') || '投資儀表板 PRO',
     usdRate: 32.51,
     baselineRealizedPl: 67493.0,     // Aligned with CSV Row 2 Col 60 (富邦試算「已實現損益」)
     baselineDividendIncome: 10967.0, // Aligned with CSV Row 2 Col 61 (總配息收入)
@@ -40,9 +40,10 @@
     },
     holdings: {},
     lastUpdated: '',
-    
+
     // Auth Mode: 'view' (Visitor View-Only) or 'admin' (Admin Edit Mode)
-    authMode: sessionStorage.getItem('fubon_auth_mode') || 'view',
+    manualAdminUnlocked: sessionStorage.getItem('fubon_manual_admin') === '1',
+    authMode: sessionStorage.getItem('fubon_manual_admin') === '1' ? 'admin' : (sessionStorage.getItem('fubon_auth_mode') || 'view'),
     adminPasswordHash: localStorage.getItem('fubon_admin_pw_hash') || DEFAULT_ADMIN_HASH,
 
     // UI Filters & Sorting
@@ -52,7 +53,7 @@
     holdingSort: localStorage.getItem('fubon_holding_sort') || 'custom',
     hideZeroShares: localStorage.getItem('fubon_hide_zero_shares') !== '0', // 釋出全部股數後隱藏
     showHidden: localStorage.getItem('fubon_show_hidden') === '1',
-    
+
     // Auto Refresh
     autoRefreshSec: parseInt(localStorage.getItem('fubon_auto_refresh') || '0', 10),
     autoTimer: null,
@@ -65,11 +66,11 @@
     txSearch: '',
     txPage: 1,
     txPerPage: 50,
-    
+
     editingTxId: null,
     editingDivId: null,
     deleteTarget: null, // { type: 'tx'|'div'|'real', id: ... }
-    
+
     theme: localStorage.getItem('fubon_theme') || 'dark',
     colorMode: localStorage.getItem('fubon_color_mode') || 'tw', // 'tw': Red=Up, 'us': Green=Up
   };
@@ -280,12 +281,14 @@
       menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
     }
 
-    if (role === 'owner') {
-      // 2. 擁有者
+    if (state.manualAdminUnlocked || role === 'owner') {
+      // 2. 擁有者或已透過密碼解鎖的管理員
       state.authMode = 'admin';
-      if (authStatusText) authStatusText.textContent = '雲端已連線 (管理模式)';
+      if (authStatusText) authStatusText.textContent = '雲端已連線 (管理員模式)';
       if (authIcon) authIcon.textContent = '⚡';
-      showNotification(`歡迎回來，擁有者 ${user.displayName || user.email}！已啟用完整編輯權限`, 'success');
+      if (role === 'owner') {
+        showNotification(`歡迎回來，擁有者 ${user.displayName || user.email}！已啟用完整編輯權限`, 'success');
+      }
     } else if (role === 'viewer') {
       // 3. 授權親友
       state.authMode = 'viewer';
@@ -426,21 +429,21 @@
           state.quotes = parsed.quotes || DEFAULT_QUOTES;
           state.transactions = (parsed.transactions && parsed.transactions.length > 0)
             ? parsed.transactions
-            : [ ...DEFAULT_DEMO_TRANSACTIONS ];
+            : [...DEFAULT_DEMO_TRANSACTIONS];
           state.realizedRecords = parsed.realizedRecords !== undefined ? parsed.realizedRecords : [];
           state.dividendRecords = parsed.dividendRecords !== undefined ? parsed.dividendRecords : [];
           state.fundReserves = parsed.fundReserves || state.fundReserves;
           state.lastUpdated = parsed.lastUpdated || '';
           return;
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     state.quotes = { ...DEFAULT_QUOTES };
     state.usdRate = 32.51;
     state.baselineRealizedPl = 67493.0;
     state.baselineDividendIncome = 10967.0;
-    state.transactions = [ ...DEFAULT_DEMO_TRANSACTIONS ];
+    state.transactions = [...DEFAULT_DEMO_TRANSACTIONS];
   }
 
   function saveStateToLocal() {
@@ -563,17 +566,28 @@
 
   async function handleAdminLoginSubmit(e) {
     e.preventDefault();
-    const pw = document.getElementById('adminPasswordInput').value;
+    const pw = (document.getElementById('adminPasswordInput').value || '').trim();
     const inputHash = await sha256(pw);
 
-    if (inputHash === state.adminPasswordHash) {
+    // 支援 888、8888、daniel2026、admin 以及原預設 hash
+    const isValid = (
+      pw === '888' ||
+      pw === '8888' ||
+      pw === 'daniel2026' ||
+      pw === 'admin' ||
+      inputHash === state.adminPasswordHash
+    );
+
+    if (isValid) {
       state.authMode = 'admin';
+      state.manualAdminUnlocked = true;
+      sessionStorage.setItem('fubon_manual_admin', '1');
       applyAuthMode();
       closeAdminModal();
-      showNotification('管理員登入成功！已解鎖所有編輯與新增權限', 'success');
+      showNotification('🎉 管理員登入成功！已解鎖所有編輯與新增權限', 'success');
       updateUi();
     } else {
-      showNotification('密碼錯誤，請重新輸入', 'error');
+      showNotification('密碼錯誤，請重新輸入（預設密碼：888 或 8888）', 'error');
     }
   }
 
@@ -595,12 +609,12 @@
         infoUrl: q.infoUrl || '',
         hidden: !!q.hidden,
         order: typeof q.order === 'number' ? q.order : 999,
-        
+
         totalBoughtShares: 0,
         totalBoughtCost: 0,
         totalSoldShares: 0,
         totalSoldRevenue: 0,
-        
+
         currentShares: 0,
         investedCost: 0,
         avgCost: 0,
@@ -675,7 +689,7 @@
 
     for (const [sym, h] of Object.entries(holdings)) {
       const rate = h.currency === 'USD' ? state.usdRate : 1.0;
-      
+
       h.avgCost = h.currentShares > 0.0001 ? (h.investedCost / h.currentShares) : 0;
       h.marketValueLocal = h.currentShares * h.currentPrice;
       h.marketValueTwd = h.marketValueLocal * rate;
@@ -756,7 +770,7 @@
 
     const headerRate = document.getElementById('headerUsdRate');
     if (headerRate) headerRate.textContent = state.usdRate.toFixed(2);
-    
+
     const timeEl = document.getElementById('lastUpdatedTime');
     if (timeEl) {
       if (state.lastUpdated) {
@@ -815,7 +829,7 @@
     const plUsdEl = document.getElementById('kpiUnrealizedPLUsd');
     const plBadge = document.getElementById('kpiUnrealizedBadge');
     const roiRate = document.getElementById('kpiRoiRate');
-    
+
     if (plEl) {
       plEl.textContent = `NT$ ${formatMoney(s.totalUnrealizedPlTwd)}`;
       plEl.className = `kpi-value mono font-semibold ${getValClass(s.totalUnrealizedPlTwd)}`;
@@ -1101,8 +1115,8 @@
 
     if (state.holdingSearch) {
       const q = state.holdingSearch.toLowerCase().trim();
-      list = list.filter(h => 
-        h.symbol.toLowerCase().includes(q) || 
+      list = list.filter(h =>
+        h.symbol.toLowerCase().includes(q) ||
         (h.name && h.name.toLowerCase().includes(q)) ||
         (h.tvSymbol && h.tvSymbol.toLowerCase().includes(q))
       );
@@ -1358,8 +1372,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quotes: state.quotes })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     recalculatePortfolio();
     renderHoldingsTable();
@@ -1386,7 +1400,7 @@
     }
     if (state.txSearch) {
       const q = state.txSearch.toLowerCase().trim();
-      list = list.filter(t => 
+      list = list.filter(t =>
         (t.date && t.date.includes(q)) ||
         (t.symbol && t.symbol.toLowerCase().includes(q)) ||
         (t.name && t.name.toLowerCase().includes(q)) ||
@@ -1644,7 +1658,7 @@
     }
 
     const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#64748b'];
-    
+
     const segments = [];
     let othersVal = 0;
     sorted.forEach((h, idx) => {
@@ -1703,7 +1717,7 @@
           transform="rotate(-90 ${cx} ${cy})"
           style="transition: stroke-dasharray 0.5s ease;"
         >
-          <title>${seg.name}: ${((ratio)*100).toFixed(1)}%</title>
+          <title>${seg.name}: ${((ratio) * 100).toFixed(1)}%</title>
         </circle>
       `;
       accumulatedAngle += ratio;
@@ -1820,7 +1834,7 @@
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // 3. Direct browser fetching fallback
@@ -1888,7 +1902,7 @@
     try {
       const tvFxRes = await fetch('https://scanner.tradingview.com/forex/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify({
           symbols: { tickers: ['FX_IDC:USDTWD'] },
           columns: ['close', 'change']
@@ -1909,7 +1923,7 @@
             state.usdRate = Number(rateJson.rates.TWD.toFixed(2));
           }
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // 2. Collect TradingView symbols
@@ -1935,7 +1949,7 @@
       try {
         const twRes = await fetch('https://scanner.tradingview.com/taiwan/scan', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             symbols: { tickers: twTickers },
             columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description']
@@ -1972,7 +1986,7 @@
       try {
         const usRes = await fetch('https://scanner.tradingview.com/america/scan', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             symbols: { tickers: usTickers },
             columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'postmarket_close', 'premarket_close']
@@ -2028,7 +2042,7 @@
             if (res.ok) {
               return await res.json();
             }
-          } catch (err) {}
+          } catch (err) { }
         }
         return null;
       }
@@ -2063,7 +2077,7 @@
 
   function startAutoRefresh() {
     if (state.autoTimer) clearInterval(state.autoTimer);
-    
+
     const sel = document.getElementById('autoRefreshSelect');
     if (sel) sel.value = String(state.autoRefreshSec);
 
@@ -2107,7 +2121,7 @@
     wrap.className = 'tradingview-widget-container';
     wrap.style.height = '100%';
     wrap.style.width = '100%';
-    
+
     const inner = document.createElement('div');
     inner.className = 'tradingview-widget-container__widget';
     inner.style.height = '100%';
@@ -2347,7 +2361,7 @@
     el.contentEditable = 'true';
     el.classList.add('editing');
     el.focus();
-    
+
     const range = document.createRange();
     range.selectNodeContents(el);
     const sel = window.getSelection();
@@ -3137,9 +3151,9 @@
     const headers = [
       '交易ID', '交易日期', '標的代號', '標的名稱', '交易型態', '成交股數', '成交單價', '成交總額', '幣別', '備註'
     ];
-    
+
     const sorted = [...state.transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
+
     let csvContent = '\uFEFF' + headers.join(',') + '\n';
     for (const t of sorted) {
       const row = [
@@ -3204,7 +3218,7 @@
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
+
     let icon = 'ℹ️';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '⚠️';
@@ -3877,7 +3891,7 @@
       let recent = [];
       try {
         recent = JSON.parse(localStorage.getItem('fubon_recent_portfolios') || '[]');
-      } catch (e) {}
+      } catch (e) { }
 
       const combined = [...userPortfolios];
       recent.forEach(rId => {
@@ -3894,10 +3908,10 @@
               <span style="font-weight:600; color:${isCurrent ? 'var(--primary)' : 'var(--text-primary)'};">${escapeHtml(item.name || item.id)}</span>
               <span class="mono" style="color:var(--text-tertiary); font-size:0.75rem;">(?id=${escapeHtml(item.id)})</span>
             </div>
-            ${isCurrent ? 
-              `<span class="tag-badge" style="background:var(--primary-subtle); color:var(--primary);">目前使用中</span>` : 
-              `<button type="button" class="btn btn-secondary btn-xs" style="padding:2px 8px;" onclick="window.fubonApp.switchToPortfolio('${escapeHtml(item.id)}')">前往切換</button>`
-            }
+            ${isCurrent ?
+            `<span class="tag-badge" style="background:var(--primary-subtle); color:var(--primary);">目前使用中</span>` :
+            `<button type="button" class="btn btn-secondary btn-xs" style="padding:2px 8px;" onclick="window.fubonApp.switchToPortfolio('${escapeHtml(item.id)}')">前往切換</button>`
+          }
           </div>
         `;
       }).join('');
@@ -3977,7 +3991,7 @@
 
         await window.cloudStore.savePortfolio(initialNewPortfolio);
         showNotification(`🎉 恭喜！專屬儀表板【${pid}】已成功建立！`, 'success');
-        
+
         const banner = document.getElementById('newPortfolioBanner');
         if (banner) banner.style.display = 'none';
 
@@ -4019,7 +4033,7 @@
         recent.unshift(clean);
         if (recent.length > 5) recent = recent.slice(0, 5);
         localStorage.setItem('fubon_recent_portfolios', JSON.stringify(recent));
-      } catch (e) {}
+      } catch (e) { }
 
       const url = new URL(window.location.href);
       if (clean === 'main') {
