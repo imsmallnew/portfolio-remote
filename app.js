@@ -74,6 +74,20 @@
     txPage: 1,
     txPerPage: 50,
 
+    // Investment Advice UI & Settings
+    adviceSettings: {
+      profitType: localStorage.getItem('fubon_advice_profit_type') || 'pct', // 'pct' or 'amount'
+      profitVal: parseFloat(localStorage.getItem('fubon_advice_profit_val')) || 50,
+      lossType: localStorage.getItem('fubon_advice_loss_type') || 'pct', // 'pct' or 'amount'
+      lossVal: parseFloat(localStorage.getItem('fubon_advice_loss_val')) || 20,
+      filterSymbol: 'all',
+      filterStatus: 'all',
+      sortOrder: 'diff_desc',
+      search: '',
+      page: 1,
+      perPage: 50
+    },
+
     editingTxId: null,
     editingDivId: null,
     deleteTarget: null, // { type: 'tx'|'div'|'real', id: ... }
@@ -1020,6 +1034,7 @@
     renderRealizedTable();
     renderDividendTable();
     renderAnalyticsCharts();
+    renderAdviceTable();
   }
 
   function renderHeaderInfo() {
@@ -2679,6 +2694,341 @@
     container.innerHTML = barsHtml;
   }
 
+  // ==========================================================================
+  // 9.5 Investment Advice / Advisor Logic (投資建議 - FIFO 庫存與出金/止損評估)
+  // ==========================================================================
+
+  function calculateFifoLots() {
+    const txs = [...(state.transactions || [])].sort((a, b) => {
+      const dDiff = new Date(a.date) - new Date(b.date);
+      if (dDiff !== 0) return dDiff;
+      return (a.id || '').localeCompare(b.id || '');
+    });
+
+    const lotsBySymbol = {};
+    for (const tx of txs) {
+      const sym = tx.symbol;
+      if (!sym) continue;
+      if (!lotsBySymbol[sym]) lotsBySymbol[sym] = [];
+
+      const isSell = tx.action && tx.action.includes('賣');
+      const shares = Math.abs(parseFloat(tx.shares) || 0);
+
+      if (!isSell) {
+        if (shares > 0) {
+          lotsBySymbol[sym].push({
+            id: tx.id,
+            date: tx.date || '',
+            symbol: sym,
+            name: tx.name || state.holdings[sym]?.name || sym,
+            price: parseFloat(tx.price) || 0,
+            currency: tx.currency || state.holdings[sym]?.currency || 'TWD',
+            originalShares: shares,
+            remainingShares: shares
+          });
+        }
+      } else {
+        let sellQty = shares;
+        for (const lot of lotsBySymbol[sym]) {
+          if (lot.remainingShares <= 0.000001) continue;
+          if (lot.remainingShares <= sellQty) {
+            sellQty -= lot.remainingShares;
+            lot.remainingShares = 0;
+          } else {
+            lot.remainingShares -= sellQty;
+            sellQty = 0;
+            break;
+          }
+        }
+      }
+    }
+
+    const settings = state.adviceSettings || {
+      profitType: 'pct',
+      profitVal: 50,
+      lossType: 'pct',
+      lossVal: 20
+    };
+    const rate = state.usdRate || 32.51;
+    const activeLots = [];
+
+    for (const sym in lotsBySymbol) {
+      const holding = state.holdings[sym];
+      const curPrice = holding ? (parseFloat(holding.currentPrice) || 0) : 0;
+
+      for (const lot of lotsBySymbol[sym]) {
+        if (lot.remainingShares <= 0.0001) continue;
+
+        const effectivePrice = curPrice > 0 ? curPrice : lot.price;
+        const lotRate = (lot.currency === 'USD') ? rate : 1.0;
+
+        const diffPerShare = effectivePrice - lot.price;
+        const diffTotalOrig = diffPerShare * lot.remainingShares;
+        const diffTotalTwd = diffTotalOrig * lotRate;
+        const costTwd = (lot.price * lot.remainingShares) * lotRate;
+        const marketValTwd = (effectivePrice * lot.remainingShares) * lotRate;
+        const roiPct = lot.price > 0 ? ((diffPerShare / lot.price) * 100) : 0;
+
+        let isProfitHit = false;
+        let isLossHit = false;
+
+        if (settings.profitType === 'pct') {
+          isProfitHit = (roiPct >= settings.profitVal);
+        } else {
+          isProfitHit = (diffTotalTwd >= settings.profitVal);
+        }
+
+        if (settings.lossType === 'pct') {
+          isLossHit = (roiPct <= -Math.abs(settings.lossVal));
+        } else {
+          isLossHit = (diffTotalTwd <= -Math.abs(settings.lossVal));
+        }
+
+        let statusKey = 'holding';
+        let statusText = '持有中';
+        let badgeClass = 'badge-holding';
+
+        if (isProfitHit) {
+          statusKey = 'target_reached';
+          statusText = '已達到出金目標';
+          badgeClass = 'badge-profit';
+        } else if (isLossHit) {
+          statusKey = 'stop_loss_hit';
+          statusText = '已達到止損條件';
+          badgeClass = 'badge-loss';
+        }
+
+        activeLots.push({
+          ...lot,
+          currentPrice: effectivePrice,
+          lotRate,
+          diffPerShare,
+          diffTotalOrig,
+          diffTotalTwd,
+          costTwd,
+          marketValTwd,
+          roiPct,
+          statusKey,
+          statusText,
+          badgeClass,
+          isProfitHit,
+          isLossHit
+        });
+      }
+    }
+
+    return activeLots;
+  }
+
+  function renderAdviceTable() {
+    const tbody = document.getElementById('adviceTableBody');
+    if (!tbody) return;
+
+    const allLots = calculateFifoLots();
+    const settings = state.adviceSettings || {
+      profitType: 'pct',
+      profitVal: 50,
+      lossType: 'pct',
+      lossVal: 20,
+      filterSymbol: 'all',
+      filterStatus: 'all',
+      sortOrder: 'diff_desc',
+      search: '',
+      page: 1,
+      perPage: 50
+    };
+
+    // Update KPI summaries
+    let profitCount = 0;
+    let profitTotalDiff = 0;
+    let lossCount = 0;
+    let lossTotalDiff = 0;
+    let totalLotsCost = 0;
+    let totalLotsDiff = 0;
+    const holdingSymbolsSet = new Set();
+
+    for (const lot of allLots) {
+      totalLotsCost += lot.costTwd;
+      totalLotsDiff += lot.diffTotalTwd;
+      holdingSymbolsSet.add(lot.symbol);
+
+      if (lot.isProfitHit) {
+        profitCount++;
+        profitTotalDiff += lot.diffTotalTwd;
+      } else if (lot.isLossHit) {
+        lossCount++;
+        lossTotalDiff += lot.diffTotalTwd;
+      }
+    }
+
+    // Badge on Nav Tab
+    const tabBadge = document.getElementById('tabAdviceCountBadge');
+    if (tabBadge) {
+      const totalAlerts = profitCount + lossCount;
+      tabBadge.textContent = totalAlerts;
+    }
+
+    // KPI Card elements
+    const profitCountEl = document.getElementById('adviceProfitBadge');
+    const profitValEl = document.getElementById('adviceProfitTotalVal');
+    const profitRuleEl = document.getElementById('adviceProfitRuleText');
+    if (profitCountEl) profitCountEl.textContent = `${profitCount} 筆`;
+    if (profitValEl) profitValEl.textContent = `+NT$ ${formatMoney(Math.round(profitTotalDiff))}`;
+    if (profitRuleEl) {
+      profitRuleEl.textContent = settings.profitType === 'pct'
+        ? `門檻：獲利 \u2265 ${settings.profitVal}%`
+        : `門檻：獲利 \u2265 NT$ ${formatMoney(settings.profitVal)}`;
+    }
+
+    const lossCountEl = document.getElementById('adviceLossBadge');
+    const lossValEl = document.getElementById('adviceLossTotalVal');
+    const lossRuleEl = document.getElementById('adviceLossRuleText');
+    if (lossCountEl) lossCountEl.textContent = `${lossCount} 筆`;
+    if (lossValEl) {
+      const sign = lossTotalDiff < 0 ? '-' : '';
+      lossValEl.textContent = `${sign}NT$ ${formatMoney(Math.abs(Math.round(lossTotalDiff)))}`;
+    }
+    if (lossRuleEl) {
+      lossRuleEl.textContent = settings.lossType === 'pct'
+        ? `門檻：損失 \u2265 ${settings.lossVal}%`
+        : `門檻：損失 \u2265 NT$ ${formatMoney(settings.lossVal)}`;
+    }
+
+    const lotsCountEl = document.getElementById('adviceLotsCountBadge');
+    const lotsCostEl = document.getElementById('adviceLotsTotalCost');
+    const holdingSymbolsEl = document.getElementById('adviceHoldingSymbolsText');
+    if (lotsCountEl) lotsCountEl.textContent = `${allLots.length} 筆`;
+    if (lotsCostEl) lotsCostEl.textContent = `NT$ ${formatMoney(Math.round(totalLotsCost))}`;
+    if (holdingSymbolsEl) holdingSymbolsEl.textContent = `涵蓋 ${holdingSymbolsSet.size} 檔有效持有標的`;
+
+    const netDiffEl = document.getElementById('adviceNetDiffVal');
+    const totalRoiEl = document.getElementById('adviceTotalRoiBadge');
+    if (netDiffEl) {
+      const sign = totalLotsDiff >= 0 ? '+' : '-';
+      netDiffEl.textContent = `${sign}NT$ ${formatMoney(Math.abs(Math.round(totalLotsDiff)))}`;
+      netDiffEl.className = `advice-kpi-val mono ${totalLotsDiff >= 0 ? 'val-profit' : 'val-loss'}`;
+    }
+    if (totalRoiEl) {
+      const netRoi = totalLotsCost > 0 ? (totalLotsDiff / totalLotsCost * 100) : 0;
+      const sign = netRoi >= 0 ? '+' : '';
+      totalRoiEl.textContent = `${sign}${netRoi.toFixed(2)}%`;
+      totalRoiEl.className = `advice-kpi-badge ${netRoi >= 0 ? 'badge-profit-count' : 'badge-loss-count'}`;
+    }
+
+    // Populate Symbol Filter Dropdown
+    const symbolSelect = document.getElementById('adviceFilterSymbol');
+    if (symbolSelect) {
+      const currentVal = settings.filterSymbol;
+      const symbols = Array.from(holdingSymbolsSet).sort();
+      let optionsHtml = '<option value="all">所有標的</option>';
+      for (const sym of symbols) {
+        const name = state.holdings[sym]?.name || sym;
+        optionsHtml += `<option value="${escapeHtml(sym)}" ${sym === currentVal ? 'selected' : ''}>${escapeHtml(sym)} ${escapeHtml(name)}</option>`;
+      }
+      symbolSelect.innerHTML = optionsHtml;
+    }
+
+    // Filtering
+    let filtered = allLots.filter(lot => {
+      if (settings.filterSymbol !== 'all' && lot.symbol !== settings.filterSymbol) {
+        return false;
+      }
+      if (settings.filterStatus !== 'all' && lot.statusKey !== settings.filterStatus) {
+        return false;
+      }
+      if (settings.search) {
+        const q = settings.search.toLowerCase();
+        const matchSym = (lot.symbol || '').toLowerCase().includes(q);
+        const matchName = (lot.name || '').toLowerCase().includes(q);
+        const matchDate = (lot.date || '').toLowerCase().includes(q);
+        if (!matchSym && !matchName && !matchDate) return false;
+      }
+      return true;
+    });
+
+    // Sorting - Default is diff_desc (全部標的會以價差大到小排序)
+    filtered.sort((a, b) => {
+      switch (settings.sortOrder) {
+        case 'diff_desc':
+          return b.diffTotalTwd - a.diffTotalTwd;
+        case 'diff_asc':
+          return a.diffTotalTwd - b.diffTotalTwd;
+        case 'roi_desc':
+          return b.roiPct - a.roiPct;
+        case 'roi_asc':
+          return a.roiPct - b.roiPct;
+        case 'date_desc':
+          return new Date(b.date) - new Date(a.date);
+        case 'date_asc':
+          return new Date(a.date) - new Date(b.date);
+        default:
+          return b.diffTotalTwd - a.diffTotalTwd;
+      }
+    });
+
+    // Stats count
+    const statsEl = document.getElementById('adviceStatsCount');
+    if (statsEl) {
+      statsEl.textContent = `顯示 ${filtered.length} / ${allLots.length} 筆庫存批次`;
+    }
+
+    // Pagination
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / settings.perPage) || 1;
+    if (settings.page > totalPages) settings.page = totalPages;
+    if (settings.page < 1) settings.page = 1;
+
+    const startIdx = (settings.page - 1) * settings.perPage;
+    const pageItems = filtered.slice(startIdx, startIdx + settings.perPage);
+
+    const pageInfo = document.getElementById('advicePaginationInfo');
+    const pageCurrent = document.getElementById('advicePageCurrent');
+    const btnPrev = document.getElementById('btnAdvicePagePrev');
+    const btnNext = document.getElementById('btnAdvicePageNext');
+
+    if (pageInfo) {
+      const endIdx = Math.min(startIdx + settings.perPage, totalItems);
+      pageInfo.textContent = totalItems > 0
+        ? `顯示第 ${startIdx + 1} 到 ${endIdx} 筆，共 ${totalItems} 筆`
+        : `顯示第 0 筆，共 0 筆`;
+    }
+    if (pageCurrent) pageCurrent.textContent = `${settings.page} / ${totalPages}`;
+    if (btnPrev) btnPrev.disabled = (settings.page <= 1);
+    if (btnNext) btnNext.disabled = (settings.page >= totalPages);
+
+    if (pageItems.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--text-tertiary);">查無符合條件之剩餘庫存批次</td></tr>`;
+      return;
+    }
+
+    let rowsHtml = '';
+    for (const lot of pageItems) {
+      const sign = lot.diffTotalTwd >= 0 ? '+' : '';
+      const diffClass = lot.diffTotalTwd >= 0 ? 'val-up' : 'val-down';
+
+      rowsHtml += `
+        <tr>
+          <td>
+            <span class="symbol-badge">${escapeHtml(lot.symbol)}</span>
+            <span class="symbol-name">${escapeHtml(lot.name || '')}</span>
+          </td>
+          <td class="text-center mono text-secondary">${escapeHtml(lot.date || '--')}</td>
+          <td class="text-right mono">${lot.currency} ${formatMoney(lot.price, 2)}</td>
+          <td class="text-right mono font-semibold">${lot.currency} ${formatMoney(lot.currentPrice, 2)}</td>
+          <td class="text-right mono">${formatShares(lot.remainingShares)}</td>
+          <td class="text-right mono font-semibold ${diffClass}">
+            ${sign}NT$ ${formatMoney(Math.abs(Math.round(lot.diffTotalTwd)))}
+            <span style="font-size: 0.8rem; opacity: 0.85; margin-left: 4px;">(${sign}${lot.roiPct.toFixed(2)}%)</span>
+          </td>
+          <td class="text-center">
+            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>
+          </td>
+        </tr>
+      `;
+    }
+    tbody.innerHTML = rowsHtml;
+  }
+
   // 10. Non-Blocking Real-Time Quotes Fetching (4.5s Safety Timeout)
   // 10. Robust Real-Time & Night Quotes Fetching
   async function refreshOnlineQuotes(showToast = true) {
@@ -4284,6 +4634,7 @@
         if (targetId === 'tab-analytics') renderAnalyticsCharts();
         if (targetId === 'tab-realized') renderRealizedTable();
         if (targetId === 'tab-dividends') renderDividendTable();
+        if (targetId === 'tab-advice') renderAdviceTable();
       });
     });
 
@@ -5308,6 +5659,184 @@
           btnInit.innerHTML = '<span>🚀 建立專屬投資組合</span>';
         }
       }
+    });
+
+    // ----------------------------------------------------
+    // Investment Advice Event Listeners & Controls
+    // ----------------------------------------------------
+    const pType = document.getElementById('adviceProfitType');
+    const pVal = document.getElementById('adviceProfitVal');
+    const pUnit = document.getElementById('adviceProfitUnitLabel');
+    if (pType && pVal) {
+      pType.value = state.adviceSettings.profitType;
+      pVal.value = state.adviceSettings.profitVal;
+      if (pUnit) pUnit.textContent = pType.value === 'pct' ? '%' : 'NT$';
+
+      pType.addEventListener('change', () => {
+        state.adviceSettings.profitType = pType.value;
+        if (pUnit) pUnit.textContent = pType.value === 'pct' ? '%' : 'NT$';
+        localStorage.setItem('fubon_advice_profit_type', pType.value);
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      });
+
+      pVal.addEventListener('input', () => {
+        state.adviceSettings.profitVal = parseFloat(pVal.value) || 0;
+        localStorage.setItem('fubon_advice_profit_val', pVal.value);
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      });
+    }
+
+    const lType = document.getElementById('adviceLossType');
+    const lVal = document.getElementById('adviceLossVal');
+    const lUnit = document.getElementById('adviceLossUnitLabel');
+    if (lType && lVal) {
+      lType.value = state.adviceSettings.lossType;
+      lVal.value = state.adviceSettings.lossVal;
+      if (lUnit) lUnit.textContent = lType.value === 'pct' ? '%' : 'NT$';
+
+      lType.addEventListener('change', () => {
+        state.adviceSettings.lossType = lType.value;
+        if (lUnit) lUnit.textContent = lType.value === 'pct' ? '%' : 'NT$';
+        localStorage.setItem('fubon_advice_loss_type', lType.value);
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      });
+
+      lVal.addEventListener('input', () => {
+        state.adviceSettings.lossVal = parseFloat(lVal.value) || 0;
+        localStorage.setItem('fubon_advice_loss_val', lVal.value);
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      });
+    }
+
+    // Presets
+    document.getElementById('btnPresetProfit50Loss20')?.addEventListener('click', () => {
+      state.adviceSettings.profitType = 'pct';
+      state.adviceSettings.profitVal = 50;
+      state.adviceSettings.lossType = 'pct';
+      state.adviceSettings.lossVal = 20;
+      if (pType) pType.value = 'pct';
+      if (pVal) pVal.value = 50;
+      if (pUnit) pUnit.textContent = '%';
+      if (lType) lType.value = 'pct';
+      if (lVal) lVal.value = 20;
+      if (lUnit) lUnit.textContent = '%';
+      localStorage.setItem('fubon_advice_profit_type', 'pct');
+      localStorage.setItem('fubon_advice_profit_val', '50');
+      localStorage.setItem('fubon_advice_loss_type', 'pct');
+      localStorage.setItem('fubon_advice_loss_val', '20');
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    document.getElementById('btnPresetProfit30Loss15')?.addEventListener('click', () => {
+      state.adviceSettings.profitType = 'pct';
+      state.adviceSettings.profitVal = 30;
+      state.adviceSettings.lossType = 'pct';
+      state.adviceSettings.lossVal = 15;
+      if (pType) pType.value = 'pct';
+      if (pVal) pVal.value = 30;
+      if (pUnit) pUnit.textContent = '%';
+      if (lType) lType.value = 'pct';
+      if (lVal) lVal.value = 15;
+      if (lUnit) lUnit.textContent = '%';
+      localStorage.setItem('fubon_advice_profit_type', 'pct');
+      localStorage.setItem('fubon_advice_profit_val', '30');
+      localStorage.setItem('fubon_advice_loss_type', 'pct');
+      localStorage.setItem('fubon_advice_loss_val', '15');
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    document.getElementById('btnPresetAmount3k5k')?.addEventListener('click', () => {
+      state.adviceSettings.profitType = 'amount';
+      state.adviceSettings.profitVal = 3000;
+      state.adviceSettings.lossType = 'amount';
+      state.adviceSettings.lossVal = 5000;
+      if (pType) pType.value = 'amount';
+      if (pVal) pVal.value = 3000;
+      if (pUnit) pUnit.textContent = 'NT$';
+      if (lType) lType.value = 'amount';
+      if (lVal) lVal.value = 5000;
+      if (lUnit) lUnit.textContent = 'NT$';
+      localStorage.setItem('fubon_advice_profit_type', 'amount');
+      localStorage.setItem('fubon_advice_profit_val', '3000');
+      localStorage.setItem('fubon_advice_loss_type', 'amount');
+      localStorage.setItem('fubon_advice_loss_val', '5000');
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    // Filters and Sorting
+    document.getElementById('adviceFilterSymbol')?.addEventListener('change', (e) => {
+      state.adviceSettings.filterSymbol = e.target.value;
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    document.getElementById('adviceFilterStatus')?.addEventListener('change', (e) => {
+      state.adviceSettings.filterStatus = e.target.value;
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    document.getElementById('adviceSortOrder')?.addEventListener('change', (e) => {
+      state.adviceSettings.sortOrder = e.target.value;
+      renderAdviceTable();
+    });
+
+    document.getElementById('adviceSearchInput')?.addEventListener('input', (e) => {
+      state.adviceSettings.search = e.target.value.trim();
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    // KPI Cards Quick Filter
+    document.getElementById('adviceKpiProfitCard')?.addEventListener('click', () => {
+      const statusSelect = document.getElementById('adviceFilterStatus');
+      if (statusSelect) {
+        statusSelect.value = 'target_reached';
+        state.adviceSettings.filterStatus = 'target_reached';
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      }
+    });
+
+    document.getElementById('adviceKpiLossCard')?.addEventListener('click', () => {
+      const statusSelect = document.getElementById('adviceFilterStatus');
+      if (statusSelect) {
+        statusSelect.value = 'stop_loss_hit';
+        state.adviceSettings.filterStatus = 'stop_loss_hit';
+        state.adviceSettings.page = 1;
+        renderAdviceTable();
+      }
+    });
+
+    document.getElementById('adviceKpiLotsCard')?.addEventListener('click', () => {
+      const statusSelect = document.getElementById('adviceFilterStatus');
+      const symSelect = document.getElementById('adviceFilterSymbol');
+      if (statusSelect) statusSelect.value = 'all';
+      if (symSelect) symSelect.value = 'all';
+      state.adviceSettings.filterStatus = 'all';
+      state.adviceSettings.filterSymbol = 'all';
+      state.adviceSettings.page = 1;
+      renderAdviceTable();
+    });
+
+    // Pagination
+    document.getElementById('btnAdvicePagePrev')?.addEventListener('click', () => {
+      if (state.adviceSettings.page > 1) {
+        state.adviceSettings.page--;
+        renderAdviceTable();
+      }
+    });
+
+    document.getElementById('btnAdvicePageNext')?.addEventListener('click', () => {
+      state.adviceSettings.page++;
+      renderAdviceTable();
     });
   }
 
