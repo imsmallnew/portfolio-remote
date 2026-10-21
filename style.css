@@ -2087,6 +2087,25 @@ body {
   color: var(--text-primary);
   font-size: 0.82rem;
 }
+.detail-items-table tr.dragging {
+  opacity: 0.4;
+  background: rgba(59, 130, 246, 0.12);
+}
+.detail-items-table tr.drag-over {
+  border-top: 2px solid var(--primary-blue);
+  background: rgba(59, 130, 246, 0.08);
+}
+.detail-items-table .drag-handle {
+  cursor: grab;
+  color: var(--text-tertiary);
+  user-select: none;
+  font-size: 0.95rem;
+  display: inline-block;
+  padding: 4px;
+}
+.detail-items-table .drag-handle:active {
+  cursor: grabbing;
+}
 .detail-summary-bar {
   display: flex;
   align-items: center;

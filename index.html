@@ -1375,10 +1375,11 @@
           <table class="detail-items-table">
             <thead>
               <tr>
-                <th style="width: 36%;">支出項目名稱</th>
-                <th style="width: 24%;" class="text-right">金額 (NT$)</th>
-                <th style="width: 18%;" class="text-center">週期</th>
-                <th style="width: 16%;" class="text-right">折合每月</th>
+                <th style="width: 32px;" class="text-center" title="拖動調整順序"></th>
+                <th style="width: 34%;">支出項目名稱</th>
+                <th style="width: 22%;" class="text-right">金額 (NT$)</th>
+                <th style="width: 16%;" class="text-center">週期</th>
+                <th style="width: 18%;" class="text-right">折合每月</th>
                 <th style="width: 36px;" class="text-center">操作</th>
               </tr>
             </thead>
@@ -1414,16 +1415,18 @@
         </div>
         <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; max-height: calc(90vh - 140px); position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span class="text-tertiary-sm">維護每月投資標的、每次扣款金額與投入日期（點選日曆按鈕多選）</span>
+            <span class="text-tertiary-sm">維護每月投資標的、幣別、每次扣款金額與投入日期（USD 自動乘即時匯率折算 NT）</span>
             <button type="button" class="btn btn-secondary btn-xs" id="btnAddDcaItem">➕ 新增定額標的</button>
           </div>
           <table class="detail-items-table">
             <thead>
               <tr>
-                <th style="width: 30%;">投資標的代號 / 名稱</th>
-                <th style="width: 22%;" class="text-right">每次扣款金額 (NT$)</th>
-                <th style="width: 26%;">每月投入日期 (小月曆)</th>
-                <th style="width: 16%;" class="text-right">每月扣款小計</th>
+                <th style="width: 32px;" class="text-center" title="拖動調整順序"></th>
+                <th style="width: 24%;">投資標的代號 / 名稱</th>
+                <th style="width: 12%;" class="text-center">幣別</th>
+                <th style="width: 18%;" class="text-right">每次金額</th>
+                <th style="width: 20%;">投入日期 (每月)</th>
+                <th style="width: 20%;" class="text-right">折合每月 (NT$)</th>
                 <th style="width: 36px;" class="text-center">操作</th>
               </tr>
             </thead>

@@ -1335,7 +1335,7 @@
     if (!tbody) return;
 
     if (currentExpenseList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無支出細項，請點擊上方「新增支出項目」</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無支出細項，請點擊上方「新增支出項目」</td></tr>`;
       calcExpenseTotals();
       return;
     }
@@ -1347,7 +1347,10 @@
       const monthlyEquivalent = period === 'monthly' ? amt : Math.round(amt / 12);
 
       html += `
-        <tr data-index="${idx}">
+        <tr data-index="${idx}" draggable="true" class="expense-drag-row">
+          <td class="col-drag" style="text-align: center; cursor: grab;" title="按住拖動調整順序">
+            <span class="drag-handle">⋮⋮</span>
+          </td>
           <td>
             <input type="text" class="expense-name-input" data-index="${idx}" value="${escapeHtml(item.name || '')}" placeholder="例如：家用、保單、水電">
           </td>
@@ -1407,7 +1410,43 @@
       });
     });
 
+    setupExpenseDragAndDrop(tbody);
     calcExpenseTotals();
+  }
+
+  function setupExpenseDragAndDrop(tbody) {
+    let dragSrcIdx = null;
+    const rows = tbody.querySelectorAll('.expense-drag-row');
+    rows.forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        dragSrcIdx = parseInt(row.dataset.index, 10);
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragSrcIdx);
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const targetIdx = parseInt(row.dataset.index, 10);
+        if (dragSrcIdx !== null && dragSrcIdx !== targetIdx && currentExpenseList[dragSrcIdx]) {
+          const moved = currentExpenseList.splice(dragSrcIdx, 1)[0];
+          currentExpenseList.splice(targetIdx, 0, moved);
+          renderExpenseTable();
+        }
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        rows.forEach(r => r.classList.remove('drag-over'));
+      });
+    });
   }
 
   function addExpenseItemRow() {
@@ -1418,6 +1457,8 @@
       period: 'monthly'
     });
     renderExpenseTable();
+    const inputs = document.querySelectorAll('#expenseItemsTableBody .expense-name-input');
+    if (inputs.length > 0) inputs[inputs.length - 1].focus();
   }
 
   function deleteExpenseItemRow(idx) {
@@ -1497,26 +1538,39 @@
     if (!tbody) return;
 
     if (currentDcaList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無定期定額標的，請點擊上方「新增定額標的」</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 24px; color: var(--text-tertiary);">目前無定期定額標的，請點擊上方「新增定額標的」</td></tr>`;
       calcDcaTotals();
       return;
     }
 
+    const rate = Number(state.usdRate) || 32.5;
     let html = '';
     currentDcaList.forEach((item, idx) => {
       const amt = Number(item.amount) || 0;
+      const curr = item.currency || 'TWD';
+      const isUsd = curr === 'USD';
       const days = Array.isArray(item.days) ? item.days.sort((a,b)=>a-b) : [6];
       const count = days.length > 0 ? days.length : 1;
-      const monthlyTotal = amt * count;
+      const monthlyRaw = amt * count;
+      const monthlyTwd = isUsd ? Math.round(monthlyRaw * rate) : Math.round(monthlyRaw);
       const daysText = days.length > 0 ? `${days.join(', ')} 號 (${days.length}次)` : '未設定扣款日';
 
       html += `
-        <tr data-index="${idx}">
+        <tr data-index="${idx}" draggable="true" class="dca-drag-row">
+          <td class="col-drag" style="text-align: center; cursor: grab;" title="按住拖動調整順序">
+            <span class="drag-handle">⋮⋮</span>
+          </td>
           <td>
             <input type="text" class="dca-symbol-input" data-index="${idx}" value="${escapeHtml(item.symbol || '')}" placeholder="例如：0050、VOO">
           </td>
+          <td class="text-center">
+            <select class="dca-curr-select" data-index="${idx}">
+              <option value="TWD" ${curr === 'TWD' ? 'selected' : ''}>NT</option>
+              <option value="USD" ${curr === 'USD' ? 'selected' : ''}>USD</option>
+            </select>
+          </td>
           <td class="text-right">
-            <input type="number" class="dca-amount-input text-right" data-index="${idx}" step="1" min="0" value="${amt}">
+            <input type="number" class="dca-amount-input text-right" data-index="${idx}" step="any" min="0" value="${amt}">
           </td>
           <td>
             <button type="button" class="btn btn-secondary btn-xs btn-dca-daypicker" data-index="${idx}" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
@@ -1525,7 +1579,12 @@
             </button>
           </td>
           <td class="text-right mono font-semibold" id="dcaMonthlyRow_${idx}">
-            NT$ ${formatMoney(monthlyTotal)}
+            ${isUsd ? `
+              <span class="text-cyan">$${formatMoney(monthlyRaw, 2)} USD</span>
+              <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">折合 NT$ ${formatMoney(monthlyTwd)}</div>
+            ` : `
+              <span>NT$ ${formatMoney(monthlyTwd)}</span>
+            `}
           </td>
           <td class="text-center">
             <button type="button" class="btn btn-secondary btn-xs" onclick="window.fubonApp.deleteDcaItem(${idx})" title="刪除此標的" style="color: var(--danger-accent);">&times;</button>
@@ -1542,16 +1601,37 @@
       });
     });
 
+    tbody.querySelectorAll('.dca-curr-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (currentDcaList[i]) {
+          currentDcaList[i].currency = e.target.value;
+          renderDcaTable();
+        }
+      });
+    });
+
     tbody.querySelectorAll('.dca-amount-input').forEach(input => {
       input.addEventListener('input', (e) => {
         const i = parseInt(e.target.dataset.index, 10);
         const val = parseFloat(e.target.value) || 0;
         if (currentDcaList[i]) {
           currentDcaList[i].amount = val;
+          const curr = currentDcaList[i].currency || 'TWD';
+          const isUsd = curr === 'USD';
           const days = currentDcaList[i].days || [6];
           const c = days.length > 0 ? days.length : 1;
+          const mRaw = val * c;
+          const mTwd = isUsd ? Math.round(mRaw * rate) : Math.round(mRaw);
           const cell = document.getElementById(`dcaMonthlyRow_${i}`);
-          if (cell) cell.textContent = `NT$ ${formatMoney(val * c)}`;
+          if (cell) {
+            cell.innerHTML = isUsd ? `
+              <span class="text-cyan">$${formatMoney(mRaw, 2)} USD</span>
+              <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">折合 NT$ ${formatMoney(mTwd)}</div>
+            ` : `
+              <span>NT$ ${formatMoney(mTwd)}</span>
+            `;
+          }
           calcDcaTotals();
         }
       });
@@ -1565,13 +1645,50 @@
       });
     });
 
+    setupDcaDragAndDrop(tbody);
     calcDcaTotals();
+  }
+
+  function setupDcaDragAndDrop(tbody) {
+    let dragSrcIdx = null;
+    const rows = tbody.querySelectorAll('.dca-drag-row');
+    rows.forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        dragSrcIdx = parseInt(row.dataset.index, 10);
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragSrcIdx);
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const targetIdx = parseInt(row.dataset.index, 10);
+        if (dragSrcIdx !== null && dragSrcIdx !== targetIdx && currentDcaList[dragSrcIdx]) {
+          const moved = currentDcaList.splice(dragSrcIdx, 1)[0];
+          currentDcaList.splice(targetIdx, 0, moved);
+          renderDcaTable();
+        }
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        rows.forEach(r => r.classList.remove('drag-over'));
+      });
+    });
   }
 
   function addDcaItemRow() {
     currentDcaList.push({
       id: `dca_${Date.now()}`,
       symbol: '',
+      currency: 'TWD',
       amount: 0,
       days: [6]
     });
@@ -1589,11 +1706,15 @@
 
   function calcDcaTotals() {
     let totalMonthly = 0;
+    const rate = Number(state.usdRate) || 32.5;
     currentDcaList.forEach(item => {
       const amt = Number(item.amount) || 0;
+      const curr = item.currency || 'TWD';
       const days = Array.isArray(item.days) ? item.days : [6];
       const count = days.length > 0 ? days.length : 1;
-      totalMonthly += amt * count;
+      const mRaw = amt * count;
+      const mTwd = curr === 'USD' ? Math.round(mRaw * rate) : Math.round(mRaw);
+      totalMonthly += mTwd;
     });
     const totalAnnual = totalMonthly * 12;
 
