@@ -49,6 +49,17 @@
         this.db = firebase.firestore();
         this.isConfigured = true;
 
+        // 捕捉跳轉登入結果 (例如手機瀏覽器跳轉回來)
+        this.auth.getRedirectResult().then(async (result) => {
+          if (result && result.user) {
+            this.currentUser = result.user;
+            await this.resolveUserRole(result.user.email);
+            this.emitAuth(this.currentUser, this.userRole);
+          }
+        }).catch((err) => {
+          console.warn("getRedirectResult 注意:", err);
+        });
+
         // 監聽身分驗證變化
         this.auth.onAuthStateChanged(async (user) => {
           this.currentUser = user;
@@ -159,7 +170,7 @@
 
     async signInWithGoogle() {
       if (!this.isConfigured) {
-        alert("請先在 firebase-config.js 填入您的 Firebase 專案設定！");
+        alert("請先在 firebase-config.js 填入您的 Firebase 專案設定！\n您也可以直接使用管理員密碼解鎖。");
         return null;
       }
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -169,10 +180,19 @@
         return result.user;
       } catch (err) {
         console.error("Google 登入失敗:", err);
-        // 若彈出視窗被瀏覽器封鎖，改用 redirect
+        if (err.code === 'auth/unauthorized-domain') {
+          const currentHost = window.location.hostname;
+          alert(`⚠️ Google 登入網域未授權：\n目前網址網域 [${currentHost}] 尚未加入 Firebase 授權名單。\n\n【解決方式】\n請至 Firebase Console (https://console.firebase.google.com/) -> Authentication -> 設定 (Settings) -> 授權網域 (Authorized domains)，新增「${currentHost}」即可！\n\n💡 您也可以點擊右上角頭像或狀態，輸入管理員密碼直接進入管理模式。`);
+          return null;
+        }
         if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
           return await this.auth.signInWithRedirect(provider);
         }
+        if (err.code === 'auth/popup-closed-by-user') {
+          console.log("使用者關閉了 Google 登入彈出視窗");
+          return null;
+        }
+        alert("Google 登入失敗：" + (err.message || err.code || err));
         throw err;
       }
     },

@@ -522,33 +522,29 @@
     const btn = document.getElementById('btnAuthToggle');
     const icon = document.getElementById('authIcon');
     const text = document.getElementById('authStatusText');
+    const menuAdminText = document.getElementById('menuAdminBtnText');
 
     if (state.authMode === 'admin') {
       if (icon) icon.textContent = '⚡';
       if (text) text.textContent = '擁有者管理員模式';
       if (btn) btn.title = '點擊切換為訪客檢視模式';
+      if (menuAdminText) menuAdminText.textContent = '切換為訪客閱讀模式';
     } else if (state.authMode === 'viewer') {
       if (icon) icon.textContent = '🛡️';
       if (text) text.textContent = '授權親友檢視模式';
       if (btn) btn.title = '授權親友模式 (可看完整配置與保單)';
+      if (menuAdminText) menuAdminText.textContent = '輸入密碼切換管理模式';
     } else {
       if (icon) icon.textContent = '👁️';
-      if (text) text.textContent = '公開閱讀模式';
+      if (text) text.textContent = '公開閱讀模式 (點此登入)';
       if (btn) btn.title = '點擊登入管理員模式';
+      if (menuAdminText) menuAdminText.textContent = '輸入密碼解鎖管理員';
     }
   }
 
   function checkAdminOrPrompt(actionName = '此操作') {
     if (state.authMode === 'admin') return true;
-    if (window.cloudStore && window.cloudStore.isConfigured) {
-      showNotification(`目前為閱讀模式，僅擁有者具備${actionName}權限。請登入擁有者 Google 帳號。`, 'warning');
-      const signInBtn = document.getElementById('btnHeaderSignIn');
-      if (signInBtn && signInBtn.style.display !== 'none') {
-        signInBtn.click();
-      }
-      return false;
-    }
-    showNotification(`請先登入管理員模式以進行${actionName}`, 'info');
+    showNotification(`目前為閱讀模式，請輸入管理員密碼或登入擁有者 Google 帳號以進行${actionName}`, 'warning');
     openAdminModal();
     return false;
   }
@@ -1238,20 +1234,42 @@
     }
     tbody.innerHTML = rowsHtml;
 
-    // Summary Foot Row
+    // Summary Foot Row (依據當前頁籤與過濾條件顯示之標的 list 動態加總)
     if (tfoot) {
-      const s = state.portfolioSummary;
+      let filteredCostTwd = 0;
+      let filteredMarketValueTwd = 0;
+      let filteredUnrealizedPlTwd = 0;
+
+      for (const h of list) {
+        filteredCostTwd += (h.investedCostTwd || 0);
+        filteredMarketValueTwd += (h.marketValueTwd || 0);
+        filteredUnrealizedPlTwd += (h.unrealizedPlTwd || 0);
+      }
+
+      const filteredRoiPct = filteredCostTwd > 0 ? (filteredUnrealizedPlTwd / filteredCostTwd) * 100 : 0;
+      const totalAllMv = state.portfolioSummary?.totalMarketValueTwd || 0;
+      const filteredWeightPct = totalAllMv > 0 ? (filteredMarketValueTwd / totalAllMv) * 100 : 0;
+
+      const catLabelMap = {
+        all: '全部目前持有',
+        tw_stock: '台股個股',
+        tw_etf: '台股 ETF',
+        us: '美股/ETF',
+        fund: '基金/其他'
+      };
+      const catLabel = catLabelMap[state.holdingFilterCat] || '目前持有';
+
       tfoot.innerHTML = `
         <tr>
           <td></td>
-          <td colspan="7" class="text-left"><strong>全部目前持有合計 (顯示 ${list.length} 檔)</strong></td>
-          <td class="text-right mono">NT$ ${formatMoney(s.totalCostTwd)}</td>
-          <td class="text-right mono text-gradient-cyan">NT$ ${formatMoney(s.totalMarketValueTwd)}</td>
-          <td class="text-right mono ${getValClass(s.totalUnrealizedPlTwd)}">NT$ ${formatMoney(s.totalUnrealizedPlTwd)}</td>
+          <td colspan="7" class="text-left"><strong>${catLabel}合計 (顯示 ${list.length} 檔)</strong></td>
+          <td class="text-right mono">NT$ ${formatMoney(filteredCostTwd)}</td>
+          <td class="text-right mono text-gradient-cyan">NT$ ${formatMoney(filteredMarketValueTwd)}</td>
+          <td class="text-right mono ${getValClass(filteredUnrealizedPlTwd)}">NT$ ${formatMoney(filteredUnrealizedPlTwd)}</td>
           <td class="text-right">
-            <span class="kpi-badge ${getBadgeClass(s.totalUnrealizedPlTwd)}">${formatPercent(s.totalRoiPct)}</span>
+            <span class="kpi-badge ${getBadgeClass(filteredUnrealizedPlTwd)}">${formatPercent(filteredRoiPct)}</span>
           </td>
-          <td class="text-center mono">100.0%</td>
+          <td class="text-center mono">${filteredWeightPct.toFixed(1)}%</td>
           <td></td>
         </tr>
       `;
@@ -1864,8 +1882,9 @@
 
   async function fetchBrowserQuotesDirect() {
     let updated = 0;
+    const updatedSymbols = new Set();
 
-    // 1. Fetch live USD Rate from TradingView Forex Scanner (official TradingView rate)
+    // 1. Fetch live USD/TWD Rate
     try {
       const tvFxRes = await fetch('https://scanner.tradingview.com/forex/scan', {
         method: 'POST',
@@ -1911,7 +1930,7 @@
       }
     }
 
-    // 3. TradingView Taiwan Scan
+    // 3. Try TradingView Taiwan Scan
     if (twTickers.length > 0) {
       try {
         const twRes = await fetch('https://scanner.tradingview.com/taiwan/scan', {
@@ -1934,21 +1953,21 @@
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
-                // If nightPrice is not set, set default to close
                 if (!state.quotes[sym].nightPrice) {
                   state.quotes[sym].nightPrice = close;
                 }
+                updatedSymbols.add(sym);
                 updated++;
               }
             }
           }
         }
       } catch (e) {
-        console.warn('TradingView Taiwan browser scan fallback notice:', e);
+        console.warn('TradingView Taiwan scan notice (will fallback to Yahoo):', e);
       }
     }
 
-    // 4. TradingView America Scan (with live night/extended premarket/postmarket prices)
+    // 4. Try TradingView America Scan
     if (usTickers.length > 0) {
       try {
         const usRes = await fetch('https://scanner.tradingview.com/america/scan', {
@@ -1976,53 +1995,66 @@
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
                 state.quotes[sym].nightPrice = night;
+                updatedSymbols.add(sym);
                 updated++;
               }
             }
           }
         }
       } catch (e) {
-        console.warn('TradingView America browser scan fallback notice:', e);
+        console.warn('TradingView America scan notice (will fallback to Yahoo):', e);
       }
     }
 
-    // 5. Fallback via Yahoo Finance proxy for any remaining symbols
-    const missing = Object.keys(state.quotes).filter(k => state.quotes[k].symbolYahoo && !tvMap[state.quotes[k].tvSymbol]);
-    if (missing.length > 0) {
+    // 5. Yahoo Finance Fallback & Night Quotes for all available symbols
+    const needYahoo = Object.keys(state.quotes).filter(k => {
+      const q = state.quotes[k];
+      return q && q.symbolYahoo && !updatedSymbols.has(k);
+    });
+
+    if (needYahoo.length > 0) {
       async function fetchProxyJson(targetUrl) {
         const proxies = [
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
           `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
         ];
         for (const p of proxies) {
           try {
-            const res = await fetch(p, { cache: 'no-store' });
-            if (res.ok) return await res.json();
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 4000);
+            const res = await fetch(p, { cache: 'no-store', signal: controller.signal });
+            clearTimeout(timer);
+            if (res.ok) {
+              return await res.json();
+            }
           } catch (err) {}
         }
         return null;
       }
 
-      await Promise.allSettled(missing.map(async sym => {
+      await Promise.allSettled(needYahoo.map(async sym => {
         const ticker = state.quotes[sym].symbolYahoo;
         try {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
           const data = await fetchProxyJson(url);
-          if (data?.chart?.result?.[0]?.meta) {
-            const meta = data.chart.result[0].meta;
-            if (meta.regularMarketPrice) {
-              state.quotes[sym].price = meta.regularMarketPrice;
-              state.quotes[sym].prevClose = meta.chartPreviousClose || meta.regularMarketPrice;
-              const post = meta.postMarketPrice;
-              const pre = meta.preMarketPrice;
-              if (post || pre) {
-                state.quotes[sym].nightPrice = post || pre;
-              }
-              updated++;
-            }
+          const meta = data?.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice) {
+            const currentPrice = Number(meta.regularMarketPrice);
+            const prevClose = Number(meta.chartPreviousClose || meta.regularMarketPrice);
+            const post = meta.postMarketPrice ? Number(meta.postMarketPrice) : null;
+            const pre = meta.preMarketPrice ? Number(meta.preMarketPrice) : null;
+            const nightPrice = post || pre || currentPrice;
+
+            state.quotes[sym].price = currentPrice;
+            state.quotes[sym].prevClose = prevClose;
+            state.quotes[sym].nightPrice = nightPrice;
+            updatedSymbols.add(sym);
+            updated++;
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn(`Yahoo proxy fetch notice for ${sym}:`, e);
+        }
       }));
     }
 
@@ -3796,7 +3828,42 @@
 
     // 頂部登入按鈕
     headerSignIn?.addEventListener('click', async () => {
-      await window.cloudStore?.signInWithGoogle();
+      try {
+        await window.cloudStore?.signInWithGoogle();
+      } catch (err) {
+        console.error("登入錯誤:", err);
+      }
+    });
+
+    // 頭像選單：輸入密碼解鎖管理員
+    const menuBtnAdminPassword = document.getElementById('menuBtnAdminPassword');
+    menuBtnAdminPassword?.addEventListener('click', () => {
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+      if (state.authMode === 'admin') {
+        if (confirm('確定切換為訪客檢視模式？')) {
+          state.authMode = 'view';
+          applyAuthMode();
+          updateUi();
+          showNotification('已切換為訪客檢視模式', 'info');
+        }
+      } else {
+        openAdminModal();
+      }
+    });
+
+    // 點擊頂部狀態徽章切換模式
+    document.getElementById('authRoleBadge')?.addEventListener('click', () => {
+      if (state.authMode === 'admin') {
+        if (confirm('確定切換為訪客檢視模式？')) {
+          state.authMode = 'view';
+          applyAuthMode();
+          updateUi();
+          showNotification('已切換為訪客檢視模式', 'info');
+        }
+      } else {
+        openAdminModal();
+      }
     });
 
     const renderQuickList = () => {
