@@ -1462,6 +1462,18 @@
         <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
           <p class="modal-desc" style="margin-bottom: 2px;">請選擇您要進行的資料同步、備份或匯入操作：</p>
 
+          <!-- Gmail 擁有者身分檢核提示卡片 -->
+          <div id="ioAuthStatusNotice" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); gap: 12px;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span id="ioAuthStatusIcon">🔍</span>
+                <span id="ioAuthStatusTitle">檢查維護權限中...</span>
+              </div>
+              <div id="ioAuthStatusDesc" style="color: var(--text-secondary); margin-top: 4px; font-size: 0.8rem; line-height: 1.4;"></div>
+            </div>
+            <div id="ioAuthBadge"></div>
+          </div>
+
           <div class="io-option-grid" style="display: flex; flex-direction: column; gap: 12px;">
             <!-- 1. 匯入 data.json -->
             <div class="io-option-card" id="btnIoCardImportJson">

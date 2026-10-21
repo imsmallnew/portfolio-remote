@@ -128,6 +128,7 @@
 
       // 1. 若為核心儀表板 'main' (包含 ?id=imsmallnew, ?id=main, ?id=daniel)
       if (pid === 'main') {
+        this.portfolioOwnerEmail = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
         if (isApprovedInWhitelist) {
           // 授權親友/訪客：可以「看」Daniel / 其他人的資料
           this.userRole = 'viewer';
@@ -171,6 +172,23 @@
       }
 
       this.userRole = 'unauthorized';
+    },
+
+    isCurrentPortfolioOwner() {
+      if (!this.currentUser || !this.currentUser.email) return false;
+      const userEmail = (this.currentUser.email || '').toLowerCase().trim();
+      const pid = this.currentPortfolioId || 'main';
+      const localAcl = window.REMOTE_ACCESS_CONFIG || {};
+      const mainOwner = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+
+      if (pid === 'main') {
+        return userEmail === mainOwner || userEmail === 'imsmallnew@gmail.com';
+      }
+      const targetOwner = (this.portfolioOwnerEmail || '').toLowerCase().trim();
+      if (targetOwner) {
+        return userEmail === targetOwner;
+      }
+      return this.userRole === 'owner';
     },
 
     async signInWithGoogle() {

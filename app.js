@@ -384,6 +384,19 @@
       if (menuBtnDaniel) {
         menuBtnDaniel.style.display = (currentPid !== 'main') ? 'flex' : 'none';
       }
+
+      // 更新右上角「匯入 / 匯出」選單項目狀態
+      const btnIo = document.getElementById('menuBtnImportExport');
+      const isOwner = (role === 'owner') || (window.cloudStore?.isCurrentPortfolioOwner && window.cloudStore.isCurrentPortfolioOwner());
+      if (btnIo) {
+        if (isOwner) {
+          btnIo.innerHTML = '<span>📦</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-emerald" style="margin-left:auto; font-size:0.7rem;">可維護</span>';
+          btnIo.title = '開啟資料匯入與匯出面板';
+        } else {
+          btnIo.innerHTML = '<span>🔒</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-amber" style="margin-left:auto; font-size:0.7rem;">僅檢視</span>';
+          btnIo.title = '目前非您的專屬維護介面，僅擁有者可匯入/匯出';
+        }
+      }
     }
 
     const pid = window.cloudStore?.currentPortfolioId || 'main';
@@ -725,6 +738,49 @@
     showNotification(`目前為閱讀模式，請輸入管理員密碼或登入擁有者 Google 帳號以進行${actionName}`, 'warning');
     openAdminModal();
     return false;
+  }
+
+  function checkPortfolioOwnership(actionName = '此操作', verbose = true) {
+    const cloud = window.cloudStore;
+    if (!cloud || !cloud.isConfigured) {
+      if (state.authMode === 'admin') return true;
+      if (verbose) {
+        showNotification(`目前為閱讀模式，請先解鎖管理員以進行${actionName}`, 'warning');
+        openAdminModal();
+      }
+      return false;
+    }
+
+    const user = cloud.currentUser;
+    const userEmail = (user?.email || '').toLowerCase().trim();
+    const pid = cloud.currentPortfolioId || 'main';
+    const localAcl = window.REMOTE_ACCESS_CONFIG || {};
+    const mainOwner = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+    const targetOwner = (pid === 'main') ? mainOwner : (cloud.portfolioOwnerEmail || '').toLowerCase().trim();
+
+    // 1. 檢查是否登入 Google 帳號
+    if (!user || !userEmail) {
+      if (verbose) {
+        showNotification(`⚠️ 請先登入 Google 帳號！資料匯入與匯出僅限該組合擁有者進行操作。`, 'warning');
+        const gateOverlay = document.getElementById('authGateOverlay');
+        if (gateOverlay) gateOverlay.style.display = 'flex';
+      }
+      return false;
+    }
+
+    // 2. 檢查目前介面是否為該登入者的專屬維護介面
+    const isOwner = cloud.isCurrentPortfolioOwner ? cloud.isCurrentPortfolioOwner() : (cloud.userRole === 'owner');
+
+    if (!isOwner) {
+      if (verbose) {
+        const ownerDisplay = targetOwner || '該組合建立者';
+        const mySlug = userEmail.split('@')[0].replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+        alert(`⚠️ 權限不足：目前非您的專屬維護介面！\n\n【安全性檢查】\n• 目前介面組合：[${pid}]\n• 此組合擁有者：${ownerDisplay}\n• 您目前登入的 Gmail：${userEmail}\n\n依安全規範，僅有「該介面擁有者本人」才可匯出資料或執行 CSV / JSON 上傳覆蓋。\n\n💡 若需維護您個人的投資組合，請點擊頭像前往您的專屬空間 (?id=${mySlug})！`);
+      }
+      return false;
+    }
+
+    return true;
   }
 
   function openAdminModal() {
@@ -3929,7 +3985,16 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!checkAdminOrPrompt('匯入 CSV 覆蓋資料')) {
+    if (!checkPortfolioOwnership('匯入 CSV 覆蓋資料')) {
+      e.target.value = '';
+      return;
+    }
+
+    const cloud = window.cloudStore;
+    const userEmail = cloud?.currentUser?.email || '';
+    const pid = cloud?.currentPortfolioId || 'main';
+
+    if (!confirm(`⚠️ 確定要以 CSV 檔案「${file.name}」覆蓋您目前【${pid}】組合的持股與交易資料嗎？\n\n• 操作者 Gmail：${userEmail}\n• 目標組合：${pid}\n\n此操作將覆蓋目前的交易資料並同步至雲端，確定繼續？`)) {
       e.target.value = '';
       return;
     }
@@ -3940,6 +4005,9 @@
         const text = evt.target.result;
         parseAndApplyCsv(text);
         showNotification(`CSV 檔案「${file.name}」已成功解析並覆蓋連動！`, 'success');
+        if (window.cloudStore?.isConfigured && window.cloudStore.isCurrentPortfolioOwner()) {
+          persistState(['transactions', 'quotes']);
+        }
       } catch (err) {
         console.error('CSV parse error:', err);
         showNotification('CSV 檔案解析失敗，請確認檔案格式正確', 'error');
@@ -4079,13 +4147,22 @@
 
   // 19. CSV Export
   function exportCsv() {
+    if (!checkPortfolioOwnership('匯出 CSV 清單')) return;
+
+    const cloud = window.cloudStore;
+    const userEmail = cloud?.currentUser?.email || 'owner';
+    const pid = cloud?.currentPortfolioId || 'main';
+
     const headers = [
       '交易ID', '交易日期', '標的代號', '標的名稱', '交易型態', '成交股數', '成交單價', '成交總額', '幣別', '備註'
     ];
 
     const sorted = [...state.transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    let csvContent = '\uFEFF' + headers.join(',') + '\n';
+    let csvContent = '\uFEFF';
+    csvContent += `# 投資儀表板 CSV 匯出備份\n`;
+    csvContent += `# 組合代號: ${pid} | 擁有者: ${userEmail} | 匯出日期: ${new Date().toLocaleString('zh-TW', { hour12: false })}\n`;
+    csvContent += headers.join(',') + '\n';
     for (const t of sorted) {
       const row = [
         t.id,
@@ -4106,13 +4183,13 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `投資清單_最新連動資料_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `投資清單_${pid}_${userEmail.split('@')[0]}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showNotification('投資清單 CSV 匯出成功！', 'success');
+    showNotification(`投資清單 CSV (${pid}) 匯出成功！`, 'success');
   }
 
   // 20. Theme & Color Mode
@@ -4238,15 +4315,15 @@
 
     // CSV Import / Export
     document.getElementById('btnExportCsv')?.addEventListener('click', () => {
-      if (checkAdminOrPrompt('匯出 CSV')) exportCsv();
+      if (checkPortfolioOwnership('匯出 CSV')) exportCsv();
     });
     document.getElementById('btnImportCsvTrigger')?.addEventListener('click', () => {
-      if (checkAdminOrPrompt('匯入 CSV')) {
+      if (checkPortfolioOwnership('匯入 CSV')) {
         document.getElementById('csvFileInput')?.click();
       }
     });
     document.getElementById('csvFileInput')?.addEventListener('change', (e) => {
-      if (!checkAdminOrPrompt('匯入 CSV')) {
+      if (!checkPortfolioOwnership('匯入 CSV')) {
         e.target.value = '';
         return;
       }
@@ -4523,13 +4600,67 @@
     const cardExport = document.getElementById('btnIoCardExport');
     const cardImportCsv = document.getElementById('btnIoCardImportCsv');
 
+    const updateIoModalStatus = () => {
+      const isOwner = checkPortfolioOwnership('檢查', false);
+      const cloud = window.cloudStore;
+      const user = cloud?.currentUser;
+      const userEmail = (user?.email || '').toLowerCase().trim();
+      const pid = cloud?.currentPortfolioId || 'main';
+      const localAcl = window.REMOTE_ACCESS_CONFIG || {};
+      const mainOwner = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+      const targetOwner = (pid === 'main') ? mainOwner : (cloud?.portfolioOwnerEmail || '').toLowerCase().trim();
+
+      const notice = document.getElementById('ioAuthStatusNotice');
+      const icon = document.getElementById('ioAuthStatusIcon');
+      const title = document.getElementById('ioAuthStatusTitle');
+      const desc = document.getElementById('ioAuthStatusDesc');
+      const badge = document.getElementById('ioAuthBadge');
+
+      if (isOwner) {
+        if (notice) {
+          notice.style.background = 'rgba(16, 185, 129, 0.08)';
+          notice.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        }
+        if (icon) icon.textContent = '✅';
+        if (title) {
+          title.textContent = '專屬維護介面驗證通過';
+          title.style.color = 'var(--emerald-accent)';
+        }
+        if (desc) {
+          desc.innerHTML = `已驗證登入 Gmail：<strong>${userEmail}</strong> ｜ 目前組合：<code>${pid}</code>（擁有者權限生效中）`;
+        }
+        if (badge) {
+          badge.innerHTML = `<span class="badge-pill badge-pill-emerald">允許匯出與覆蓋</span>`;
+        }
+        [cardImportJson, cardExport, cardImportCsv].forEach(c => c?.classList.remove('disabled-io-card'));
+      } else {
+        if (notice) {
+          notice.style.background = 'rgba(239, 68, 68, 0.08)';
+          notice.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        }
+        if (icon) icon.textContent = '⛔';
+        if (title) {
+          title.textContent = '非您的專屬維護介面（僅限檢視）';
+          title.style.color = '#ef4444';
+        }
+        if (desc) {
+          desc.innerHTML = `此組合擁有者：<strong>${targetOwner || '未知'}</strong> ｜ 您目前登入：<code>${userEmail || '未登入'}</code><br><span style="color:var(--text-tertiary);">依安全規範，僅擁有者本人可匯出或匯入覆蓋。</span>`;
+        }
+        if (badge) {
+          badge.innerHTML = `<span class="badge-pill badge-pill-rose">禁止匯出/匯入</span>`;
+        }
+        [cardImportJson, cardExport, cardImportCsv].forEach(c => c?.classList.add('disabled-io-card'));
+      }
+    };
+
     const openModal = () => {
       const userDropdown = document.getElementById('userDropdownMenu');
       const btnUserMenu = document.getElementById('btnUserMenu');
       userDropdown?.classList.remove('show');
       btnUserMenu?.classList.remove('active');
 
-      if (!checkAdminOrPrompt('資料匯入 / 匯出')) return;
+      if (!checkPortfolioOwnership('資料匯入 / 匯出')) return;
+      updateIoModalStatus();
       if (modal) modal.classList.add('show');
     };
 
@@ -4546,6 +4677,7 @@
 
     // 1. 匯入 data.json
     cardImportJson?.addEventListener('click', () => {
+      if (!checkPortfolioOwnership('匯入 data.json')) return;
       closeModal();
       const cloudSeedModal = document.getElementById('cloudSeedModalBackdrop');
       if (cloudSeedModal) cloudSeedModal.classList.add('show');
@@ -4553,13 +4685,14 @@
 
     // 2. 匯出
     cardExport?.addEventListener('click', () => {
+      if (!checkPortfolioOwnership('匯出 CSV 清單')) return;
       closeModal();
       exportCsv();
-      showNotification('最新交易清單 CSV 匯出成功！', 'success');
     });
 
     // 3. 匯入 CSV
     cardImportCsv?.addEventListener('click', () => {
+      if (!checkPortfolioOwnership('匯入 CSV')) return;
       closeModal();
       document.getElementById('csvFileInput')?.click();
     });
@@ -4582,7 +4715,7 @@
     const btnConfirmUpload = document.getElementById('btnConfirmUploadJson');
 
     const openModal = () => {
-      if (!checkAdminOrPrompt('同步雲端資料庫')) return;
+      if (!checkPortfolioOwnership('同步雲端資料庫')) return;
       if (modal) modal.classList.add('show');
     };
 
@@ -4601,7 +4734,7 @@
 
     // 手動選取本機 data.json 檔案
     btnChooseLocal?.addEventListener('click', () => {
-      if (checkAdminOrPrompt('上傳資料庫')) fileInput?.click();
+      if (checkPortfolioOwnership('上傳資料庫')) fileInput?.click();
     });
 
     fileInput?.addEventListener('change', (e) => {
@@ -4618,6 +4751,21 @@
             throw new Error('檔案格式不正確，非有效 JSON 物件');
           }
 
+          // 檢查 data.json 標記之擁有者是否與當前登入者相符
+          const cloud = window.cloudStore;
+          const userEmail = (cloud?.currentUser?.email || '').toLowerCase().trim();
+          const fileOwner = (parsed.owner || parsed.email || parsed.adminEmail || parsed.ownerEmail || '').toLowerCase().trim();
+
+          if (fileOwner && userEmail && fileOwner !== userEmail) {
+            alert(`⚠️ 檔案擁有者 Gmail 不一致：\n\n您所選取的 data.json 標註之擁有者為：【${fileOwner}】\n而您目前登入的 Google Gmail 為：【${userEmail}】\n\n為防止誤將他人資產覆蓋到您的專屬組合，系統已自動終止匯入！`);
+            stagedSeedData = null;
+            if (fileInput) fileInput.value = '';
+            if (fileNameSpan) fileNameSpan.textContent = '檔案擁有者不符，已取消';
+            if (previewCard) previewCard.style.display = 'none';
+            if (btnConfirmUpload) btnConfirmUpload.style.display = 'none';
+            return;
+          }
+
           stagedSeedData = parsed;
           const txCount = parsed.transactions?.length || 0;
           const realCount = parsed.realizedRecords?.length || 0;
@@ -4631,6 +4779,7 @@
               <div>• 配息收入明細：<strong>${divCount}</strong> 筆</div>
               <div>• 投資自訂標的：<strong>${quoteCount}</strong> 檔</div>
               <div>• 資產儲備池與保單：<strong>${parsed.fundReserves ? '已包含' : '未包含 (保留現有)'}</strong></div>
+              <div>• 綁定維護者：<strong style="color:var(--emerald-accent);">${userEmail || '本機擁有者'}</strong></div>
             `;
           }
 
@@ -4649,18 +4798,21 @@
     // 確認上傳手動選取的 JSON
     btnConfirmUpload?.addEventListener('click', async () => {
       if (!stagedSeedData) return;
-      if (!checkAdminOrPrompt('同步雲端資料庫')) return;
-      if (window.cloudStore?.userRole !== 'owner') {
-        alert('您的帳號非擁有者，無權限寫入 Firestore 雲端資料庫！');
-        return;
-      }
+      if (!checkPortfolioOwnership('同步雲端資料庫')) return;
 
-      if (!confirm('確定要將此 JSON 覆蓋同步寫入 Firebase 雲端嗎？')) return;
+      const cloud = window.cloudStore;
+      const userEmail = (cloud?.currentUser?.email || '').toLowerCase().trim();
+      const pid = cloud?.currentPortfolioId || 'main';
+
+      if (!confirm(`確定要將此 JSON 覆蓋同步寫入 Firebase 雲端【${pid}】嗎？\n\n• 維護者 Gmail：${userEmail}\n• 目標組合：${pid}\n\n確認後將寫入雲端並同步至全裝置！`)) return;
 
       try {
         btnConfirmUpload.disabled = true;
         btnConfirmUpload.textContent = '⏳ 上傳中...';
         showNotification('正在寫入 Firebase Firestore...', 'info');
+
+        stagedSeedData.owner = userEmail;
+        stagedSeedData.updatedBy = userEmail;
 
         await window.cloudStore.savePortfolio(stagedSeedData);
         showNotification('🎉 已成功將本機 JSON 資料匯入至 Firebase 雲端！', 'success');

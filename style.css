@@ -2877,4 +2877,21 @@ body {
   transform: translateX(4px);
 }
 
+.io-option-card.disabled-io-card {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  filter: grayscale(0.7);
+  pointer-events: auto;
+}
+.io-option-card.disabled-io-card:hover {
+  background: var(--bg-surface-elevated) !important;
+  border-color: var(--border-medium) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.io-option-card.disabled-io-card:hover .io-option-arrow {
+  color: var(--text-tertiary) !important;
+  transform: none !important;
+}
+
 
