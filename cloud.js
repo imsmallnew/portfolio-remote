@@ -387,16 +387,31 @@
       }
 
       const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
-      await this.db.collection('whitelist_requests').doc(docId).set({
-        email: cleanEmail,
-        name: (name || '').trim(),
-        note: (note || '').trim(),
-        status: 'pending', // 'pending' | 'approved' | 'rejected'
-        requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        requestedAtStr: new Date().toLocaleString('zh-TW', { hour12: false })
-      }, { merge: true });
+      try {
+        await this.db.collection('whitelist_requests').doc(docId).set({
+          email: cleanEmail,
+          name: (name || '').trim(),
+          note: (note || '').trim(),
+          status: 'pending', // 'pending' | 'approved' | 'rejected'
+          requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          requestedAtStr: new Date().toLocaleString('zh-TW', { hour12: false })
+        }, { merge: true });
 
-      return { success: true, email: cleanEmail };
+        return { success: true, email: cleanEmail };
+      } catch (err) {
+        console.warn("寫入 whitelist_requests 權限注意:", err);
+        const errCode = err.code || '';
+        const errMsg = err.message || '';
+        if (errCode === 'permission-denied' || errMsg.includes('Missing or insufficient permissions')) {
+          return {
+            success: false,
+            permissionDenied: true,
+            email: cleanEmail,
+            name: (name || '').trim()
+          };
+        }
+        throw err;
+      }
     },
 
     // 管理員載入待審核白名單申請

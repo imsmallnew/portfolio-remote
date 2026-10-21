@@ -1510,7 +1510,6 @@
     <!-- Remote Access Auth Gate Overlay (Login & Whitelist Registration Gate) -->
     <div class="auth-gate-overlay" id="authGateOverlay" style="display: none;">
       <div class="auth-gate-card">
-        <button class="modal-close-btn" id="btnGateClose" style="position:absolute; top:16px; right:16px; font-size:1.4rem;" title="以訪客模式進入">&times;</button>
         <div class="auth-gate-icon">🚀</div>
         <h2 class="auth-gate-title">投資儀表板 PRO</h2>
         <p class="auth-gate-desc" style="margin-bottom:18px;">
@@ -1569,24 +1568,21 @@
             🎉 <strong>申請已送出！</strong><br>
             已成功提送給管理員驗證加入白名單。審核通過後，直接以該 Gmail 登入即可查看完整資料！
           </div>
+
+          <div id="reqPermNotice" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#fca5a5; line-height:1.5;">
+            <strong>⚠️ 雲端權限限制：</strong><br>
+            目前資料庫未開放未登入直接寫入。<br>
+            <div style="margin-top:8px;">
+              <a id="btnMailtoAdmin" href="#" class="btn btn-primary btn-xs" style="text-decoration:none; display:inline-flex;">
+                📧 點此一鍵寄信通知管理員 (Daniel) 審核
+              </a>
+            </div>
+          </div>
         </div>
 
         <div class="auth-notice-box" style="margin-top:16px; text-align:left; font-size:0.82rem; line-height:1.5;">
           👑 <strong>管理員</strong> 登入自動解鎖完整維護與編輯權限。<br>
           🛡️ <strong>授權親友</strong> 登入可檢視完整資產細項，亦可建立維護自己的專屬組合。
-        </div>
-
-        <!-- Daniel 快速通道 (管理員通行碼備用) -->
-        <div style="margin-top:16px; border-top:1px dashed var(--border-subtle); padding-top:12px;">
-          <button type="button" id="btnToggleAdminCode" style="background:none; border:none; color:var(--text-tertiary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">
-            🔑 管理員通行碼快速登入 (Daniel 專用)
-          </button>
-          <div id="adminCodeBox" style="display:none; margin-top:10px;">
-            <div style="display:flex; gap:6px;">
-              <input type="password" id="inputGateAdminPw" class="input-sm" style="flex:1;" placeholder="請輸入管理員密碼 (888)">
-              <button type="button" class="btn btn-primary btn-sm" id="btnGateAdminLogin">解鎖進入</button>
-            </div>
-          </div>
         </div>
 
         <!-- Auth Error Box -->
@@ -1597,13 +1593,6 @@
             <button class="btn btn-secondary btn-xs" id="btnSwitchAccount" type="button">切換帳號</button>
             <button class="btn btn-danger btn-xs" id="btnGateSignOut" type="button">登出</button>
           </div>
-        </div>
-
-        <!-- Guest Bypass Link -->
-        <div style="margin-top:20px; text-align:center;">
-          <button type="button" id="btnEnterAsGuest" style="background:none; border:none; color:var(--text-tertiary); font-size:0.82rem; cursor:pointer; text-decoration:underline;">
-            暫時以訪客模式進入 (僅瀏覽空儀表板)
-          </button>
         </div>
       </div>
     </div>

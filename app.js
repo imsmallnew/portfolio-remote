@@ -235,6 +235,8 @@
       const nameInput = document.getElementById('reqNameInput');
       const submitBtn = document.getElementById('btnSubmitWhitelistReq');
       const successNotice = document.getElementById('reqSuccessNotice');
+      const permNotice = document.getElementById('reqPermNotice');
+      const btnMailto = document.getElementById('btnMailtoAdmin');
 
       const email = (emailInput?.value || '').trim();
       const name = (nameInput?.value || '').trim();
@@ -250,7 +252,20 @@
       }
 
       try {
-        await window.cloudStore?.submitWhitelistRequest(email, name);
+        const res = await window.cloudStore?.submitWhitelistRequest(email, name);
+        if (res && res.permissionDenied) {
+          if (successNotice) successNotice.style.display = 'none';
+          if (permNotice) permNotice.style.display = 'block';
+          if (btnMailto) {
+            const subject = encodeURIComponent(`【投資儀表板】親友申請加入白名單 - ${email}`);
+            const body = encodeURIComponent(`管理員 Daniel 您好，\n\n我是 ${name || '親友'}，申請將我的 Gmail 信箱【${email}】加入投資儀表板的授權白名單。\n\n感謝！`);
+            btnMailto.href = `mailto:imsmallnew@gmail.com?subject=${subject}&body=${body}`;
+          }
+          alert(`⚠️ 由於 Firebase 雲端資料庫目前防護設定限制，請點擊下方「📧 點此一鍵寄信通知管理員 (Daniel) 審核」直接寄送 Email 申請！`);
+          return;
+        }
+
+        if (permNotice) permNotice.style.display = 'none';
         if (successNotice) successNotice.style.display = 'block';
         if (emailInput) emailInput.value = '';
         if (nameInput) nameInput.value = '';
@@ -262,31 +277,6 @@
           submitBtn.disabled = false;
           submitBtn.innerHTML = '<span>🚀 送出審核申請</span>';
         }
-      }
-    });
-
-    // Daniel 快速通道 (通行碼備用)
-    document.getElementById('btnToggleAdminCode')?.addEventListener('click', () => {
-      const box = document.getElementById('adminCodeBox');
-      if (box) {
-        box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
-      }
-    });
-
-    document.getElementById('btnGateAdminLogin')?.addEventListener('click', () => {
-      const input = document.getElementById('inputGateAdminPw');
-      const val = (input?.value || '').trim();
-      if (val === '888' || val === '8888' || val === 'daniel2026' || val === 'admin') {
-        state.manualAdminUnlocked = true;
-        state.authMode = 'admin';
-        sessionStorage.setItem('fubon_manual_admin', '1');
-        sessionStorage.setItem('fubon_auth_mode', 'admin');
-        if (gateOverlay) gateOverlay.style.display = 'none';
-        applyAuthMode();
-        updateUi();
-        showNotification('🎉 已使用管理員通關碼成功登入管理員模式！', 'success');
-      } else {
-        alert('通行碼不正確！');
       }
     });
 
