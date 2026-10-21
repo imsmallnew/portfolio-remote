@@ -153,6 +153,12 @@
               <span>切換/查看其他組合</span>
             </button>
 
+            <!-- 匯入 / 匯出 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnImportExport">
+              <span>📦</span>
+              <span>匯入 / 匯出</span>
+            </button>
+
             <div class="user-dropdown-divider"></div>
 
             <!-- 登出 -->
@@ -445,36 +451,7 @@
             <span>新增投資標的</span>
           </button>
 
-          <!-- Cloud Seed / Sync data.json (Admin only) - 位於新增投資標的右方 -->
-          <button class="btn btn-secondary btn-sm admin-only" id="btnCloudSeedData"
-            title="將本地 data.json 資料同步至 Firebase 雲端">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-            </svg>
-            <span>☁️ 匯入 data.json</span>
-          </button>
-
-          <!-- CSV Import/Overwrite (Admin only) -->
-          <button class="btn btn-secondary btn-sm admin-only" id="btnImportCsvTrigger"
-            title="從 SharePoint 匯出的 CSV 覆蓋/匯入最新投資清單">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <span>📥 匯入/覆蓋 CSV</span>
-          </button>
           <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
-
-          <!-- Export CSV (Admin only) -->
-          <button class="btn btn-secondary btn-sm admin-only" id="btnExportCsv" title="匯出最新完整交易清單 CSV">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>匯出 CSV</span>
-          </button>
         </div>
       </nav>
 
@@ -1471,6 +1448,63 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnDeleteModalCancel">取消</button>
           <button type="button" class="btn btn-danger" id="btnDeleteModalConfirm">確認刪除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. Import / Export Master Modal -->
+    <div class="modal-backdrop" id="importExportModalBackdrop">
+      <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header">
+          <h3 class="modal-title">📦 資料匯入 / 匯出</h3>
+          <button class="modal-close-btn" id="btnImportExportModalClose">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+          <p class="modal-desc" style="margin-bottom: 2px;">請選擇您要進行的資料同步、備份或匯入操作：</p>
+
+          <div class="io-option-grid" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- 1. 匯入 data.json -->
+            <div class="io-option-card" id="btnIoCardImportJson">
+              <div class="io-option-icon">☁️</div>
+              <div class="io-option-content">
+                <div class="io-option-title">
+                  <span>匯入 data.json</span>
+                  <span class="badge-pill badge-pill-cyan">資料庫同步</span>
+                </div>
+                <div class="io-option-desc">選取本機 data.json 檔案，將所有交易紀錄、標的設定與資產儲備寫入雲端資料庫。</div>
+              </div>
+              <div class="io-option-arrow">➔</div>
+            </div>
+
+            <!-- 2. 匯出 -->
+            <div class="io-option-card" id="btnIoCardExport">
+              <div class="io-option-icon">📤</div>
+              <div class="io-option-content">
+                <div class="io-option-title">
+                  <span>匯出</span>
+                  <span class="badge-pill badge-pill-emerald">CSV 清單下載</span>
+                </div>
+                <div class="io-option-desc">將目前最新完整的投資組合與買賣交易紀錄匯出為 CSV 試算表檔案。</div>
+              </div>
+              <div class="io-option-arrow">➔</div>
+            </div>
+
+            <!-- 3. 匯入 CSV -->
+            <div class="io-option-card" id="btnIoCardImportCsv">
+              <div class="io-option-icon">📥</div>
+              <div class="io-option-content">
+                <div class="io-option-title">
+                  <span>匯入 CSV</span>
+                  <span class="badge-pill badge-pill-amber">SharePoint / 覆蓋</span>
+                </div>
+                <div class="io-option-desc">從外部試算表或 SharePoint 匯出的 CSV 覆蓋/匯入最新投資清單與交易紀錄。</div>
+              </div>
+              <div class="io-option-arrow">➔</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnImportExportModalCancel">關閉</button>
         </div>
       </div>
     </div>

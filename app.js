@@ -4156,6 +4156,7 @@
 
     // Cloud Seed / Import data.json
     setupCloudSeedListeners();
+    setupImportExportListeners();
 
     // Manage ACL Viewers
     setupAclListeners();
@@ -4410,6 +4411,59 @@
 
     // Periodic check for 14:30 market hours color switch
     setInterval(updateMarketPriceHighlight, 30000);
+  }
+
+  // 22.5 Master Import / Export Modal Manager
+  function setupImportExportListeners() {
+    const modal = document.getElementById('importExportModalBackdrop');
+    const btnOpenMenu = document.getElementById('menuBtnImportExport');
+    const btnClose = document.getElementById('btnImportExportModalClose');
+    const btnCancel = document.getElementById('btnImportExportModalCancel');
+
+    const cardImportJson = document.getElementById('btnIoCardImportJson');
+    const cardExport = document.getElementById('btnIoCardExport');
+    const cardImportCsv = document.getElementById('btnIoCardImportCsv');
+
+    const openModal = () => {
+      const userDropdown = document.getElementById('userDropdownMenu');
+      const btnUserMenu = document.getElementById('btnUserMenu');
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+
+      if (!checkAdminOrPrompt('資料匯入 / 匯出')) return;
+      if (modal) modal.classList.add('show');
+    };
+
+    const closeModal = () => {
+      if (modal) modal.classList.remove('show');
+    };
+
+    btnOpenMenu?.addEventListener('click', openModal);
+    btnClose?.addEventListener('click', closeModal);
+    btnCancel?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // 1. 匯入 data.json
+    cardImportJson?.addEventListener('click', () => {
+      closeModal();
+      const cloudSeedModal = document.getElementById('cloudSeedModalBackdrop');
+      if (cloudSeedModal) cloudSeedModal.classList.add('show');
+    });
+
+    // 2. 匯出
+    cardExport?.addEventListener('click', () => {
+      closeModal();
+      exportCsv();
+      showNotification('最新交易清單 CSV 匯出成功！', 'success');
+    });
+
+    // 3. 匯入 CSV
+    cardImportCsv?.addEventListener('click', () => {
+      closeModal();
+      document.getElementById('csvFileInput')?.click();
+    });
   }
 
   // 23. Cloud Seed & data.json Import Manager
@@ -4952,6 +5006,10 @@
     deleteRealizedRecord: (id) => deleteRealizedRecord(id),
     deleteExpenseItem: (idx) => deleteExpenseItemRow(idx),
     deleteDcaItem: (idx) => deleteDcaItemRow(idx),
+    openImportExportModal: () => {
+      if (!checkAdminOrPrompt('資料匯入 / 匯出')) return;
+      document.getElementById('importExportModalBackdrop')?.classList.add('show');
+    },
     switchToPortfolio: (pid) => {
       const clean = (pid || 'main').trim().toLowerCase();
       try {
