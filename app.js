@@ -2969,7 +2969,7 @@
       if (settings.filterStatus !== 'all' && lot.statusKey !== settings.filterStatus) {
         return false;
       }
-      if (settings.coreOnly && !lot.isCore) {
+      if (!settings.coreOnly && lot.isCore) {
         return false;
       }
       if (settings.search) {
@@ -3033,7 +3033,7 @@
     if (btnNext) btnNext.disabled = (settings.page >= totalPages);
 
     if (pageItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 40px; color: var(--text-tertiary);">查無符合條件之剩餘庫存批次</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 40px; color: var(--text-tertiary);">查無符合條件之剩餘庫存批次</td></tr>`;
       return;
     }
 
@@ -3057,8 +3057,9 @@
             <span style="font-size: 0.8rem; opacity: 0.85; margin-left: 4px;">(${sign}${lot.roiPct.toFixed(2)}%)</span>
           </td>
           <td class="text-center">
-            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>${lot.isFifo ? ' <span class="advice-fifo-tag">FIFO</span>' : ''}
+            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>
           </td>
+          <td class="text-center">${lot.isFifo ? '<span class="advice-fifo-tag">FIFO</span>' : ''}</td>
         </tr>
       `;
     }
@@ -5722,21 +5723,6 @@
       if (lUnit) lUnit.textContent = s.lossType === 'pct' ? '%' : 'NT$';
     }
 
-    // 套用預設組合：只更新指定類型的數值，另一類型保留原值
-    function applyAdvicePreset(pt, pv, lt, lv) {
-      const s = state.adviceSettings;
-      s.profitType = pt;
-      s.lossType = lt;
-      if (pt === 'pct') s.profitPct = pv; else s.profitAmt = pv;
-      if (lt === 'pct') s.lossPct = lv; else s.lossAmt = lv;
-      localStorage.setItem('fubon_advice_profit_type', pt);
-      localStorage.setItem('fubon_advice_loss_type', lt);
-      saveAdviceVals();
-      s.page = 1;
-      syncAdviceInputs();
-      renderAdviceTable();
-    }
-
     syncAdviceInputs();
 
     pType?.addEventListener('change', () => {
@@ -5781,18 +5767,6 @@
       state.adviceSettings.coreOnly = e.target.checked;
       state.adviceSettings.page = 1;
       renderAdviceTable();
-    });
-
-    document.getElementById('btnPresetProfit50Loss20')?.addEventListener('click', () => {
-      applyAdvicePreset('pct', 50, 'pct', 20);
-    });
-
-    document.getElementById('btnPresetProfit30Loss15')?.addEventListener('click', () => {
-      applyAdvicePreset('pct', 30, 'pct', 15);
-    });
-
-    document.getElementById('btnPresetAmount3k5k')?.addEventListener('click', () => {
-      applyAdvicePreset('amount', 3000, 'amount', 5000);
     });
 
     document.getElementById('adviceFilterSymbol')?.addEventListener('change', (e) => {

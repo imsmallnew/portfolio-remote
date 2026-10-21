@@ -3135,3 +3135,6 @@ body {
   font-size: 0.85rem;
   vertical-align: middle;
 }
+
+/* 投資建議：FIFO 欄位 */
+.col-advice-fifo { width: 80px; }

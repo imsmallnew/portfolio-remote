@@ -908,13 +908,6 @@
                 <span class="unit-text" id="adviceLossUnitLabel">%</span>
               </div>
             </div>
-
-            <div class="advice-preset-buttons">
-              <span class="text-tertiary-xs">快速設定：</span>
-              <button type="button" class="btn btn-secondary btn-xs" id="btnPresetProfit50Loss20">獲利 50% / 止損 20%</button>
-              <button type="button" class="btn btn-secondary btn-xs" id="btnPresetProfit30Loss15">獲利 30% / 止損 15%</button>
-              <button type="button" class="btn btn-secondary btn-xs" id="btnPresetAmount3k5k">+3,000 / -5,000 元</button>
-            </div>
           </div>
 
           <div class="advice-filter-row">
@@ -940,7 +933,7 @@
               <div class="form-group-inline">
                 <label class="toggle-checkbox" for="adviceCoreOnly">
                   <input type="checkbox" id="adviceCoreOnly">
-                  <span>只顯示主力核心</span>
+                  <span>顯示主力核心</span>
                 </label>
               </div>
 
@@ -981,6 +974,7 @@
                   <th class="col-advice-shares text-right">剩餘股數</th>
                   <th class="col-advice-diff text-right">價差 (報酬率 %)</th>
                   <th class="col-advice-status text-center">狀態</th>
+                  <th class="col-advice-fifo text-center">FIFO</th>
                 </tr>
               </thead>
               <tbody id="adviceTableBody">
@@ -1131,12 +1125,12 @@
           </div>
 
           <!-- Hide Toggle & Core Holding Toggle in Asset Modal -->
-          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-            <label class="toggle-checkbox">
+          <div class="form-group" style="display:flex;flex-direction:row;align-items:center;gap:24px;flex-wrap:nowrap;">
+            <label class="toggle-checkbox" style="display:inline-flex;margin:0;">
               <input type="checkbox" id="assetHidden">
               <span>在持有列表中隱藏此標的</span>
             </label>
-            <label class="toggle-checkbox core-holding-toggle" id="assetCoreWrap">
+            <label class="toggle-checkbox core-holding-toggle" id="assetCoreWrap" style="display:inline-flex;margin:0;">
               <input type="checkbox" id="assetCore">
               <span>主力核心</span>
             </label>
