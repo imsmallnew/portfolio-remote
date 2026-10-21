@@ -24,19 +24,19 @@
     realizedRecords: [],
     dividendRecords: [],
     fundReserves: {
-      livingReserveTwd: 117189,
-      investCapitalTwd: 190000,
-      savingsInsuranceTwd: 2930000,
-      usdInsurance: 8458,
-      usdSavings: 2848,
-      monthlyIncomeTwd: 82255,
-      annualIncomeTwd: 1229785,
-      monthlyExpenseTwd: 43218,
-      annualExpenseTwd: 518620,
-      monthlyDcaTwd: 42757,
-      annualDcaTwd: 513084,
-      annualSurplusTwd: 198081,
-      note: '對齊富邦試算資產配置規劃'
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      usdSavings: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
+      note: ''
     },
     holdings: {},
     lastUpdated: '',
@@ -151,6 +151,11 @@
 
   // 1. Data Initialization & Remote Cloud Store
   async function initData() {
+    // 徹底清除過去版本殘留的展示資料快取，確保訪客模式完全乾淨
+    try {
+      localStorage.removeItem('fubon_portfolio_data');
+    } catch (e) { }
+
     applyTheme();
     applyColorMode();
     applyDashboardTitle();
@@ -191,43 +196,36 @@
       if (gateOverlay) gateOverlay.style.display = 'flex';
     });
 
-    // 關閉門禁或以訪客模式進入
+    // 關閉門禁或以訪客模式進入 (確保乾淨清空)
     const closeGate = () => {
       if (gateOverlay) gateOverlay.style.display = 'none';
+      if (!window.cloudStore?.currentUser && !state.manualAdminUnlocked) {
+        // 未登入訪客模式：清空所有交易與損益
+        loadLocalOrEmbedded();
+        recalculatePortfolio();
+        updateUi();
+      }
     };
     document.getElementById('btnGateClose')?.addEventListener('click', closeGate);
     document.getElementById('btnEnterAsGuest')?.addEventListener('click', closeGate);
 
-    // 登入 vs 註冊 (白名單申請) Tab 切換
-    const tabLogin = document.getElementById('tabBtnLogin');
-    const tabRegister = document.getElementById('tabBtnRegister');
-    const panelLogin = document.getElementById('authPanelLogin');
-    const panelRegister = document.getElementById('authPanelRegister');
+    // 點擊「註冊（申請白名單）」展開/收合申請表單
+    const btnToggleReg = document.getElementById('btnToggleRegisterForm');
+    const boxReg = document.getElementById('authRegisterBox');
+    const btnCancelReg = document.getElementById('btnCancelRegister');
 
-    tabLogin?.addEventListener('click', () => {
-      tabLogin.classList.add('active');
-      tabLogin.style.background = 'var(--primary)';
-      tabLogin.style.color = '#fff';
-      tabRegister?.classList.remove('active');
-      if (tabRegister) {
-        tabRegister.style.background = 'transparent';
-        tabRegister.style.color = 'var(--text-secondary)';
+    btnToggleReg?.addEventListener('click', () => {
+      if (boxReg) {
+        const isHidden = boxReg.style.display === 'none' || !boxReg.style.display;
+        boxReg.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          document.getElementById('reqGmailInput')?.focus();
+        }
       }
-      if (panelLogin) panelLogin.style.display = 'block';
-      if (panelRegister) panelRegister.style.display = 'none';
     });
 
-    tabRegister?.addEventListener('click', () => {
-      tabRegister.classList.add('active');
-      tabRegister.style.background = 'var(--primary)';
-      tabRegister.style.color = '#fff';
-      tabLogin?.classList.remove('active');
-      if (tabLogin) {
-        tabLogin.style.background = 'transparent';
-        tabLogin.style.color = 'var(--text-secondary)';
-      }
-      if (panelRegister) panelRegister.style.display = 'block';
-      if (panelLogin) panelLogin.style.display = 'none';
+    btnCancelReg?.addEventListener('click', () => {
+      if (boxReg) boxReg.style.display = 'none';
     });
 
     // 訪客提交白名單審核申請 (註冊)
@@ -364,6 +362,26 @@
       const isDaniel = (user.email || '').toLowerCase().trim() === 'imsmallnew@gmail.com';
       if (menuBtnAcl) {
         menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
+      }
+
+      // 訪客專屬空間捷徑與 Daniel 儀表板切換按鈕
+      const menuBtnMy = document.getElementById('menuBtnMyPortfolio');
+      const menuBtnDaniel = document.getElementById('menuBtnDanielPortfolio');
+      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+      const mySlug = (user.email || '').split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+
+      if (menuBtnMy) {
+        if (!isDaniel && mySlug && currentPid !== mySlug) {
+          menuBtnMy.style.display = 'flex';
+          const textSpan = document.getElementById('menuMyPortfolioText');
+          if (textSpan) textSpan.textContent = `🚀 前往我的專屬維護空間 (?id=${mySlug})`;
+        } else {
+          menuBtnMy.style.display = 'none';
+        }
+      }
+
+      if (menuBtnDaniel) {
+        menuBtnDaniel.style.display = (currentPid !== 'main') ? 'flex' : 'none';
       }
     }
 
@@ -506,33 +524,30 @@
   }
 
   function loadLocalOrEmbedded() {
-    const local = localStorage.getItem('fubon_portfolio_data');
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (parsed && typeof parsed === 'object') {
-          state.usdRate = parsed.usdRate || 32.51;
-          state.baselineRealizedPl = parsed.baselineRealizedPl !== undefined ? parsed.baselineRealizedPl : 67493.0;
-          state.baselineDividendIncome = parsed.baselineDividendIncome !== undefined ? parsed.baselineDividendIncome : 10967.0;
-          state.dashboardTitle = parsed.dashboardTitle || state.dashboardTitle;
-          state.quotes = parsed.quotes || DEFAULT_QUOTES;
-          state.transactions = (parsed.transactions && parsed.transactions.length > 0)
-            ? parsed.transactions
-            : [];
-          state.realizedRecords = parsed.realizedRecords !== undefined ? parsed.realizedRecords : [];
-          state.dividendRecords = parsed.dividendRecords !== undefined ? parsed.dividendRecords : [];
-          state.fundReserves = parsed.fundReserves || state.fundReserves;
-          state.lastUpdated = parsed.lastUpdated || '';
-          return;
-        }
-      } catch (err) { }
-    }
-
     state.quotes = { ...DEFAULT_QUOTES };
     state.usdRate = 32.51;
     state.baselineRealizedPl = 0.0;
     state.baselineDividendIncome = 0.0;
     state.transactions = [];
+    state.realizedRecords = [];
+    state.dividendRecords = [];
+    state.fundReserves = {
+      livingReserveTwd: 0,
+      investCapitalTwd: 0,
+      savingsInsuranceTwd: 0,
+      usdInsurance: 0,
+      usdSavings: 0,
+      monthlyIncomeTwd: 0,
+      annualIncomeTwd: 0,
+      monthlyExpenseTwd: 0,
+      annualExpenseTwd: 0,
+      monthlyDcaTwd: 0,
+      annualDcaTwd: 0,
+      annualSurplusTwd: 0,
+      note: ''
+    };
+    state.holdings = {};
+    state.lastUpdated = '';
   }
 
   function saveStateToLocal() {
@@ -3998,6 +4013,24 @@
       }
     });
 
+    // 前往訪客專屬空間維護
+    document.getElementById('menuBtnMyPortfolio')?.addEventListener('click', () => {
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+      const email = window.cloudStore?.currentUser?.email || '';
+      const mySlug = email.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+      if (mySlug) {
+        window.fubonApp.switchToPortfolio(mySlug);
+      }
+    });
+
+    // 前往 Daniel 核心儀表板
+    document.getElementById('menuBtnDanielPortfolio')?.addEventListener('click', () => {
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+      window.fubonApp.switchToPortfolio('main');
+    });
+
     // 頂部登入按鈕
     headerSignIn?.addEventListener('click', async () => {
       try {
@@ -4087,8 +4120,8 @@
       const targetId = (inputId?.value || '').trim().toLowerCase();
       if (!targetId) return;
 
-      if (!/^[a-z0-9_-]{1,30}$/.test(targetId)) {
-        alert('投資組合 ID 僅限 1~30 個英文字母、數字、底線或連字號！');
+      if (!/^[\w\u4e00-\u9fa5_-]{1,30}$/.test(targetId)) {
+        alert('投資組合 ID 僅限 1~30 個英文字母、數字、中文、底線或連字號！');
         return;
       }
 

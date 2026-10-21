@@ -22,10 +22,15 @@
     getPortfolioIdFromUrl() {
       try {
         const params = new URLSearchParams(window.location.search);
-        let id = (params.get('id') || 'main').toLowerCase().trim();
-        if (id === 'daniel' || id === '') id = 'main';
-        // 僅保留英數字、底線與連字號，長度不超過 30 字元
-        const cleanId = id.replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+        let rawId = params.get('id');
+        if (!rawId) return 'main';
+        let id = decodeURIComponent(rawId).trim();
+        const lowerId = id.toLowerCase();
+        if (lowerId === 'daniel' || lowerId === 'imsmallnew' || lowerId === 'main' || lowerId === '') {
+          return 'main';
+        }
+        // 支援中文字、英數字、底線與連字號，長度不超過 30 字元
+        const cleanId = id.replace(/[^\w\u4e00-\u9fa5_-]/g, '').slice(0, 30);
         return cleanId || 'main';
       } catch (e) {
         return 'main';
@@ -101,42 +106,38 @@
         return;
       }
 
-      // 1. 若為預設核心儀表板 'main'
+      // 檢查此登入者是否已獲白名單授權（查詢 access/main 中的 viewers 或 localAcl）
+      let isApprovedInWhitelist = false;
+      if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
+        isApprovedInWhitelist = true;
+      }
+      try {
+        if (this.db) {
+          const aclSnap = await this.db.collection('access').doc('main').get();
+          if (aclSnap.exists) {
+            const data = aclSnap.data() || {};
+            const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
+            if (remoteViewers.includes(lowerEmail)) {
+              isApprovedInWhitelist = true;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("讀取 access/main 白名單注意:", e);
+      }
+
+      // 1. 若為核心儀表板 'main' (包含 ?id=imsmallnew, ?id=main, ?id=daniel)
       if (pid === 'main') {
-        if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
+        if (isApprovedInWhitelist) {
+          // 授權親友/訪客：可以「看」Daniel / 其他人的資料
           this.userRole = 'viewer';
           return;
         }
-
-        // 檢查 access/main 雲端名單
-        try {
-          if (this.db) {
-            const aclSnap = await this.db.collection('access').doc('main').get();
-            if (aclSnap.exists) {
-              const data = aclSnap.data() || {};
-              const remoteOwner = (data.owner || '').toLowerCase().trim();
-              const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
-
-              if (remoteOwner && (remoteOwner === lowerEmail || lowerEmail === 'imsmallnew@gmail.com')) {
-                this.userRole = 'owner';
-                this.portfolioOwnerEmail = remoteOwner;
-                return;
-              }
-              if (remoteViewers.includes(lowerEmail)) {
-                this.userRole = 'viewer';
-                return;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("讀取 access/main 權限注意:", e);
-        }
-
         this.userRole = 'unauthorized';
         return;
       }
 
-      // 2. 若為自訂多租戶儀表板 (如 ?id=alice, ?id=bob)
+      // 2. 若為自訂多租戶空間 (如 ?id=訪客id, ?id=alice, ?id=bob)
       try {
         if (this.db) {
           const docSnap = await this.db.collection('portfolios').doc(pid).get();
@@ -146,18 +147,20 @@
             this.portfolioOwnerEmail = docOwner;
             const docViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
 
-            if (docOwner === lowerEmail || isSystemAdmin) {
+            if (docOwner === lowerEmail) {
+              // 該組合之擁有者：可以「進入維護自己的資料」
               this.userRole = 'owner';
               return;
             }
-            if (docViewers.includes(lowerEmail)) {
+            if (docViewers.includes(lowerEmail) || isApprovedInWhitelist) {
+              // 授權親友或白名單成員：可以「看」其他人的資料
               this.userRole = 'viewer';
               return;
             }
             this.userRole = 'unauthorized';
             return;
           } else {
-            // Document 尚不存在：當前登入者可作為此新組合之建立者 (Owner)
+            // Document 尚不存在：當前登入者前往此自訂 ID，可作為此專屬組合之建立者 (Owner) 進入維護自己的資料！
             this.portfolioOwnerEmail = lowerEmail;
             this.userRole = 'owner';
             return;

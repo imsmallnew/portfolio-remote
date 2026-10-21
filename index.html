@@ -135,16 +135,22 @@
               <span>授權名單管理</span>
             </button>
 
+            <!-- 訪客專屬：前往自己的專屬空間維護資料 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnMyPortfolio" style="display:none;">
+              <span>🚀</span>
+              <span id="menuMyPortfolioText">前往我的專屬維護空間</span>
+            </button>
+
+            <!-- 前往 Daniel 核心儀表板 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnDanielPortfolio" style="display:none;">
+              <span>👑</span>
+              <span>查看 Daniel 核心投資儀表板</span>
+            </button>
+
             <!-- 切換其他投資組合 -->
             <button type="button" class="user-dropdown-item" id="menuBtnSwitchPortfolio">
               <span>🗂️</span>
               <span>切換/查看其他組合</span>
-            </button>
-
-            <!-- 密碼解鎖管理員模式 -->
-            <button type="button" class="user-dropdown-item" id="menuBtnAdminPassword">
-              <span>⚡</span>
-              <span id="menuAdminBtnText">輸入密碼解鎖管理員</span>
             </button>
 
             <div class="user-dropdown-divider"></div>
@@ -1486,10 +1492,10 @@
               style="font-weight:600; font-size:0.85rem; margin-bottom:6px; display:block;">前往自訂投資組合 ID：</label>
             <div style="display:flex; gap:8px;">
               <input type="text" id="inputCustomPortfolioId" class="input-sm" style="flex:1;"
-                placeholder="例如：alice 或 tech" required pattern="[A-Za-z0-9_-]{1,30}">
+                placeholder="例如：alice, my_fund, 訪客id" required maxlength="30">
               <button type="submit" class="btn btn-primary btn-sm">前往切換</button>
             </div>
-            <span class="form-tip" style="margin-top:4px;">僅支援英文字母、數字、底線與連字號（1~30字）</span>
+            <span class="form-tip" style="margin-top:4px;">支援英文字母、數字、中文、底線與連字號（1~30字）</span>
           </form>
         </div>
         <div class="modal-footer">
@@ -1511,18 +1517,9 @@
           跨裝置資產配置、即時行情追蹤與損益分析
         </p>
 
-        <!-- Segmented Tab Header: 登入 / 註冊申請 -->
-        <div class="auth-tab-group" style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:var(--radius-md); margin-bottom:18px; gap:4px;">
-          <button type="button" class="auth-tab-btn active" id="tabBtnLogin" style="flex:1; padding:8px 12px; border:none; border-radius:var(--radius-sm); font-size:0.9rem; font-weight:600; cursor:pointer; background:var(--primary); color:#fff; transition:all 0.2s;">
-            🔑 登入 (Google)
-          </button>
-          <button type="button" class="auth-tab-btn" id="tabBtnRegister" style="flex:1; padding:8px 12px; border:none; border-radius:var(--radius-sm); font-size:0.9rem; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
-            📝 註冊 (申請白名單)
-          </button>
-        </div>
-
-        <!-- Tab Panel 1: Login -->
-        <div id="authPanelLogin" class="auth-tab-panel">
+        <!-- Direct Action Buttons: 使用 Google 帳號登入 & 註冊（申請白名單） -->
+        <div id="authMainActionGroup" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+          <!-- 1. 使用 Google 帳號登入 -->
           <button class="auth-btn-google" id="btnGoogleSignIn" type="button">
             <svg viewBox="0 0 24 24">
               <path fill="#4285F4"
@@ -1534,51 +1531,61 @@
               <path fill="#EA4335"
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
             </svg>
-            <span>使用 Google 帳號登入</span>
+            <span style="font-weight:600; font-size:1rem;">使用 Google 帳號登入</span>
           </button>
 
-          <div class="auth-notice-box" style="margin-top:16px; text-align:left; font-size:0.82rem; line-height:1.5;">
-            👑 <strong>管理員</strong> 登入自動解鎖完整維護與編輯權限。<br>
-            🛡️ <strong>授權親友</strong> 登入可檢視完整資產細項與損益配置。
-          </div>
-
-          <!-- Daniel 快速通道 (管理員通行碼備用) -->
-          <div style="margin-top:16px; border-top:1px dashed var(--border-subtle); padding-top:12px;">
-            <button type="button" id="btnToggleAdminCode" style="background:none; border:none; color:var(--text-tertiary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">
-              🔑 管理員通行碼快速登入 (Daniel 專用)
-            </button>
-            <div id="adminCodeBox" style="display:none; margin-top:10px;">
-              <div style="display:flex; gap:6px;">
-                <input type="password" id="inputGateAdminPw" class="input-sm" style="flex:1;" placeholder="請輸入管理員密碼 (888)">
-                <button type="button" class="btn btn-primary btn-sm" id="btnGateAdminLogin">解鎖進入</button>
-              </div>
-            </div>
-          </div>
+          <!-- 2. 下一行：註冊（申請白名單） -->
+          <button class="btn btn-secondary" id="btnToggleRegisterForm" type="button"
+            style="width:100%; justify-content:center; padding:12px; font-size:0.95rem; font-weight:600; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.35); color:#60a5fa; border-radius:var(--radius-lg); transition:all 0.2s;">
+            <span>📝 註冊（申請白名單）</span>
+          </button>
         </div>
 
-        <!-- Tab Panel 2: Register (Whitelist Request) -->
-        <div id="authPanelRegister" class="auth-tab-panel" style="display:none; text-align:left;">
-          <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:14px; line-height:1.5;">
-            請輸入您的 Gmail 信箱申請加入白名單，管理員 (Daniel) 審核後即可瀏覽完整投資組合。
+        <!-- 展開的註冊 (申請白名單) 表單區塊 (點擊「註冊（申請白名單）」後展開) -->
+        <div id="authRegisterBox" style="display:none; margin-top:16px; text-align:left; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:0.9rem; color:var(--text-primary);">📝 申請加入授權白名單</strong>
+            <button type="button" id="btnCancelRegister" class="modal-close-btn" style="font-size:1.1rem; line-height:1;" title="收合表單">&times;</button>
+          </div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;">
+            請輸入您的 Gmail 信箱，送出後將由管理員 (Daniel) 審核加入白名單。
           </div>
 
-          <form id="formWhitelistRequest" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
+          <form id="formWhitelistRequest" onsubmit="return false;" style="display:flex; flex-direction:column; gap:10px;">
             <div>
-              <label for="reqGmailInput" style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的 Gmail 信箱 (必填)：</label>
+              <label for="reqGmailInput" style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的 Gmail 信箱 (必填)：</label>
               <input type="email" id="reqGmailInput" class="input-sm" style="width:100%;" placeholder="例如：your_name@gmail.com" required>
             </div>
             <div>
-              <label for="reqNameInput" style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的稱呼 / 關係 (選填)：</label>
+              <label for="reqNameInput" style="font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">您的稱呼 / 關係 (選填)：</label>
               <input type="text" id="reqNameInput" class="input-sm" style="width:100%;" placeholder="例如：親友小明、大學同學">
             </div>
-            <button type="submit" class="btn btn-primary" id="btnSubmitWhitelistReq" style="width:100%; justify-content:center; padding:10px; margin-top:6px;">
+            <button type="submit" class="btn btn-primary" id="btnSubmitWhitelistReq" style="width:100%; justify-content:center; padding:9px; margin-top:4px;">
               <span>🚀 送出審核申請</span>
             </button>
           </form>
 
-          <div id="reqSuccessNotice" style="display:none; margin-top:14px; padding:12px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); font-size:0.83rem; color:#34d399; line-height:1.5;">
+          <div id="reqSuccessNotice" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-sm); font-size:0.82rem; color:#34d399; line-height:1.5;">
             🎉 <strong>申請已送出！</strong><br>
             已成功提送給管理員驗證加入白名單。審核通過後，直接以該 Gmail 登入即可查看完整資料！
+          </div>
+        </div>
+
+        <div class="auth-notice-box" style="margin-top:16px; text-align:left; font-size:0.82rem; line-height:1.5;">
+          👑 <strong>管理員</strong> 登入自動解鎖完整維護與編輯權限。<br>
+          🛡️ <strong>授權親友</strong> 登入可檢視完整資產細項，亦可建立維護自己的專屬組合。
+        </div>
+
+        <!-- Daniel 快速通道 (管理員通行碼備用) -->
+        <div style="margin-top:16px; border-top:1px dashed var(--border-subtle); padding-top:12px;">
+          <button type="button" id="btnToggleAdminCode" style="background:none; border:none; color:var(--text-tertiary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">
+            🔑 管理員通行碼快速登入 (Daniel 專用)
+          </button>
+          <div id="adminCodeBox" style="display:none; margin-top:10px;">
+            <div style="display:flex; gap:6px;">
+              <input type="password" id="inputGateAdminPw" class="input-sm" style="flex:1;" placeholder="請輸入管理員密碼 (888)">
+              <button type="button" class="btn btn-primary btn-sm" id="btnGateAdminLogin">解鎖進入</button>
+            </div>
           </div>
         </div>
 
