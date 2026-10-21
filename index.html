@@ -540,7 +540,7 @@
                   <th class="col-shares text-right">持有股數</th>
                   <th class="col-cost text-right">平均成本</th>
                   <th class="col-price text-right" id="thRealtimePrice">即時現價 (昨收)</th>
-                  <th class="col-night-price text-right" id="thNightPrice" title="夜盤/盤後現價，下方灰色為與即時現價之差額">夜盤現價 (差額)</th>
+                  <th class="col-night-price text-right" id="thNightPrice" title="TradingView BOATS (Blue Ocean ATS 隔夜夜盤) 行情，下方灰色為與即時現價之差額">夜盤現價 (差額)</th>
                   <th class="col-chg text-right">今日漲跌</th>
                   <th class="col-invested text-right">總投入成本 (NT)</th>
                   <th class="col-marketval text-right">目前市值 (NT)</th>
@@ -957,7 +957,7 @@
               <input type="number" id="assetPrice" step="any" min="0" placeholder="例如 107.55">
             </div>
             <div class="form-group flex-1">
-              <label for="assetNightPrice">夜盤現價</label>
+              <label for="assetNightPrice">🌙 BOATS 夜盤現價</label>
               <input type="number" id="assetNightPrice" step="any" min="0" placeholder="例如 108.20">
             </div>
             <div class="form-group flex-1">
@@ -1096,9 +1096,9 @@
           </div>
 
           <div class="form-group">
-            <label for="quoteModalNightPrice">夜盤/盤後價格 (<span id="quoteModalNightCurr">TWD</span>)</label>
-            <input type="number" id="quoteModalNightPrice" step="any" min="0.0001" placeholder="夜盤交易價格">
-            <span class="form-hint">列表會自動計算並顯示與白盤之差額</span>
+            <label for="quoteModalNightPrice">🌙 BOATS 夜盤/盤後價格 (<span id="quoteModalNightCurr">TWD</span>)</label>
+            <input type="number" id="quoteModalNightPrice" step="any" min="0.0001" placeholder="TradingView BOATS 夜盤價格">
+            <span class="form-hint">透過 TradingView BOATS (Blue Ocean ATS 隔夜夜盤) 行情顯示，自動計算與白盤之差額</span>
           </div>
 
           <div class="form-group">

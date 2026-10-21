@@ -2985,11 +2985,18 @@
     const h = state.holdings[symbol] || {};
 
     if (titleEl) titleEl.textContent = `${symbol} ${q.name || ''}`;
+    const nightP = q.nightPrice || q.price || 0;
+    const spread = (q.nightPrice ? q.nightPrice - q.price : 0);
+    const spreadSign = spread > 0 ? '+' : '';
+    const spreadStr = spread !== 0 ? ` (差額 ${spreadSign}${spread.toFixed(2)})` : '';
+    const nightSpreadHtml = `<span class="night-boats-tag" style="background:rgba(6,182,212,0.15); color:var(--cyan-accent); padding:2px 8px; border-radius:4px; font-weight:600; margin-left:6px;">🌙 BOATS 夜盤：${formatMoney(nightP, 2)}${spreadStr}</span>`;
+
     if (subEl) {
-      subEl.innerHTML = `TradingView 代碼：<strong>${escapeHtml(q.tvSymbol)}</strong> ｜ 目前持有 ${formatShares(h.currentShares || 0)} 股 ｜ 未實現損益 <span class="${getValClass(h.unrealizedPlTwd)}">NT$ ${formatMoney(h.unrealizedPlTwd || 0)}</span>`;
+      subEl.innerHTML = `TradingView 代碼：<strong>${escapeHtml(q.tvSymbol)}</strong> ｜ 即時現價：<strong>${formatMoney(q.price, 2)}</strong> ｜ ${nightSpreadHtml} ｜ 持有 ${formatShares(h.currentShares || 0)} 股 ｜ 未實現損益 <span class="${getValClass(h.unrealizedPlTwd)}">NT$ ${formatMoney(h.unrealizedPlTwd || 0)}</span>`;
     }
     if (extLink) {
       extLink.href = tvPageUrl(q.tvSymbol);
+      extLink.innerHTML = `🔗 開啟 TradingView BOATS 圖表`;
     }
 
     modal.classList.add('show');

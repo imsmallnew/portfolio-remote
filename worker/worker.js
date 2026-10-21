@@ -216,7 +216,7 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
                 price: close,
                 prevClose: prevClose,
                 nightPrice: nightP,
-                source: "TradingView",
+                source: "TradingView (BOATS 夜盤)",
                 updatedAt: new Date().toISOString()
               };
             }
