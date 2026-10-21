@@ -381,7 +381,7 @@
                   <div class="fund-item-top">
                     <span class="fund-item-label">每月定期定額</span>
                     <span class="badge-pill badge-pill-cyan" id="fundValDcaBadge">年度結餘 -- 萬</span>
-                    <span class="fund-click-hint">📅 點擊維護明細</span>
+                    <span class="fund-click-hint">✏️ 點擊維護明細</span>
                   </div>
                   <div class="fund-item-val mono text-cyan" id="fundValMonthlyDca">NT$ --</div>
                   <div class="fund-item-desc" id="fundValDcaDesc">年扣款 NT$ -- ｜ 扣除開銷後年度淨結餘 NT$ --</div>
@@ -1410,7 +1410,7 @@
     <div class="modal-backdrop" id="dcaModalBackdrop">
       <div class="modal-card detail-modal-card">
         <div class="modal-header">
-          <h3 class="modal-title">📅 每月定期定額投資明細維護</h3>
+          <h3 class="modal-title">每月定期定額投資明細維護</h3>
           <button class="modal-close-btn" id="btnDcaModalClose">&times;</button>
         </div>
         <div class="modal-body"
@@ -1419,22 +1419,24 @@
             <span class="text-tertiary-sm">維護每月投資標的、幣別、每次扣款金額與投入日期（USD 自動乘即時匯率折算 NT）</span>
             <button type="button" class="btn btn-secondary btn-xs" id="btnAddDcaItem">➕ 新增定額標的</button>
           </div>
-          <table class="detail-items-table">
-            <thead>
-              <tr>
-                <th style="width: 32px;" class="text-center" title="拖動調整順序"></th>
-                <th style="width: 24%;">投資標的代號 / 名稱</th>
-                <th style="width: 12%;" class="text-center">幣別</th>
-                <th style="width: 18%;" class="text-right">每次金額</th>
-                <th style="width: 20%;">投入日期 (每月)</th>
-                <th style="width: 20%;" class="text-right">折合每月 (NT$)</th>
-                <th style="width: 36px;" class="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody id="dcaItemsTableBody">
-              <!-- Dynamically injected via JS -->
-            </tbody>
-          </table>
+          <div style="overflow-x: auto; margin-bottom: 8px;">
+            <table class="detail-items-table">
+              <thead>
+                <tr>
+                  <th style="width: 36px; min-width: 36px;" class="text-center" title="拖動調整順序"></th>
+                  <th style="min-width: 140px;">投資標的代號 / 名稱</th>
+                  <th style="width: 82px; min-width: 82px;" class="text-center">幣別</th>
+                  <th style="width: 120px; min-width: 110px;" class="text-right">每次金額</th>
+                  <th style="width: 140px; min-width: 130px;">投入日期 (每月)</th>
+                  <th style="width: 150px; min-width: 140px;" class="text-right">折合每月 (NT$)</th>
+                  <th style="width: 44px; min-width: 44px;" class="text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="dcaItemsTableBody">
+                <!-- Dynamically injected via JS -->
+              </tbody>
+            </table>
+          </div>
 
           <div class="detail-summary-bar">
             <div class="detail-summary-item">

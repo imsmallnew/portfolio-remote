@@ -1647,13 +1647,13 @@
           </td>
           <td>
             <button type="button" class="btn btn-secondary btn-xs btn-dca-daypicker" data-index="${idx}" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-              <span>📅 ${daysText}</span>
+              <span>${daysText}</span>
               <span style="font-size: 0.65rem; color: var(--cyan-accent);">修改</span>
             </button>
           </td>
           <td class="text-right mono font-semibold" id="dcaMonthlyRow_${idx}">
             ${isUsd ? `
-              <span class="text-cyan">$${formatMoney(monthlyRaw, 2)} USD</span>
+              <span class="text-cyan">$${formatMoney(Math.round(monthlyRaw))} USD</span>
               <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">折合 NT$ ${formatMoney(monthlyTwd)}</div>
             ` : `
               <span>NT$ ${formatMoney(monthlyTwd)}</span>
@@ -1699,7 +1699,7 @@
           const cell = document.getElementById(`dcaMonthlyRow_${i}`);
           if (cell) {
             cell.innerHTML = isUsd ? `
-              <span class="text-cyan">$${formatMoney(mRaw, 2)} USD</span>
+              <span class="text-cyan">$${formatMoney(Math.round(mRaw))} USD</span>
               <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">折合 NT$ ${formatMoney(mTwd)}</div>
             ` : `
               <span>NT$ ${formatMoney(mTwd)}</span>
@@ -1842,7 +1842,7 @@
 
     popover.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <strong style="font-size: 0.82rem; color: var(--text-primary);">📅 選擇每月扣款日期</strong>
+        <strong style="font-size: 0.82rem; color: var(--text-primary);">選擇每月扣款日期</strong>
         <span style="font-size: 0.72rem; color: var(--cyan-accent);" id="popoverCountLabel">已選 ${selectedDays.size} 天</span>
       </div>
       <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-bottom: 6px;">點選 1~31 號按鈕多選投入日：</div>

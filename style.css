@@ -2158,13 +2158,14 @@ body {
   max-width: 680px;
 }
 .detail-modal-card {
-  max-width: 820px !important;
+  max-width: 880px !important;
 }
 .detail-modal-card .modal-body {
   padding: 24px 28px !important;
 }
 .detail-items-table {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
   margin: 14px 0 18px;
   font-size: 0.85rem;
@@ -2173,11 +2174,12 @@ body {
   font-size: 0.82rem;
   color: #fbbf24 !important; /* 細項標題金黃色 */
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 10px 10px;
   border-bottom: 1px solid var(--border-medium);
   background: var(--bg-surface-elevated);
   text-align: left;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 .detail-items-table th.text-right,
 .detail-items-table td.text-right {
@@ -2188,19 +2190,28 @@ body {
   text-align: center;
 }
 .detail-items-table td {
-  padding: 10px 12px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
 .detail-items-table input,
 .detail-items-table select {
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 10px;
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 0.85rem;
+  box-sizing: border-box;
+}
+.detail-items-table select.dca-curr-select {
+  width: 100% !important;
+  min-width: 70px !important;
+  padding: 8px 4px !important;
+  text-align: center !important;
+  font-weight: 600;
+  cursor: pointer;
 }
 .detail-items-table tr.dragging {
   opacity: 0.4;
