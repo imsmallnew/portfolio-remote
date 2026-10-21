@@ -2111,7 +2111,7 @@
             <div class="symbol-cell is-clickable" onclick="window.fubonApp.openTvModal('${sym}')" title="點擊查看 TradingView 即時走勢與指標">
               <span class="symbol-badge">${sym}</span>
               <div>
-                <span class="symbol-name">${escapeHtml(h.name)}</span>
+                <span class="symbol-name">${escapeHtml(h.name)}</span>${h.coreHolding ? ' <span class="core-holding-mark" title="主力核心">⭐</span>' : ''}
                 ${h.tvSymbol ? `<span class="tv-mini-tag">📈 ${escapeHtml(h.tvSymbol)}</span>` : ''}
               </div>
             </div>
@@ -2782,6 +2782,7 @@
       const holding = state.holdings[sym];
       const curPrice = holding ? (parseFloat(holding.currentPrice) || 0) : 0;
 
+      let fifoMarked = false; // 每個標的只標記最早的剩餘批次
       for (const lot of lotsBySymbol[sym]) {
         if (lot.remainingShares <= 0.0001) continue;
 
@@ -2824,8 +2825,12 @@
           badgeClass = 'badge-loss';
         }
 
+        const isFifo = !fifoMarked && isProfitHit;
+        fifoMarked = true;
+
         activeLots.push({
           ...lot,
+          isFifo,
           currentPrice: effectivePrice,
           lotRate,
           diffPerShare,
@@ -3052,7 +3057,7 @@
             <span style="font-size: 0.8rem; opacity: 0.85; margin-left: 4px;">(${sign}${lot.roiPct.toFixed(2)}%)</span>
           </td>
           <td class="text-center">
-            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>${lot.isProfitHit ? ' <span class="advice-fifo-tag">FIFO</span>' : ''}
+            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>${lot.isFifo ? ' <span class="advice-fifo-tag">FIFO</span>' : ''}
           </td>
         </tr>
       `;
@@ -5770,7 +5775,9 @@
       renderAdviceTable();
     });
 
-    document.getElementById('adviceCoreOnly')?.addEventListener('change', (e) => {
+    const coreCb = document.getElementById('adviceCoreOnly');
+    if (coreCb) coreCb.checked = !!state.adviceSettings.coreOnly;
+    coreCb?.addEventListener('change', (e) => {
       state.adviceSettings.coreOnly = e.target.checked;
       state.adviceSettings.page = 1;
       renderAdviceTable();

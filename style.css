@@ -3127,3 +3127,11 @@ body {
   font-weight: 600;
   color: var(--text-primary, inherit);
 }
+
+/* 持有列表：主力核心標記 */
+.core-holding-mark {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.85rem;
+  vertical-align: middle;
+}

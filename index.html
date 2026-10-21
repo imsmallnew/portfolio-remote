@@ -940,7 +940,7 @@
               <div class="form-group-inline">
                 <label class="toggle-checkbox" for="adviceCoreOnly">
                   <input type="checkbox" id="adviceCoreOnly">
-                  <span>顯示主力核心</span>
+                  <span>只顯示主力核心</span>
                 </label>
               </div>
 
@@ -1130,11 +1130,15 @@
             <input type="text" id="assetYahooSymbol" placeholder="例如：2330.TW、0050.TW、NVDA、VOO">
           </div>
 
-          <!-- Hide Toggle in Asset Modal -->
-          <div class="form-group">
+          <!-- Hide Toggle & Core Holding Toggle in Asset Modal -->
+          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <label class="toggle-checkbox">
               <input type="checkbox" id="assetHidden">
               <span>在持有列表中隱藏此標的</span>
+            </label>
+            <label class="toggle-checkbox core-holding-toggle" id="assetCoreWrap">
+              <input type="checkbox" id="assetCore">
+              <span>主力核心</span>
             </label>
           </div>
 
@@ -1145,10 +1149,6 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-danger btn-sm" id="btnAssetDelete"
               style="margin-right:auto;display:none;">刪除此標的</button>
-            <label class="toggle-checkbox core-holding-toggle" id="assetCoreWrap">
-              <input type="checkbox" id="assetCore">
-              <span>主力核心</span>
-            </label>
             <button type="button" class="btn btn-secondary" id="btnAssetModalCancel">取消</button>
             <button type="submit" class="btn btn-primary">儲存標的設定</button>
           </div>
