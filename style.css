@@ -1654,7 +1654,7 @@ body {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 14px;
-  padding: 16px 0 0;
+  padding: 16px 24px 20px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -2161,7 +2161,17 @@ body {
   max-width: 880px !important;
 }
 .detail-modal-card .modal-body {
-  padding: 24px 28px !important;
+  padding: 24px 28px 16px !important;
+}
+.detail-modal-card .modal-footer {
+  padding: 18px 28px 24px !important;
+  margin: 0 !important;
+  background: var(--bg-surface-elevated);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
 }
 .detail-items-table {
   width: 100%;
