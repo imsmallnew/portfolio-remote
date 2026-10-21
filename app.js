@@ -2825,7 +2825,7 @@
           badgeClass = 'badge-loss';
         }
 
-        const isFifo = !fifoMarked && isProfitHit;
+        const isFifo = !fifoMarked; // 每個剩餘標的最早的批次
         fifoMarked = true;
 
         activeLots.push({
@@ -2857,7 +2857,8 @@
     if (!tbody) return;
 
     applyAdviceTypeVals();
-    const allLots = calculateFifoLots();
+    // 主力核心預設排除；勾選「顯示主力核心」後才納入 KPI 與明細
+    const allLots = calculateFifoLots().filter(lot => state.adviceSettings.coreOnly || !lot.isCore);
     const settings = state.adviceSettings || {
       profitType: 'pct',
       profitVal: 50,
@@ -2967,9 +2968,6 @@
         return false;
       }
       if (settings.filterStatus !== 'all' && lot.statusKey !== settings.filterStatus) {
-        return false;
-      }
-      if (!settings.coreOnly && lot.isCore) {
         return false;
       }
       if (settings.search) {

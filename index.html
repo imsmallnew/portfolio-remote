@@ -907,6 +907,13 @@
                 <input type="number" id="adviceLossVal" class="input-sm mono" value="20" min="0" step="1" style="width: 85px;">
                 <span class="unit-text" id="adviceLossUnitLabel">%</span>
               </div>
+              <div class="advice-core-stats">
+                <label class="toggle-checkbox" for="adviceCoreOnly">
+                  <input type="checkbox" id="adviceCoreOnly">
+                  <span>顯示主力核心</span>
+                </label>
+                <span class="tx-stats-text" id="adviceStatsCount">顯示 0 / 0 筆庫存批次</span>
+              </div>
             </div>
           </div>
 
@@ -931,13 +938,6 @@
               </div>
 
               <div class="form-group-inline">
-                <label class="toggle-checkbox" for="adviceCoreOnly">
-                  <input type="checkbox" id="adviceCoreOnly">
-                  <span>顯示主力核心</span>
-                </label>
-              </div>
-
-              <div class="form-group-inline">
                 <label for="adviceSortOrder">排序方式：</label>
                 <select id="adviceSortOrder" class="select-sm">
                   <option value="diff_desc">價差大到小 (獲利最多優先)</option>
@@ -953,10 +953,6 @@
                 <label for="adviceSearchInput">搜尋：</label>
                 <input type="text" id="adviceSearchInput" class="input-sm" placeholder="代號、名稱、日期...">
               </div>
-            </div>
-
-            <div class="toolbar-right">
-              <span class="tx-stats-text" id="adviceStatsCount">顯示 0 / 0 筆庫存批次</span>
             </div>
           </div>
         </div>

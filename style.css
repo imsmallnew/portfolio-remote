@@ -3138,3 +3138,17 @@ body {
 
 /* 投資建議：FIFO 欄位 */
 .col-advice-fifo { width: 80px; }
+
+/* 投資建議：移除設定區背景框，並將核心篩選與統計並排 */
+.advice-settings-panel,
+.advice-settings-panel .advice-setting-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.advice-core-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 16px;
+}
