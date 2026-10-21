@@ -77,9 +77,14 @@
     // Investment Advice UI & Settings
     adviceSettings: {
       profitType: localStorage.getItem('fubon_advice_profit_type') || 'pct', // 'pct' or 'amount'
-      profitVal: parseFloat(localStorage.getItem('fubon_advice_profit_val')) || 50,
+      profitPct: readNum('fubon_advice_profit_pct', 50),
+      profitAmt: readNum('fubon_advice_profit_amt', 3000),
+      profitVal: 0,
       lossType: localStorage.getItem('fubon_advice_loss_type') || 'pct', // 'pct' or 'amount'
-      lossVal: parseFloat(localStorage.getItem('fubon_advice_loss_val')) || 20,
+      lossPct: readNum('fubon_advice_loss_pct', 20),
+      lossAmt: readNum('fubon_advice_loss_amt', 5000),
+      lossVal: 0,
+      coreOnly: false,
       filterSymbol: 'all',
       filterStatus: 'all',
       sortOrder: 'diff_desc',
@@ -882,6 +887,7 @@
         tvSymbol: q.tvSymbol || '',
         infoUrl: q.infoUrl || '',
         hidden: !!q.hidden,
+        coreHolding: !!q.coreHolding,
         order: typeof q.order === 'number' ? q.order : 999,
 
         totalBoughtShares: 0,
@@ -2698,6 +2704,26 @@
   // 9.5 Investment Advice / Advisor Logic (投資建議 - FIFO 庫存與出金/止損評估)
   // ==========================================================================
 
+  function readNum(key, fallback) {
+    const v = parseFloat(localStorage.getItem(key));
+    return isNaN(v) ? fallback : v;
+  }
+
+  // 獲利/損失的 % 與金額各自獨立保存，依目前類型同步啟用中的門檻值
+  function applyAdviceTypeVals() {
+    const s = state.adviceSettings;
+    s.profitVal = s.profitType === 'pct' ? s.profitPct : s.profitAmt;
+    s.lossVal = s.lossType === 'pct' ? s.lossPct : s.lossAmt;
+  }
+
+  function saveAdviceVals() {
+    const s = state.adviceSettings;
+    localStorage.setItem('fubon_advice_profit_pct', s.profitPct);
+    localStorage.setItem('fubon_advice_profit_amt', s.profitAmt);
+    localStorage.setItem('fubon_advice_loss_pct', s.lossPct);
+    localStorage.setItem('fubon_advice_loss_amt', s.lossAmt);
+  }
+
   function calculateFifoLots() {
     const txs = [...(state.transactions || [])].sort((a, b) => {
       const dDiff = new Date(a.date) - new Date(b.date);
@@ -2812,7 +2838,8 @@
           statusText,
           badgeClass,
           isProfitHit,
-          isLossHit
+          isLossHit,
+          isCore: !!(state.quotes[lot.symbol] && state.quotes[lot.symbol].coreHolding)
         });
       }
     }
@@ -2824,6 +2851,7 @@
     const tbody = document.getElementById('adviceTableBody');
     if (!tbody) return;
 
+    applyAdviceTypeVals();
     const allLots = calculateFifoLots();
     const settings = state.adviceSettings || {
       profitType: 'pct',
@@ -2936,6 +2964,9 @@
       if (settings.filterStatus !== 'all' && lot.statusKey !== settings.filterStatus) {
         return false;
       }
+      if (settings.coreOnly && !lot.isCore) {
+        return false;
+      }
       if (settings.search) {
         const q = settings.search.toLowerCase();
         const matchSym = (lot.symbol || '').toLowerCase().includes(q);
@@ -3021,7 +3052,7 @@
             <span style="font-size: 0.8rem; opacity: 0.85; margin-left: 4px;">(${sign}${lot.roiPct.toFixed(2)}%)</span>
           </td>
           <td class="text-center">
-            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>
+            <span class="advice-badge ${lot.badgeClass}">${lot.statusText}</span>${lot.isProfitHit ? ' <span class="advice-fifo-tag">FIFO</span>' : ''}
           </td>
         </tr>
       `;
@@ -3610,6 +3641,7 @@
     document.getElementById('assetTvSymbol').value = q.tvSymbol || '';
     document.getElementById('assetYahooSymbol').value = q.symbolYahoo || '';
     document.getElementById('assetHidden').checked = !!q.hidden;
+    document.getElementById('assetCore').checked = !!q.coreHolding;
 
     const delBtn = document.getElementById('btnAssetDelete');
     if (delBtn) delBtn.style.display = isEdit ? '' : 'none';
@@ -3644,6 +3676,7 @@
     const tvSymbol = document.getElementById('assetTvSymbol').value.trim().toUpperCase();
     const yahooSymbol = document.getElementById('assetYahooSymbol').value.trim();
     const isHidden = document.getElementById('assetHidden').checked;
+    const isCore = document.getElementById('assetCore').checked;
 
     if (!symbol || !name) {
       showNotification('請填寫標的代號與名稱', 'error');
@@ -3670,6 +3703,7 @@
       tvSymbol,
       symbolYahoo: yahooSymbol,
       hidden: isHidden,
+      coreHolding: isCore,
       order: currentOrder
     };
 
@@ -5667,110 +5701,93 @@
     const pType = document.getElementById('adviceProfitType');
     const pVal = document.getElementById('adviceProfitVal');
     const pUnit = document.getElementById('adviceProfitUnitLabel');
-    if (pType && pVal) {
-      pType.value = state.adviceSettings.profitType;
-      pVal.value = state.adviceSettings.profitVal;
-      if (pUnit) pUnit.textContent = pType.value === 'pct' ? '%' : 'NT$';
-
-      pType.addEventListener('change', () => {
-        state.adviceSettings.profitType = pType.value;
-        if (pUnit) pUnit.textContent = pType.value === 'pct' ? '%' : 'NT$';
-        localStorage.setItem('fubon_advice_profit_type', pType.value);
-        state.adviceSettings.page = 1;
-        renderAdviceTable();
-      });
-
-      pVal.addEventListener('input', () => {
-        state.adviceSettings.profitVal = parseFloat(pVal.value) || 0;
-        localStorage.setItem('fubon_advice_profit_val', pVal.value);
-        state.adviceSettings.page = 1;
-        renderAdviceTable();
-      });
-    }
-
     const lType = document.getElementById('adviceLossType');
     const lVal = document.getElementById('adviceLossVal');
     const lUnit = document.getElementById('adviceLossUnitLabel');
-    if (lType && lVal) {
-      lType.value = state.adviceSettings.lossType;
-      lVal.value = state.adviceSettings.lossVal;
-      if (lUnit) lUnit.textContent = lType.value === 'pct' ? '%' : 'NT$';
 
-      lType.addEventListener('change', () => {
-        state.adviceSettings.lossType = lType.value;
-        if (lUnit) lUnit.textContent = lType.value === 'pct' ? '%' : 'NT$';
-        localStorage.setItem('fubon_advice_loss_type', lType.value);
-        state.adviceSettings.page = 1;
-        renderAdviceTable();
-      });
-
-      lVal.addEventListener('input', () => {
-        state.adviceSettings.lossVal = parseFloat(lVal.value) || 0;
-        localStorage.setItem('fubon_advice_loss_val', lVal.value);
-        state.adviceSettings.page = 1;
-        renderAdviceTable();
-      });
+    // 將目前設定同步回輸入元件
+    function syncAdviceInputs() {
+      const s = state.adviceSettings;
+      applyAdviceTypeVals();
+      if (pType) pType.value = s.profitType;
+      if (pVal) pVal.value = s.profitVal;
+      if (pUnit) pUnit.textContent = s.profitType === 'pct' ? '%' : 'NT$';
+      if (lType) lType.value = s.lossType;
+      if (lVal) lVal.value = s.lossVal;
+      if (lUnit) lUnit.textContent = s.lossType === 'pct' ? '%' : 'NT$';
     }
 
-    // Presets
-    document.getElementById('btnPresetProfit50Loss20')?.addEventListener('click', () => {
-      state.adviceSettings.profitType = 'pct';
-      state.adviceSettings.profitVal = 50;
-      state.adviceSettings.lossType = 'pct';
-      state.adviceSettings.lossVal = 20;
-      if (pType) pType.value = 'pct';
-      if (pVal) pVal.value = 50;
-      if (pUnit) pUnit.textContent = '%';
-      if (lType) lType.value = 'pct';
-      if (lVal) lVal.value = 20;
-      if (lUnit) lUnit.textContent = '%';
-      localStorage.setItem('fubon_advice_profit_type', 'pct');
-      localStorage.setItem('fubon_advice_profit_val', '50');
-      localStorage.setItem('fubon_advice_loss_type', 'pct');
-      localStorage.setItem('fubon_advice_loss_val', '20');
+    // 套用預設組合：只更新指定類型的數值，另一類型保留原值
+    function applyAdvicePreset(pt, pv, lt, lv) {
+      const s = state.adviceSettings;
+      s.profitType = pt;
+      s.lossType = lt;
+      if (pt === 'pct') s.profitPct = pv; else s.profitAmt = pv;
+      if (lt === 'pct') s.lossPct = lv; else s.lossAmt = lv;
+      localStorage.setItem('fubon_advice_profit_type', pt);
+      localStorage.setItem('fubon_advice_loss_type', lt);
+      saveAdviceVals();
+      s.page = 1;
+      syncAdviceInputs();
+      renderAdviceTable();
+    }
+
+    syncAdviceInputs();
+
+    pType?.addEventListener('change', () => {
+      state.adviceSettings.profitType = pType.value;
+      localStorage.setItem('fubon_advice_profit_type', pType.value);
+      state.adviceSettings.page = 1;
+      syncAdviceInputs();
+      renderAdviceTable();
+    });
+
+    pVal?.addEventListener('input', () => {
+      const v = parseFloat(pVal.value) || 0;
+      if (state.adviceSettings.profitType === 'pct') state.adviceSettings.profitPct = v;
+      else state.adviceSettings.profitAmt = v;
+      saveAdviceVals();
+      state.adviceSettings.page = 1;
+      applyAdviceTypeVals();
+      renderAdviceTable();
+    });
+
+    lType?.addEventListener('change', () => {
+      state.adviceSettings.lossType = lType.value;
+      localStorage.setItem('fubon_advice_loss_type', lType.value);
+      state.adviceSettings.page = 1;
+      syncAdviceInputs();
+      renderAdviceTable();
+    });
+
+    lVal?.addEventListener('input', () => {
+      const v = parseFloat(lVal.value) || 0;
+      if (state.adviceSettings.lossType === 'pct') state.adviceSettings.lossPct = v;
+      else state.adviceSettings.lossAmt = v;
+      saveAdviceVals();
+      state.adviceSettings.page = 1;
+      applyAdviceTypeVals();
+      renderAdviceTable();
+    });
+
+    document.getElementById('adviceCoreOnly')?.addEventListener('change', (e) => {
+      state.adviceSettings.coreOnly = e.target.checked;
       state.adviceSettings.page = 1;
       renderAdviceTable();
+    });
+
+    document.getElementById('btnPresetProfit50Loss20')?.addEventListener('click', () => {
+      applyAdvicePreset('pct', 50, 'pct', 20);
     });
 
     document.getElementById('btnPresetProfit30Loss15')?.addEventListener('click', () => {
-      state.adviceSettings.profitType = 'pct';
-      state.adviceSettings.profitVal = 30;
-      state.adviceSettings.lossType = 'pct';
-      state.adviceSettings.lossVal = 15;
-      if (pType) pType.value = 'pct';
-      if (pVal) pVal.value = 30;
-      if (pUnit) pUnit.textContent = '%';
-      if (lType) lType.value = 'pct';
-      if (lVal) lVal.value = 15;
-      if (lUnit) lUnit.textContent = '%';
-      localStorage.setItem('fubon_advice_profit_type', 'pct');
-      localStorage.setItem('fubon_advice_profit_val', '30');
-      localStorage.setItem('fubon_advice_loss_type', 'pct');
-      localStorage.setItem('fubon_advice_loss_val', '15');
-      state.adviceSettings.page = 1;
-      renderAdviceTable();
+      applyAdvicePreset('pct', 30, 'pct', 15);
     });
 
     document.getElementById('btnPresetAmount3k5k')?.addEventListener('click', () => {
-      state.adviceSettings.profitType = 'amount';
-      state.adviceSettings.profitVal = 3000;
-      state.adviceSettings.lossType = 'amount';
-      state.adviceSettings.lossVal = 5000;
-      if (pType) pType.value = 'amount';
-      if (pVal) pVal.value = 3000;
-      if (pUnit) pUnit.textContent = 'NT$';
-      if (lType) lType.value = 'amount';
-      if (lVal) lVal.value = 5000;
-      if (lUnit) lUnit.textContent = 'NT$';
-      localStorage.setItem('fubon_advice_profit_type', 'amount');
-      localStorage.setItem('fubon_advice_profit_val', '3000');
-      localStorage.setItem('fubon_advice_loss_type', 'amount');
-      localStorage.setItem('fubon_advice_loss_val', '5000');
-      state.adviceSettings.page = 1;
-      renderAdviceTable();
+      applyAdvicePreset('amount', 3000, 'amount', 5000);
     });
 
-    // Filters and Sorting
     document.getElementById('adviceFilterSymbol')?.addEventListener('change', (e) => {
       state.adviceSettings.filterSymbol = e.target.value;
       state.adviceSettings.page = 1;
