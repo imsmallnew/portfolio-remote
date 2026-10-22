@@ -355,6 +355,9 @@
 
     if (gateError) gateError.style.display = 'none';
 
+    const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+    const canonicalCurrent = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(currentPid) : currentPid;
+
     // 1. 未登入且未手動解鎖管理員
     if (!user && !state.manualAdminUnlocked) {
       state.authMode = 'view';
@@ -363,9 +366,8 @@
       if (headerSignIn) headerSignIn.style.display = 'inline-flex';
 
       // 檢查若造訪非 main 組合且為私人不公開組合時提示
-      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
-      if (currentPid !== 'main') {
-        const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(currentPid);
+      if (canonicalCurrent !== 'main') {
+        const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(canonicalCurrent);
         if (check && check.exists && check.isPrivate) {
           showTopCenterToast('該投資組合狀態為：不公開，請登入擁有者帳號檢視', 'info', 3000);
         }
@@ -388,7 +390,6 @@
       const urlParams = new URLSearchParams(window.location.search);
       const rawUrlId = urlParams.get('id');
       const isDefaultNoId = !rawUrlId || rawUrlId.trim() === '';
-      const canonicalCurrent = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(currentPid) : currentPid;
 
       // 檢查 URL 路由規則 (需求 1):
       // A. 若不是 Daniel 帳號且目前進入無 id 參數的預設首頁（例如手動移除 ?id=xxx），自動引導到其專屬投資組合 ?id=andy
@@ -423,6 +424,10 @@
         userAvatar.src = user.photoURL;
         userAvatar.style.display = 'block';
         if (userPlaceholder) userPlaceholder.style.display = 'none';
+        userAvatar.onerror = () => {
+          userAvatar.style.display = 'none';
+          if (userPlaceholder) userPlaceholder.style.display = 'flex';
+        };
       } else if (userPlaceholder) {
         const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
         userPlaceholder.textContent = initial;
@@ -475,7 +480,7 @@
       }
     }
 
-    const pid = window.cloudStore?.currentPortfolioId || 'main';
+    const pid = currentPid;
     if (menuPid) {
       menuPid.textContent = pid;
     }
