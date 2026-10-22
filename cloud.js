@@ -6,7 +6,8 @@
 (function () {
   const CloudStore = {
     isConfigured: false,
-    currentUser: null,
+    currentUser: undefined,
+    authInitialized: false,
     userRole: 'unauthorized', // 'owner' | 'viewer' | 'unauthorized'
     currentVersion: 0,
     currentPortfolioId: 'main',
@@ -57,6 +58,7 @@
         // 捕捉跳轉登入結果 (例如手機瀏覽器跳轉回來)
         this.auth.getRedirectResult().then(async (result) => {
           if (result && result.user) {
+            this.authInitialized = true;
             this.currentUser = result.user;
             await this.resolveUserRole(result.user.email);
             this.emitAuth(this.currentUser, this.userRole);
@@ -65,8 +67,9 @@
           console.warn("getRedirectResult 注意:", err);
         });
 
-        // 監聽身分驗證變化
+        // 監聽身分驗證變化 (等待 Firebase 載入 IndexedDB 憑證)
         this.auth.onAuthStateChanged(async (user) => {
+          this.authInitialized = true;
           this.currentUser = user;
           if (user) {
             await this.resolveUserRole(user.email);
@@ -303,7 +306,7 @@
 
     onAuthChange(callback) {
       this.listeners.onAuth.push(callback);
-      if (this.currentUser !== undefined) {
+      if (this.authInitialized) {
         callback(this.currentUser, this.userRole);
       }
     },

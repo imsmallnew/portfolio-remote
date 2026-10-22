@@ -362,22 +362,12 @@
       if (userMenuWrapper) userMenuWrapper.style.display = 'none';
       if (headerSignIn) headerSignIn.style.display = 'inline-flex';
 
+      // 檢查若造訪非 main 組合且為私人不公開組合時提示
       const currentPid = window.cloudStore?.currentPortfolioId || 'main';
       if (currentPid !== 'main') {
         const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(currentPid);
-        if (!check || !check.exists) {
-          showTopCenterToast('找不到對應id, 將引導到首頁', 'error', 3000);
-          setTimeout(() => {
-            window.location.replace(window.location.pathname);
-          }, 1500);
-          return;
-        }
-        if (check.isPrivate) {
-          showTopCenterToast('該投資組合狀態為：不公開', 'error', 3000);
-          setTimeout(() => {
-            window.location.replace(window.location.pathname);
-          }, 1500);
-          return;
+        if (check && check.exists && check.isPrivate) {
+          showTopCenterToast('該投資組合狀態為：不公開，請登入擁有者帳號檢視', 'info', 3000);
         }
       }
 
