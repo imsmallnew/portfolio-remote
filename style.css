@@ -951,10 +951,16 @@ body {
   left: 44px;
   z-index: 5;
   background: var(--bg-surface);
-  min-width: 160px;
+  width: 84px;
+  min-width: 76px;
+  max-width: 92px;
+  box-sizing: border-box;
   box-shadow: 4px 0 8px -3px rgba(0, 0, 0, 0.45);
   border-bottom: 1px solid var(--border-subtle);
   border-right: 1px solid var(--border-subtle);
+  text-align: center;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
 }
 
 #holdingsTable thead th.col-symbol {
@@ -965,6 +971,14 @@ body {
   background: var(--bg-surface-elevated) !important;
   border-bottom: 1px solid var(--border-medium);
   border-right: 1px solid var(--border-subtle);
+  text-align: center;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+#holdingsTable tfoot td.col-drag,
+#holdingsTable tfoot td.col-symbol {
+  background: var(--bg-surface-elevated) !important;
 }
 
 #holdingsTable tbody tr:hover .col-drag,
@@ -987,9 +1001,53 @@ body {
   background: var(--bg-surface);
 }
 
+#holdingsTable .col-name {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
+  #holdingsTable .col-drag {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+  #holdingsTable thead th.col-drag {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 0.72rem;
+  }
   #holdingsTable .col-symbol {
-    min-width: 140px;
+    left: 32px !important;
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 72px !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    text-align: center;
+  }
+  #holdingsTable thead th.col-symbol {
+    left: 32px !important;
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 72px !important;
+    font-size: 0.74rem;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    text-align: center;
+  }
+  #holdingsTable .col-symbol .symbol-badge {
+    font-size: 0.85rem;
+  }
+  #holdingsTable .col-name {
+    min-width: 125px;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 }
 
@@ -1043,6 +1101,48 @@ body {
 
 .symbol-cell.is-clickable:hover {
   background: var(--primary-blue-subtle);
+}
+
+.symbol-badge-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.symbol-badge-cell.is-clickable {
+  cursor: pointer;
+}
+
+.symbol-badge-cell.is-clickable:hover {
+  background: var(--primary-blue-subtle);
+}
+
+.symbol-name-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.symbol-name-cell.is-clickable {
+  cursor: pointer;
+}
+
+.symbol-name-cell.is-clickable:hover {
+  background: var(--primary-blue-subtle);
+}
+
+.symbol-name-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .symbol-badge {

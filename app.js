@@ -2165,7 +2165,7 @@
     }
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="14" class="text-center" style="padding: 36px; color: var(--text-tertiary);">無符合條件之持有標的</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 36px; color: var(--text-tertiary);">無符合條件之持有標的</td></tr>`;
       if (tfoot) tfoot.innerHTML = '';
       return;
     }
@@ -2189,13 +2189,17 @@
           <td class="col-drag" title="${canDrag ? '按住拖動上下調整排序' : '切換為「自訂拖動排序」後即可拖動'}">
             <span class="drag-handle">⋮⋮</span>
           </td>
-          <td class="col-symbol">
-            <div class="symbol-cell is-clickable" onclick="window.fubonApp.openTvModal('${sym}')" title="點擊查看 TradingView 即時走勢與指標">
+          <td class="col-symbol text-center">
+            <div class="symbol-badge-cell is-clickable" onclick="window.fubonApp.openTvModal('${sym}')" title="點擊查看 TradingView 即時走勢與指標">
               <span class="symbol-badge">${sym}</span>
-              <div>
+            </div>
+          </td>
+          <td class="col-name">
+            <div class="symbol-name-cell is-clickable" onclick="window.fubonApp.openTvModal('${sym}')" title="點擊查看 TradingView 即時走勢與指標">
+              <div class="symbol-name-title">
                 <span class="symbol-name">${escapeHtml(h.name)}</span>${h.coreHolding ? ' <span class="core-holding-mark" title="主力核心">⭐</span>' : ''}
-                ${h.tvSymbol ? `<span class="tv-mini-tag">📈 ${escapeHtml(h.tvSymbol)}</span>` : ''}
               </div>
+              ${h.tvSymbol ? `<span class="tv-mini-tag">📈 ${escapeHtml(h.tvSymbol)}</span>` : ''}
             </div>
           </td>
           <td class="col-type">
@@ -2284,7 +2288,8 @@
 
       tfoot.innerHTML = `
         <tr>
-          <td></td>
+          <td class="col-drag"></td>
+          <td class="col-symbol"></td>
           <td colspan="7" class="text-left"><strong>${catLabel}合計 (顯示 ${list.length} 檔)</strong></td>
           <td class="text-right mono">NT$ ${formatMoney(filteredCostTwd)}</td>
           <td class="text-right mono text-gradient-cyan">NT$ ${formatMoney(filteredMarketValueTwd)}</td>
