@@ -91,9 +91,8 @@
       if (!email) return false;
       const lower = email.toLowerCase().trim();
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
-      return lower === 'imsmallnew@gmail.com' || 
-             lower === 'danielkuo1004@gmail.com' ||
-             (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lower);
+      return lower === 'imsmallnew@gmail.com' ||
+        (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lower);
     },
 
     getUserSlug(email) {
@@ -149,7 +148,7 @@
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
       const pid = this.currentPortfolioId || 'main';
 
-      // 系統最高管理員 (Daniel: imsmallnew@gmail.com, danielkuo1004@gmail.com 或 localAcl.ownerEmail)
+      // 系統最高管理員 (Daniel: imsmallnew@gmail.com 或 localAcl.ownerEmail)
       const isSystemAdmin = this.isDanielUser(lowerEmail);
 
       if (isSystemAdmin) {
@@ -444,10 +443,10 @@
       if (!isOwner) {
         throw new Error("僅系統擁有者具備修改授權名單權限");
       }
-      const cleanViewers = Array.isArray(viewers) 
+      const cleanViewers = Array.isArray(viewers)
         ? viewers.map(v => (v || '').toLowerCase().trim()).filter(Boolean)
         : [];
-      
+
       const owner = (window.REMOTE_ACCESS_CONFIG?.ownerEmail || this.currentUser?.email || '').toLowerCase().trim();
       await this.db.collection('access').doc('main').set({
         owner: owner,
@@ -519,7 +518,7 @@
     async approveWhitelistRequest(requestId, email) {
       if (!this.isConfigured || !this.db) throw new Error("Firebase 尚未配置");
       const cleanEmail = (email || '').toLowerCase().trim();
-      
+
       // 1. 取得目前 access/main 的 viewers
       const acl = await this.loadAcl();
       const currentViewers = acl.viewers || [];
