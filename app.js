@@ -47,6 +47,7 @@
     },
     holdings: {},
     lastUpdated: '',
+    isPrivate: false,
 
     // Auth Mode: 'view' (Visitor View-Only) or 'admin' (Admin Edit Mode)
     manualAdminUnlocked: sessionStorage.getItem('fubon_manual_admin') === '1',
@@ -329,7 +330,18 @@
     });
   }
 
-  function handleRemoteAuthChange(user, role) {
+  function updatePrivacyUi() {
+    const btn = document.getElementById('menuBtnTogglePrivacy');
+    const icon = document.getElementById('menuPrivacyIcon');
+    const text = document.getElementById('menuPrivacyText');
+    if (!btn) return;
+    const isPriv = !!state.isPrivate;
+    if (icon) icon.textContent = isPriv ? '🔒' : '🌐';
+    if (text) text.textContent = isPriv ? '隱私設定：不公開 (私密)' : '隱私設定：公開 (他人可搜尋)';
+    btn.title = isPriv ? '目前為不公開狀態，點擊切換為公開' : '目前為公開狀態，點擊切換為不公開';
+  }
+
+  async function handleRemoteAuthChange(user, role) {
     const gateOverlay = document.getElementById('authGateOverlay');
     const gateError = document.getElementById('authGateError');
     const userMenuWrapper = document.getElementById('userMenuWrapper');
@@ -339,6 +351,7 @@
     const menuEmail = document.getElementById('menuUserEmail');
     const menuPid = document.getElementById('menuPortfolioId');
     const menuBtnAcl = document.getElementById('menuBtnManageAcl');
+    const menuBtnTogglePrivacy = document.getElementById('menuBtnTogglePrivacy');
 
     if (gateError) gateError.style.display = 'none';
 
@@ -348,6 +361,25 @@
       if (gateOverlay) gateOverlay.style.display = 'flex'; // 預設顯示登入/註冊畫面
       if (userMenuWrapper) userMenuWrapper.style.display = 'none';
       if (headerSignIn) headerSignIn.style.display = 'inline-flex';
+
+      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+      if (currentPid !== 'main') {
+        const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(currentPid);
+        if (!check || !check.exists) {
+          showTopCenterToast('找不到對應id, 將引導到首頁', 'error', 3000);
+          setTimeout(() => {
+            window.location.replace(window.location.pathname);
+          }, 1500);
+          return;
+        }
+        if (check.isPrivate) {
+          showTopCenterToast('該投資組合狀態為：不公開', 'error', 3000);
+          setTimeout(() => {
+            window.location.replace(window.location.pathname);
+          }, 1500);
+          return;
+        }
+      }
 
       applyAuthMode();
       loadAndSubscribeCloudData();
@@ -360,6 +392,37 @@
     if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
 
     if (user) {
+      const userEmail = (user.email || '').toLowerCase().trim();
+      const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
+      const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : userEmail.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+
+      // 檢查 URL 路由規則 (需求 1):
+      // A. 若不是 Daniel 帳號且目前在 main (例如預設進入或移除 ?id=xxx)，自動引導到其專屬投資組合 ?id=andy
+      if (!isDaniel && currentPid === 'main') {
+        window.location.replace('?id=' + encodeURIComponent(mySlug));
+        return;
+      }
+
+      // B. 若輸入其他 id (非 main 且非自己的 mySlug)
+      if (currentPid !== 'main' && currentPid !== mySlug) {
+        const check = await window.cloudStore.checkPortfolioExistsAndPrivacy(currentPid);
+        if (!check || !check.exists) {
+          showTopCenterToast('找不到對應id, 將引導到您的投資組合', 'error', 3000);
+          setTimeout(() => {
+            window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
+          }, 1500);
+          return;
+        }
+        if (check.isPrivate && check.owner !== userEmail && !isDaniel) {
+          showTopCenterToast('該投資組合狀態為：不公開，將引導到您的投資組合', 'error', 3000);
+          setTimeout(() => {
+            window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
+          }, 1500);
+          return;
+        }
+      }
+
       if (menuEmail) {
         menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
       }
@@ -374,8 +437,7 @@
         if (userAvatar) userAvatar.style.display = 'none';
       }
 
-      // 只有 Daniel (imsmallnew@gmail.com) 顯示「👥 授權名單」選項
-      const isDaniel = (user.email || '').toLowerCase().trim() === 'imsmallnew@gmail.com';
+      // 只有 Daniel 顯示「👥 授權名單」選項
       if (menuBtnAcl) {
         menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
       }
@@ -383,8 +445,6 @@
       // 訪客專屬空間捷徑與 Daniel 儀表板切換按鈕
       const menuBtnMy = document.getElementById('menuBtnMyPortfolio');
       const menuBtnDaniel = document.getElementById('menuBtnDanielPortfolio');
-      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
-      const mySlug = (user.email || '').split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
 
       if (menuBtnMy) {
         if (!isDaniel && mySlug && currentPid !== mySlug) {
@@ -397,12 +457,20 @@
       }
 
       if (menuBtnDaniel) {
-        menuBtnDaniel.style.display = (currentPid !== 'main') ? 'flex' : 'none';
+        menuBtnDaniel.style.display = (currentPid !== 'main' && isDaniel) ? 'flex' : 'none';
+      }
+
+      // 檢查是否為當前投資組合擁有者
+      const isOwner = (role === 'owner') || (window.cloudStore?.isCurrentPortfolioOwner && window.cloudStore.isCurrentPortfolioOwner());
+
+      // 隱私設定按鈕 (僅擁有者顯示)
+      if (menuBtnTogglePrivacy) {
+        menuBtnTogglePrivacy.style.display = isOwner ? 'flex' : 'none';
+        updatePrivacyUi();
       }
 
       // 更新右上角「匯入 / 匯出」選單項目狀態
       const btnIo = document.getElementById('menuBtnImportExport');
-      const isOwner = (role === 'owner') || (window.cloudStore?.isCurrentPortfolioOwner && window.cloudStore.isCurrentPortfolioOwner());
       if (btnIo) {
         if (isOwner) {
           btnIo.innerHTML = '<span>📦</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-emerald" style="margin-left:auto; font-size:0.7rem;">可維護</span>';
@@ -505,14 +573,23 @@
   }
 
   function applyLoadedData(src) {
+    const pid = window.cloudStore?.currentPortfolioId || 'main';
     state.usdRate = src.usdRate || 32.51;
     state.baselineRealizedPl = src.baselineRealizedPl !== undefined ? Number(src.baselineRealizedPl) : 0.0;
     state.baselineDividendIncome = src.baselineDividendIncome !== undefined ? Number(src.baselineDividendIncome) : 0.0;
     state.dashboardTitle = src.dashboardTitle || state.dashboardTitle;
-    state.quotes = src.quotes || DEFAULT_QUOTES;
-    state.transactions = src.transactions || [];
-    state.realizedRecords = src.realizedRecords || [];
-    state.dividendRecords = src.dividendRecords || [];
+    state.isPrivate = !!src.isPrivate;
+
+    // 獨立標的清單：非 main 組合不使用 Daniel 的預設清單，各自獨立
+    if (pid === 'main') {
+      state.quotes = (src.quotes && Object.keys(src.quotes).length > 0) ? src.quotes : { ...DEFAULT_QUOTES };
+    } else {
+      state.quotes = (src.quotes && typeof src.quotes === 'object') ? src.quotes : {};
+    }
+
+    state.transactions = Array.isArray(src.transactions) ? src.transactions : [];
+    state.realizedRecords = Array.isArray(src.realizedRecords) ? src.realizedRecords : [];
+    state.dividendRecords = Array.isArray(src.dividendRecords) ? src.dividendRecords : [];
     const incomingRes = src.fundReserves || {};
     // 確保生活支出明細 expenseItems 存在 (未設定時為空陣列)
     let expenseItems = Array.isArray(incomingRes.expenseItems) ? incomingRes.expenseItems : [];
@@ -582,16 +659,18 @@
     state.lastUpdated = src.lastUpdated || new Date().toLocaleString('zh-TW');
     state.version = src.version || 1;
 
-    // Merge default quotes for symbols missing metadata
-    for (const [sym, q] of Object.entries(DEFAULT_QUOTES)) {
-      if (!state.quotes[sym]) {
-        state.quotes[sym] = { ...q };
-      } else {
-        if (!state.quotes[sym].category) state.quotes[sym].category = q.category;
-        if (!state.quotes[sym].name) state.quotes[sym].name = q.name;
-        if (!state.quotes[sym].tvSymbol && q.tvSymbol) state.quotes[sym].tvSymbol = q.tvSymbol;
-        if (typeof state.quotes[sym].order !== 'number') state.quotes[sym].order = q.order;
-        if (!state.quotes[sym].nightPrice) state.quotes[sym].nightPrice = state.quotes[sym].price;
+    // Merge default quotes for symbols missing metadata (僅限 Daniel main 組合)
+    if (pid === 'main') {
+      for (const [sym, q] of Object.entries(DEFAULT_QUOTES)) {
+        if (!state.quotes[sym]) {
+          state.quotes[sym] = { ...q };
+        } else {
+          if (!state.quotes[sym].category) state.quotes[sym].category = q.category;
+          if (!state.quotes[sym].name) state.quotes[sym].name = q.name;
+          if (!state.quotes[sym].tvSymbol && q.tvSymbol) state.quotes[sym].tvSymbol = q.tvSymbol;
+          if (typeof state.quotes[sym].order !== 'number') state.quotes[sym].order = q.order;
+          if (!state.quotes[sym].nightPrice) state.quotes[sym].nightPrice = state.quotes[sym].price;
+        }
       }
     }
 
@@ -601,6 +680,7 @@
     populateSymbolSelects();
     recalculatePortfolio();
     updateUi();
+    updatePrivacyUi();
   }
 
   function setupDemoMode() {
@@ -619,13 +699,14 @@
 
   function loadLocalOrEmbedded() {
     const pid = window.cloudStore?.currentPortfolioId || 'main';
-    state.quotes = { ...DEFAULT_QUOTES };
+    state.quotes = (pid === 'main') ? { ...DEFAULT_QUOTES } : {};
     state.usdRate = 32.51;
     state.baselineRealizedPl = 0.0;
     state.baselineDividendIncome = 0.0;
     state.transactions = [];
     state.realizedRecords = [];
     state.dividendRecords = [];
+    state.isPrivate = false;
 
     if (pid !== 'main') {
       // 專屬投資組合（未建立或未同步前）所有資料預設歸零
@@ -686,7 +767,8 @@
 
   function saveStateToLocal() {
     if (!state.savedAt) state.savedAt = Date.now();
-    localStorage.setItem('fubon_portfolio_data', JSON.stringify({
+    const pid = window.cloudStore?.currentPortfolioId || 'main';
+    localStorage.setItem(`fubon_portfolio_data_${pid}`, JSON.stringify({
       dashboardTitle: state.dashboardTitle,
       usdRate: state.usdRate,
       baselineRealizedPl: state.baselineRealizedPl,
@@ -696,6 +778,7 @@
       realizedRecords: state.realizedRecords,
       dividendRecords: state.dividendRecords,
       fundReserves: state.fundReserves,
+      isPrivate: !!state.isPrivate,
       lastUpdated: state.lastUpdated,
       savedAt: state.savedAt,
       version: state.version || 1
@@ -716,7 +799,8 @@
       "transactions",
       "realizedRecords",
       "dividendRecords",
-      "fundReserves"
+      "fundReserves",
+      "isPrivate"
     ];
     const targetKeys = keysToSave || allKeys;
     for (const key of targetKeys) {
@@ -4655,6 +4739,29 @@
     }, 3500);
   }
 
+  // 21.1 Top-Center Toast Notification (水平向上置中提示)
+  function showTopCenterToast(msg, type = 'error', duration = 3000) {
+    const container = document.getElementById('topCenterToastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast-top-center toast-${type}`;
+
+    let icon = '⚠️';
+    if (type === 'success') icon = '✅';
+    if (type === 'info') icon = 'ℹ️';
+
+    toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(msg)}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-20px)';
+      toast.style.transition = '0.35s ease';
+      setTimeout(() => toast.remove(), 350);
+    }, duration);
+  }
+
   // 22. Event Listeners Setup
   function setupEventListeners() {
     // Tab switching
@@ -5472,7 +5579,6 @@
     const btnCancel = document.getElementById('btnSwitchPortfolioCancel');
     const form = document.getElementById('switchPortfolioForm');
     const inputId = document.getElementById('inputCustomPortfolioId');
-    const quickList = document.getElementById('quickPortfolioList');
     const btnInit = document.getElementById('btnInitNewPortfolio');
 
     // Header User Avatar Dropdown
@@ -5552,47 +5658,11 @@
 
 
 
-    const renderQuickList = () => {
-      if (!quickList) return;
-      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
-      const userPortfolios = window.cloudStore?.listUserPortfolios?.() || [
-        { id: 'main', name: '👑 Daniel 核心投資儀表板 (預設)' }
-      ];
-
-      // 從 localStorage 讀取近期造訪清單
-      let recent = [];
-      try {
-        recent = JSON.parse(localStorage.getItem('fubon_recent_portfolios') || '[]');
-      } catch (e) { }
-
-      const combined = [...userPortfolios];
-      recent.forEach(rId => {
-        if (!combined.some(item => item.id.toLowerCase() === rId.toLowerCase())) {
-          combined.push({ id: rId, name: `📌 近期造訪：${rId}` });
-        }
-      });
-
-      quickList.innerHTML = combined.map(item => {
-        const isCurrent = item.id.toLowerCase() === currentPid.toLowerCase();
-        return `
-          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface); border:1px solid ${isCurrent ? 'var(--primary)' : 'var(--border-subtle)'}; border-radius:var(--radius-sm); padding:6px 10px; font-size:0.85rem;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:600; color:${isCurrent ? 'var(--primary)' : 'var(--text-primary)'};">${escapeHtml(item.name || item.id)}</span>
-              <span class="mono" style="color:var(--text-tertiary); font-size:0.75rem;">(?id=${escapeHtml(item.id)})</span>
-            </div>
-            ${isCurrent ?
-            `<span class="tag-badge" style="background:var(--primary-subtle); color:var(--primary);">目前使用中</span>` :
-            `<button type="button" class="btn btn-secondary btn-xs" style="padding:2px 8px;" onclick="window.fubonApp.switchToPortfolio('${escapeHtml(item.id)}')">前往切換</button>`
-          }
-          </div>
-        `;
-      }).join('');
-    };
-
     const openModal = () => {
       document.getElementById('userDropdownMenu')?.classList.remove('show');
       btnUserMenu?.classList.remove('active');
-      renderQuickList();
+      const errBox = document.getElementById('switchPortfolioError');
+      if (errBox) errBox.style.display = 'none';
       if (inputId) {
         inputId.value = window.cloudStore?.currentPortfolioId === 'main' ? '' : (window.cloudStore?.currentPortfolioId || '');
       }
@@ -5608,17 +5678,87 @@
     btnClose?.addEventListener('click', closeModal);
     btnCancel?.addEventListener('click', closeModal);
 
-    form?.addEventListener('submit', (e) => {
+    // 隱私設定（不公開／公開）切換
+    document.getElementById('menuBtnTogglePrivacy')?.addEventListener('click', async () => {
+      userDropdown?.classList.remove('show');
+      btnUserMenu?.classList.remove('active');
+      const newStatus = !state.isPrivate;
+      try {
+        await window.cloudStore.setPortfolioPrivacy(newStatus);
+        state.isPrivate = newStatus;
+        saveStateToLocal();
+        updatePrivacyUi();
+        showNotification(newStatus ? '已將此投資組合設為【不公開 🔒】' : '已將此投資組合設為【公開 🌐】', 'success');
+      } catch (err) {
+        alert('修改隱私設定失敗：' + (err.message || err));
+      }
+    });
+
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const errBox = document.getElementById('switchPortfolioError');
+      const errText = document.getElementById('switchPortfolioErrorText');
+      const submitBtn = document.getElementById('btnSubmitSwitchPortfolio');
+      if (errBox) errBox.style.display = 'none';
+
       const targetId = (inputId?.value || '').trim().toLowerCase();
       if (!targetId) return;
 
       if (!/^[\w\u4e00-\u9fa5_-]{1,30}$/.test(targetId)) {
-        alert('投資組合 ID 僅限 1~30 個英文字母、數字、中文、底線或連字號！');
+        if (errBox && errText) {
+          errText.textContent = '投資組合 ID 僅限 1~30 個英文字母、數字、中文、底線或連字號！';
+          errBox.style.display = 'flex';
+        }
         return;
       }
 
-      window.fubonApp.switchToPortfolio(targetId);
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '檢查中...';
+      }
+
+      try {
+        const user = window.cloudStore?.currentUser;
+        const userEmail = (user?.email || '').toLowerCase().trim();
+        const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
+        const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : '';
+
+        // 若為切換到自己已擁有的組合或是 Daniel 進入 main
+        if ((targetId === 'main' && isDaniel) || (mySlug && targetId === mySlug)) {
+          window.fubonApp.switchToPortfolio(targetId);
+          return;
+        }
+
+        // 檢查目標 ID 是否存在及隱私狀態
+        const check = await window.cloudStore.checkPortfolioExistsAndPrivacy(targetId);
+        if (!check || !check.exists) {
+          if (errBox && errText) {
+            errText.textContent = '該ID不存在';
+            errBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        if (check.isPrivate && check.owner !== userEmail && !isDaniel) {
+          if (errBox && errText) {
+            errText.textContent = '該投資組合狀態為：不公開';
+            errBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        window.fubonApp.switchToPortfolio(targetId);
+      } catch (err) {
+        if (errBox && errText) {
+          errText.textContent = '查詢失敗：' + (err.message || err);
+          errBox.style.display = 'flex';
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '前往切換';
+        }
+      }
     });
 
     // 處理全新 Portfolio 的建立按鈕
@@ -5647,10 +5787,11 @@
           version: 1,
           owner: window.cloudStore.currentUser.email,
           dashboardTitle: `${pid.toUpperCase()} 投資儀表板`,
-          quotes: JSON.parse(JSON.stringify(DEFAULT_QUOTES)),
+          quotes: {},
           transactions: [],
           realizedRecords: [],
           dividendRecords: [],
+          isPrivate: false,
           fundReserves: {
             livingReserveTwd: 0,
             investCapitalTwd: 0,

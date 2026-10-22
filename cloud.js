@@ -87,6 +87,59 @@
       }
     },
 
+    isDanielUser(email) {
+      if (!email) return false;
+      const lower = email.toLowerCase().trim();
+      const localAcl = window.REMOTE_ACCESS_CONFIG || {};
+      return lower === 'imsmallnew@gmail.com' || 
+             lower === 'danielkuo1004@gmail.com' ||
+             (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lower);
+    },
+
+    getUserSlug(email) {
+      if (!email) return 'main';
+      if (this.isDanielUser(email)) return 'main';
+      return email.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '') || 'guest';
+    },
+
+    async checkPortfolioExistsAndPrivacy(pid) {
+      if (!pid || pid === 'main') {
+        return { exists: true, isPrivate: false, owner: 'imsmallnew@gmail.com' };
+      }
+      if (!this.db) {
+        return { exists: false, error: 'Firebase 尚未連線' };
+      }
+      try {
+        const docSnap = await this.db.collection('portfolios').doc(pid).get();
+        if (!docSnap.exists) {
+          return { exists: false };
+        }
+        const data = docSnap.data() || {};
+        return {
+          exists: true,
+          isPrivate: !!data.isPrivate,
+          owner: (data.owner || '').toLowerCase().trim(),
+          title: data.dashboardTitle || '',
+          data: data
+        };
+      } catch (err) {
+        console.warn(`checkPortfolioExistsAndPrivacy [${pid}] 失敗:`, err);
+        return { exists: false, error: err.message };
+      }
+    },
+
+    async setPortfolioPrivacy(isPrivate) {
+      if (!this.isConfigured || !this.db) {
+        throw new Error("Firebase 尚未配置");
+      }
+      const pid = this.currentPortfolioId || 'main';
+      await this.db.collection('portfolios').doc(pid).set({
+        isPrivate: !!isPrivate,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return !!isPrivate;
+    },
+
     async resolveUserRole(email) {
       if (!email) {
         this.userRole = 'unauthorized';
@@ -96,9 +149,8 @@
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
       const pid = this.currentPortfolioId || 'main';
 
-      // 系統最高管理員 (Daniel: imsmallnew@gmail.com 或 localAcl.ownerEmail)
-      const isSystemAdmin = lowerEmail === 'imsmallnew@gmail.com' || 
-        (localAcl.ownerEmail && localAcl.ownerEmail.toLowerCase().trim() === lowerEmail);
+      // 系統最高管理員 (Daniel: imsmallnew@gmail.com, danielkuo1004@gmail.com 或 localAcl.ownerEmail)
+      const isSystemAdmin = this.isDanielUser(lowerEmail);
 
       if (isSystemAdmin) {
         this.userRole = 'owner';
@@ -161,9 +213,16 @@
             this.userRole = 'unauthorized';
             return;
           } else {
-            // Document 尚不存在：當前登入者前往此自訂 ID，可作為此專屬組合之建立者 (Owner) 進入維護自己的資料！
-            this.portfolioOwnerEmail = lowerEmail;
-            this.userRole = 'owner';
+            // Document 尚不存在：
+            // 只有當 pid 等於使用者的專屬 slug 時，才作為此專屬組合之建立者 (Owner)
+            const mySlug = this.getUserSlug(lowerEmail);
+            if (pid === mySlug) {
+              this.portfolioOwnerEmail = lowerEmail;
+              this.userRole = 'owner';
+              return;
+            }
+            // 若為不存在的其它自訂 ID (例如 ?id=123)，視為 unauthorized
+            this.userRole = 'unauthorized';
             return;
           }
         }
@@ -178,15 +237,17 @@
       if (!this.currentUser || !this.currentUser.email) return false;
       const userEmail = (this.currentUser.email || '').toLowerCase().trim();
       const pid = this.currentPortfolioId || 'main';
-      const localAcl = window.REMOTE_ACCESS_CONFIG || {};
-      const mainOwner = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
 
       if (pid === 'main') {
-        return userEmail === mainOwner || userEmail === 'imsmallnew@gmail.com';
+        return this.isDanielUser(userEmail);
       }
       const targetOwner = (this.portfolioOwnerEmail || '').toLowerCase().trim();
       if (targetOwner) {
-        return userEmail === targetOwner;
+        return userEmail === targetOwner || this.isDanielUser(userEmail);
+      }
+      const mySlug = this.getUserSlug(userEmail);
+      if (pid === mySlug) {
+        return true;
       }
       return this.userRole === 'owner';
     },

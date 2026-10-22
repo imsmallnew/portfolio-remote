@@ -159,6 +159,12 @@
               <span>匯入 / 匯出</span>
             </button>
 
+            <!-- 隱私設定 (不公開 / 公開) 切換 -->
+            <button type="button" class="user-dropdown-item" id="menuBtnTogglePrivacy" style="display:none;" title="切換目前投資組合的隱私設定">
+              <span id="menuPrivacyIcon">🌐</span>
+              <span id="menuPrivacyText">隱私設定：公開 (他人可搜尋)</span>
+            </button>
+
             <div class="user-dropdown-divider"></div>
 
             <!-- 登出 -->
@@ -1797,36 +1803,30 @@
       </div>
     </div>
 
-    <!-- Switch / Create Portfolio Modal -->
+    <!-- Switch / View Portfolio Modal -->
     <div class="modal-backdrop" id="switchPortfolioModalBackdrop">
       <div class="modal-card modal-sm">
         <div class="modal-header">
-          <h3 class="modal-title">🗂️ 切換或建立投資組合</h3>
+          <h3 class="modal-title">🗂️ 切換查看投資組合</h3>
           <button class="modal-close-btn" id="btnSwitchPortfolioClose">&times;</button>
         </div>
         <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
           <p class="modal-desc" style="margin-bottom:0;">
-            每位使用者可透過網址參數 <code>?id=xxx</code> 建立專屬投資儀表板。只有該組合擁有者具備編輯權限，其他人僅可檢視。
+            請輸入欲查看的投資組合 ID。僅已設定為「公開」之投資組合可供其他使用者檢視。
           </p>
-
-          <div
-            style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px;">
-            <div style="font-weight:600; font-size:0.85rem; margin-bottom:8px; color:var(--text-secondary);">快速切換推薦：
-            </div>
-            <div id="quickPortfolioList" style="display:flex; flex-direction:column; gap:6px;">
-              <!-- Injected via JS -->
-            </div>
-          </div>
 
           <form id="switchPortfolioForm">
             <label for="inputCustomPortfolioId"
-              style="font-weight:600; font-size:0.85rem; margin-bottom:6px; display:block;">前往自訂投資組合 ID：</label>
+              style="font-weight:600; font-size:0.85rem; margin-bottom:6px; display:block;">投資組合 ID：</label>
             <div style="display:flex; gap:8px;">
               <input type="text" id="inputCustomPortfolioId" class="input-sm" style="flex:1;"
-                placeholder="例如：alice, my_fund, 訪客id" required maxlength="30">
-              <button type="submit" class="btn btn-primary btn-sm">前往切換</button>
+                placeholder="例如：main, andy, alice..." required maxlength="30">
+              <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitSwitchPortfolio">前往切換</button>
             </div>
-            <span class="form-tip" style="margin-top:4px;">支援英文字母、數字、中文、底線與連字號（1~30字）</span>
+            <div id="switchPortfolioError" style="display:none; color:#ef4444; font-size:0.85rem; font-weight:600; margin-top:8px; display:flex; align-items:center; gap:6px;">
+              <span>⚠️</span><span id="switchPortfolioErrorText"></span>
+            </div>
+            <span class="form-tip" style="margin-top:6px; display:block;">支援英文字母、數字、中文、底線與連字號（1~30字）</span>
           </form>
         </div>
         <div class="modal-footer">
@@ -1835,7 +1835,10 @@
       </div>
     </div>
 
-    <!-- Toast Notification Container -->
+    <!-- Top-Center Toast Container (水平向上置中提示) -->
+    <div id="topCenterToastContainer" class="toast-container-top-center"></div>
+
+    <!-- Standard Toast Notification Container (右下角) -->
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- Remote Access Auth Gate Overlay (Login & Whitelist Registration Gate) -->
