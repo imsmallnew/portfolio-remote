@@ -385,18 +385,21 @@
       const userEmail = (user.email || '').toLowerCase().trim();
       const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
       const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : userEmail.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
-      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+      const urlParams = new URLSearchParams(window.location.search);
+      const rawUrlId = urlParams.get('id');
+      const isDefaultNoId = !rawUrlId || rawUrlId.trim() === '';
+      const canonicalCurrent = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(currentPid) : currentPid;
 
       // 檢查 URL 路由規則 (需求 1):
-      // A. 若不是 Daniel 帳號且目前在 main (例如預設進入或移除 ?id=xxx)，自動引導到其專屬投資組合 ?id=andy
-      if (!isDaniel && currentPid === 'main') {
+      // A. 若不是 Daniel 帳號且目前進入無 id 參數的預設首頁（例如手動移除 ?id=xxx），自動引導到其專屬投資組合 ?id=andy
+      if (!isDaniel && isDefaultNoId) {
         window.location.replace('?id=' + encodeURIComponent(mySlug));
         return;
       }
 
-      // B. 若輸入其他 id (非 main 且非自己的 mySlug)
-      if (currentPid !== 'main' && currentPid !== mySlug) {
-        const check = await window.cloudStore.checkPortfolioExistsAndPrivacy(currentPid);
+      // B. 若輸入其他 id (非自己的 mySlug)
+      if (canonicalCurrent !== mySlug) {
+        const check = await window.cloudStore.checkPortfolioExistsAndPrivacy(canonicalCurrent);
         if (!check || !check.exists) {
           showTopCenterToast('找不到對應id, 將引導到您的投資組合', 'error', 3000);
           setTimeout(() => {
@@ -5654,7 +5657,7 @@
       const errBox = document.getElementById('switchPortfolioError');
       if (errBox) errBox.style.display = 'none';
       if (inputId) {
-        inputId.value = window.cloudStore?.currentPortfolioId === 'main' ? '' : (window.cloudStore?.currentPortfolioId || '');
+        inputId.value = ''; // 投資組合切換預設清空
       }
       if (modal) modal.classList.add('show');
     };
@@ -5691,10 +5694,10 @@
       const submitBtn = document.getElementById('btnSubmitSwitchPortfolio');
       if (errBox) errBox.style.display = 'none';
 
-      const targetId = (inputId?.value || '').trim().toLowerCase();
-      if (!targetId) return;
+      const rawInput = (inputId?.value || '').trim();
+      if (!rawInput) return;
 
-      if (!/^[\w\u4e00-\u9fa5_-]{1,30}$/.test(targetId)) {
+      if (!/^[\w\u4e00-\u9fa5_-]{1,30}$/.test(rawInput)) {
         if (errBox && errText) {
           errText.textContent = '投資組合 ID 僅限 1~30 個英文字母、數字、中文、底線或連字號！';
           errBox.style.display = 'flex';
@@ -5712,10 +5715,11 @@
         const userEmail = (user?.email || '').toLowerCase().trim();
         const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
         const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : '';
+        const targetId = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(rawInput) : rawInput.toLowerCase();
 
         // 若為切換到自己已擁有的組合或是 Daniel 進入 main
         if ((targetId === 'main' && isDaniel) || (mySlug && targetId === mySlug)) {
-          window.fubonApp.switchToPortfolio(targetId);
+          window.fubonApp.switchToPortfolio(rawInput);
           return;
         }
 
@@ -5737,7 +5741,7 @@
           return;
         }
 
-        window.fubonApp.switchToPortfolio(targetId);
+        window.fubonApp.switchToPortfolio(rawInput);
       } catch (err) {
         if (errBox && errText) {
           errText.textContent = '查詢失敗：' + (err.message || err);
@@ -5998,11 +6002,7 @@
       } catch (e) { }
 
       const url = new URL(window.location.href);
-      if (clean === 'main') {
-        url.searchParams.delete('id');
-      } else {
-        url.searchParams.set('id', clean);
-      }
+      url.searchParams.set('id', clean);
       window.location.href = url.toString();
     }
   };

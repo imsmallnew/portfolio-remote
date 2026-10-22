@@ -20,19 +20,22 @@
       onData: []
     },
 
+    canonicalPid(rawId) {
+      if (!rawId) return 'main';
+      let id = decodeURIComponent(String(rawId)).trim();
+      const lowerId = id.toLowerCase();
+      if (lowerId === 'daniel' || lowerId === 'imsmallnew' || lowerId === 'main' || lowerId === '') {
+        return 'main';
+      }
+      // 支援中文字、英數字、底線與連字號，長度不超過 30 字元
+      const cleanId = id.replace(/[^\w\u4e00-\u9fa5_-]/g, '').slice(0, 30);
+      return cleanId || 'main';
+    },
+
     getPortfolioIdFromUrl() {
       try {
         const params = new URLSearchParams(window.location.search);
-        let rawId = params.get('id');
-        if (!rawId) return 'main';
-        let id = decodeURIComponent(rawId).trim();
-        const lowerId = id.toLowerCase();
-        if (lowerId === 'daniel' || lowerId === 'imsmallnew' || lowerId === 'main' || lowerId === '') {
-          return 'main';
-        }
-        // 支援中文字、英數字、底線與連字號，長度不超過 30 字元
-        const cleanId = id.replace(/[^\w\u4e00-\u9fa5_-]/g, '').slice(0, 30);
-        return cleanId || 'main';
+        return this.canonicalPid(params.get('id'));
       } catch (e) {
         return 'main';
       }
@@ -104,23 +107,25 @@
       return email.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '') || 'guest';
     },
 
-    async checkPortfolioExistsAndPrivacy(pid) {
-      if (!pid || pid === 'main') {
-        return { exists: true, isPrivate: false, owner: 'imsmallnew@gmail.com' };
-      }
+    async checkPortfolioExistsAndPrivacy(rawPid) {
+      const pid = this.canonicalPid(rawPid);
       if (!this.db) {
         return { exists: false, error: 'Firebase 尚未連線' };
       }
       try {
         const docSnap = await this.db.collection('portfolios').doc(pid).get();
         if (!docSnap.exists) {
+          // 若 main 尚未建立文件，視為預設公開
+          if (pid === 'main') {
+            return { exists: true, isPrivate: false, owner: 'imsmallnew@gmail.com' };
+          }
           return { exists: false };
         }
         const data = docSnap.data() || {};
         return {
           exists: true,
           isPrivate: !!data.isPrivate,
-          owner: (data.owner || '').toLowerCase().trim(),
+          owner: (data.owner || 'imsmallnew@gmail.com').toLowerCase().trim(),
           title: data.dashboardTitle || '',
           data: data
         };
@@ -134,7 +139,7 @@
       if (!this.isConfigured || !this.db) {
         throw new Error("Firebase 尚未配置");
       }
-      const pid = this.currentPortfolioId || 'main';
+      const pid = this.canonicalPid(this.currentPortfolioId || 'main');
       await this.db.collection('portfolios').doc(pid).set({
         isPrivate: !!isPrivate,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
