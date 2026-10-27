@@ -79,6 +79,10 @@
     realizedFilterSymbol: 'all',
     dividendFilterSymbol: 'all',
 
+    // Core vs Satellite Analytics UI
+    csMarketFilter: 'all', // 'all', 'tw', 'us'
+    csSort: 'pl', // 'pl' (未實現損益) or 'cost' (總成本)
+
     // Investment Advice UI & Settings
     adviceSettings: {
       profitType: localStorage.getItem('fubon_advice_profit_type') || 'pct', // 'pct' or 'amount'
@@ -2762,8 +2766,199 @@
     }
   }
 
+  // Core vs Satellite Breakdown (主力 vs 衛星配置分析)
+  function renderCoreSatelliteAnalytics() {
+    const section = document.getElementById('coreSatelliteSection');
+    if (!section) return;
+
+    // Get active holdings with positive shares
+    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
+
+    // Apply market filter: 'all', 'tw', 'us'
+    const market = state.csMarketFilter || 'all';
+    let filtered = allActive;
+    if (market === 'tw') {
+      filtered = allActive.filter(h => h.category === 'tw_stock' || h.category === 'tw_etf' || h.currency === 'TWD');
+    } else if (market === 'us') {
+      filtered = allActive.filter(h => h.category === 'us' || h.currency === 'USD');
+    }
+
+    // Split into Core and Satellite
+    const coreList = filtered.filter(h => !!h.coreHolding);
+    const satList = filtered.filter(h => !h.coreHolding);
+
+    // Totals
+    const totalCostAll = filtered.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const totalPlAll = filtered.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
+    const totalMvAll = filtered.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+
+    const coreCost = coreList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const corePl = coreList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
+    const coreMv = coreList.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+
+    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const satPl = satList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
+    const satMv = satList.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+
+    // Percentage of Cost
+    const coreCostPct = totalCostAll > 0 ? ((coreCost / totalCostAll) * 100).toFixed(1) : '0.0';
+    const satCostPct = totalCostAll > 0 ? ((satCost / totalCostAll) * 100).toFixed(1) : '0.0';
+
+    const coreRoiPct = coreCost > 0 ? ((corePl / coreCost) * 100).toFixed(2) : '0.00';
+    const satRoiPct = satCost > 0 ? ((satPl / satCost) * 100).toFixed(2) : '0.00';
+
+    // Update Top Overview labels and bar
+    const coreCostSummary = document.getElementById('csCoreCostSummary');
+    const corePlSummary = document.getElementById('csCorePlSummary');
+    const satCostSummary = document.getElementById('csSatCostSummary');
+    const satPlSummary = document.getElementById('csSatPlSummary');
+    const barCore = document.getElementById('csRatioBarCore');
+    const barSat = document.getElementById('csRatioBarSat');
+
+    if (coreCostSummary) coreCostSummary.textContent = `NT$ ${formatMoney(coreCost)} (${coreCostPct}%)`;
+    if (corePlSummary) {
+      const sign = corePl > 0 ? '+' : '';
+      corePlSummary.textContent = `${sign}NT$ ${formatMoney(corePl)} (${sign}${coreRoiPct}%)`;
+      corePlSummary.className = `cs-ratio-pl mono ${getValClass(corePl)}`;
+    }
+
+    if (satCostSummary) satCostSummary.textContent = `NT$ ${formatMoney(satCost)} (${satCostPct}%)`;
+    if (satPlSummary) {
+      const sign = satPl > 0 ? '+' : '';
+      satPlSummary.textContent = `${sign}NT$ ${formatMoney(satPl)} (${sign}${satRoiPct}%)`;
+      satPlSummary.className = `cs-ratio-pl mono ${getValClass(satPl)}`;
+    }
+
+    if (barCore && barSat) {
+      barCore.style.width = `${coreCostPct}%`;
+      barSat.style.width = `${satCostPct}%`;
+    }
+
+    // Column Header Stats
+    const coreCountText = document.getElementById('csCoreCountText');
+    const coreCostVal = document.getElementById('csCoreCostVal');
+    const corePlVal = document.getElementById('csCorePlVal');
+    const satCountText = document.getElementById('csSatCountText');
+    const satCostVal = document.getElementById('csSatCostVal');
+    const satPlVal = document.getElementById('csSatPlVal');
+
+    if (coreCountText) coreCountText.textContent = `${coreList.length} 檔 (${coreCostPct}%)`;
+    if (coreCostVal) coreCostVal.textContent = `NT$ ${formatMoney(coreCost)}`;
+    if (corePlVal) {
+      const sign = corePl > 0 ? '+' : '';
+      corePlVal.textContent = `${sign}NT$ ${formatMoney(corePl)} (${sign}${coreRoiPct}%)`;
+      corePlVal.className = `mono ${getValClass(corePl)}`;
+    }
+
+    if (satCountText) satCountText.textContent = `${satList.length} 檔 (${satCostPct}%)`;
+    if (satCostVal) satCostVal.textContent = `NT$ ${formatMoney(satCost)}`;
+    if (satPlVal) {
+      const sign = satPl > 0 ? '+' : '';
+      satPlVal.textContent = `${sign}NT$ ${formatMoney(satPl)} (${sign}${satRoiPct}%)`;
+      satPlVal.className = `mono ${getValClass(satPl)}`;
+    }
+
+    // Sort Lists (未實現損益 或 總成本 由大到小排序)
+    const sortBy = state.csSort || 'pl';
+    if (sortBy === 'cost') {
+      coreList.sort((a, b) => (b.investedCostTwd || 0) - (a.investedCostTwd || 0));
+      satList.sort((a, b) => (b.investedCostTwd || 0) - (a.investedCostTwd || 0));
+    } else {
+      // Sort by unrealized pl desc (由大到小)
+      coreList.sort((a, b) => (b.unrealizedPlTwd || 0) - (a.unrealizedPlTwd || 0));
+      satList.sort((a, b) => (b.unrealizedPlTwd || 0) - (a.unrealizedPlTwd || 0));
+    }
+
+    // Render Holdings in Core Column
+    const coreContainer = document.getElementById('csCoreHoldingsList');
+    if (coreContainer) {
+      if (coreList.length === 0) {
+        coreContainer.innerHTML = '<div class="cs-empty-state">無符合篩選條件之主力核心標的</div>';
+      } else {
+        const maxVal = sortBy === 'cost'
+          ? Math.max(...coreList.map(h => h.investedCostTwd || 0), 1)
+          : Math.max(...coreList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
+
+        coreContainer.innerHTML = coreList.map((h, idx) => renderCsHoldingItem(h, idx + 1, coreCost, totalCostAll, maxVal, sortBy, true)).join('');
+      }
+    }
+
+    // Render Holdings in Satellite Column
+    const satContainer = document.getElementById('csSatHoldingsList');
+    if (satContainer) {
+      if (satList.length === 0) {
+        satContainer.innerHTML = '<div class="cs-empty-state">無符合篩選條件之衛星配置標的</div>';
+      } else {
+        const maxVal = sortBy === 'cost'
+          ? Math.max(...satList.map(h => h.investedCostTwd || 0), 1)
+          : Math.max(...satList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
+
+        satContainer.innerHTML = satList.map((h, idx) => renderCsHoldingItem(h, idx + 1, satCost, totalCostAll, maxVal, sortBy, false)).join('');
+      }
+    }
+
+    // Update Pill Buttons Active State
+    document.querySelectorAll('#csMarketFilters .cs-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.market === market);
+    });
+    document.querySelectorAll('#csSortFilters .cs-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sort === sortBy);
+    });
+  }
+
+  function renderCsHoldingItem(h, rank, groupCost, totalCost, maxVal, sortBy, isCore) {
+    const sym = escapeHtml(h.symbol);
+    const name = escapeHtml(h.name || '');
+    const cost = h.investedCostTwd || 0;
+    const pl = h.unrealizedPlTwd || 0;
+    const roi = h.roiPct || 0;
+
+    const costPctInGroup = groupCost > 0 ? ((cost / groupCost) * 100).toFixed(1) : '0.0';
+    const costPctInTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : '0.0';
+
+    const plSign = pl > 0 ? '+' : '';
+    const plClass = getValClass(pl);
+
+    let barWidth = 0;
+    if (sortBy === 'cost') {
+      barWidth = Math.min(100, Math.max(4, (cost / maxVal) * 100));
+    } else {
+      barWidth = Math.min(100, Math.max(4, (Math.abs(pl) / maxVal) * 100));
+    }
+
+    return `
+      <div class="cs-holding-item" data-symbol="${sym}">
+        <div class="cs-item-top">
+          <div class="cs-item-identity">
+            <span class="cs-item-rank mono font-semibold">#${rank}</span>
+            <span class="symbol-badge is-clickable" onclick="window.fubonApp.openTvModal('${sym}')" title="點擊查看 TradingView 即時走勢">${sym}</span>
+            <span class="symbol-name">${name}</span>
+            ${h.coreHolding ? '<span class="core-holding-mark" title="主力核心">⭐</span>' : ''}
+          </div>
+          <span class="tag-badge tag-${h.category}">${escapeHtml(h.type || '')}</span>
+        </div>
+        <div class="cs-item-metrics">
+          <div class="cs-metric-cell">
+            <span class="cs-cell-title">總投入成本</span>
+            <span class="cs-cell-main mono">NT$ ${formatMoney(cost)}</span>
+            <span class="cs-cell-sub mono">組內佔比 ${costPctInGroup}% (整體 ${costPctInTotal}%)</span>
+          </div>
+          <div class="cs-metric-cell text-right">
+            <span class="cs-cell-title">未實現損益</span>
+            <span class="cs-cell-main mono ${plClass}">${plSign}NT$ ${formatMoney(pl)}</span>
+            <span class="cs-cell-sub mono ${plClass}">報酬率 ${formatPercent(roi)}</span>
+          </div>
+        </div>
+        <div class="cs-bar-wrap">
+          <div class="cs-bar-inner ${isCore ? 'cs-bar-core' : 'cs-bar-sat'}" style="width: ${barWidth}%;"></div>
+        </div>
+      </div>
+    `;
+  }
+
   // 9. Visual Analytics Charts
   function renderAnalyticsCharts() {
+    renderCoreSatelliteAnalytics();
     renderCategoryDonut();
     renderSymbolDonut();
     renderPLBarChart();
@@ -5140,6 +5335,21 @@
     document.getElementById('dividendFilterSymbol')?.addEventListener('change', (e) => {
       state.dividendFilterSymbol = e.target.value;
       renderDividendTable();
+    });
+
+    // Core vs Satellite Analytics Filters
+    document.getElementById('csMarketFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cs-pill-btn');
+      if (!btn) return;
+      state.csMarketFilter = btn.dataset.market;
+      renderCoreSatelliteAnalytics();
+    });
+
+    document.getElementById('csSortFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cs-pill-btn');
+      if (!btn) return;
+      state.csSort = btn.dataset.sort;
+      renderCoreSatelliteAnalytics();
     });
 
     // Transactions Pagination

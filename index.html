@@ -800,6 +800,108 @@
               </div>
             </div>
           </div>
+
+          <!-- Core vs Satellite Breakdown (主力 vs 衛星配置分析) -->
+          <div class="core-satellite-section" id="coreSatelliteSection">
+            <div class="cs-section-header">
+              <div class="cs-title-group">
+                <span class="cs-header-icon">⚖️</span>
+                <div>
+                  <h4 class="cs-title">證券持股：主力核心 vs 衛星配置損益分析</h4>
+                  <p class="cs-subtitle">即時行情連動 · 依成本與未實現損益排序 · ⭐ 主力核心與衛星配置比重</p>
+                </div>
+              </div>
+
+              <div class="cs-controls-group">
+                <!-- Market Filter (全部 / 台股 / 美股) -->
+                <div class="cs-filter-pills" id="csMarketFilters">
+                  <button type="button" class="cs-pill-btn active" data-market="all">全部標的</button>
+                  <button type="button" class="cs-pill-btn" data-market="tw">台股</button>
+                  <button type="button" class="cs-pill-btn" data-market="us">美股</button>
+                </div>
+
+                <!-- Sort Toggle (未實現損益 / 總成本) -->
+                <div class="cs-sort-group">
+                  <span class="cs-sort-label">排序：</span>
+                  <div class="cs-filter-pills" id="csSortFilters">
+                    <button type="button" class="cs-pill-btn active" data-sort="pl">未實現損益 ▾</button>
+                    <button type="button" class="cs-pill-btn" data-sort="cost">總成本 ▾</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Overall Core vs Satellite Ratio Bar -->
+            <div class="cs-ratio-overview">
+              <div class="cs-ratio-labels">
+                <div class="cs-ratio-label-core">
+                  <span class="cs-badge-dot core-dot"></span>
+                  <strong>⭐ 主力核心：</strong>
+                  <span class="mono" id="csCoreCostSummary">NT$ -- (--%)</span>
+                  <span class="cs-ratio-pl mono" id="csCorePlSummary">+NT$ -- (+--%)</span>
+                </div>
+                <div class="cs-ratio-label-sat">
+                  <span class="cs-badge-dot sat-dot"></span>
+                  <strong>🛰️ 衛星配置：</strong>
+                  <span class="mono" id="csSatCostSummary">NT$ -- (--%)</span>
+                  <span class="cs-ratio-pl mono" id="csSatPlSummary">+NT$ -- (+--%)</span>
+                </div>
+              </div>
+              <div class="cs-ratio-bar-track">
+                <div class="cs-ratio-bar-fill core-fill" id="csRatioBarCore" style="width: 50%;"></div>
+                <div class="cs-ratio-bar-fill sat-fill" id="csRatioBarSat" style="width: 50%;"></div>
+              </div>
+            </div>
+
+            <!-- Two-Column Breakdown (Core on Left, Satellite on Right) -->
+            <div class="cs-columns-grid">
+              <!-- Column 1: Core Holdings -->
+              <div class="cs-column-card cs-core-card">
+                <div class="cs-column-header">
+                  <div class="cs-col-title-wrap">
+                    <span class="cs-col-badge badge-core">⭐ 主力核心</span>
+                    <span class="cs-col-count" id="csCoreCountText">0 檔</span>
+                  </div>
+                  <div class="cs-col-totals">
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總成本</span>
+                      <strong class="mono" id="csCoreCostVal">NT$ 0</strong>
+                    </div>
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">未實現損益</span>
+                      <strong class="mono" id="csCorePlVal">NT$ 0</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="cs-holdings-list" id="csCoreHoldingsList">
+                  <!-- Dynamically injected -->
+                </div>
+              </div>
+
+              <!-- Column 2: Satellite Holdings -->
+              <div class="cs-column-card cs-sat-card">
+                <div class="cs-column-header">
+                  <div class="cs-col-title-wrap">
+                    <span class="cs-col-badge badge-sat">🛰️ 衛星配置</span>
+                    <span class="cs-col-count" id="csSatCountText">0 檔</span>
+                  </div>
+                  <div class="cs-col-totals">
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總成本</span>
+                      <strong class="mono" id="csSatCostVal">NT$ 0</strong>
+                    </div>
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">未實現損益</span>
+                      <strong class="mono" id="csSatPlVal">NT$ 0</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="cs-holdings-list" id="csSatHoldingsList">
+                  <!-- Dynamically injected -->
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="analytics-grid">
