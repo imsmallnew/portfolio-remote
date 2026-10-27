@@ -628,13 +628,21 @@
         <div class="toolbar-card">
           <div class="toolbar-left flex-wrap">
             <div class="summary-pill-highlight">
-              <span>歷史已實現損益累計：</span>
+              <span id="realizedSummaryLabel">歷史已實現損益累計：</span>
               <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="realizedSummaryText">NT$
                 67,493</strong>
+            </div>
+
+            <div class="form-group-inline">
+              <label for="realizedFilterSymbol">標的：</label>
+              <select id="realizedFilterSymbol" class="select-sm">
+                <option value="all">所有標的</option>
+              </select>
             </div>
           </div>
 
           <div class="toolbar-right">
+            <span class="tx-stats-text" id="realizedStatsCount">顯示 0 筆結算</span>
             <button class="btn btn-primary btn-sm admin-only" id="btnAddRealized">
               <span>+ 新增已實現結算紀錄</span>
             </button>
@@ -646,7 +654,7 @@
             <table class="data-table" id="realizedTable">
               <thead>
                 <tr>
-                  <th>結算日期</th>
+                  <th title="依結算日期遞減排序（最新在前）">結算日期 ▾</th>
                   <th>標的代號 / 名稱</th>
                   <th class="text-right">賣出股數</th>
                   <th class="text-right">成交賣價</th>
@@ -674,13 +682,21 @@
         <div class="toolbar-card">
           <div class="toolbar-left flex-wrap">
             <div class="summary-pill-highlight">
-              <span>歷史總配息收入累計：</span>
+              <span id="dividendSummaryLabel">歷史總配息收入累計：</span>
               <strong class="val-up mono font-semibold" style="font-size:1.1rem;" id="dividendSummaryText">NT$
                 10,967</strong>
+            </div>
+
+            <div class="form-group-inline">
+              <label for="dividendFilterSymbol">標的：</label>
+              <select id="dividendFilterSymbol" class="select-sm">
+                <option value="all">所有標的</option>
+              </select>
             </div>
           </div>
 
           <div class="toolbar-right">
+            <span class="tx-stats-text" id="dividendStatsCount">顯示 0 筆發放</span>
             <button class="btn btn-primary btn-sm admin-only" id="btnAddDividend">
               <span>+ 新增配息紀錄</span>
             </button>
@@ -692,7 +708,7 @@
             <table class="data-table" id="dividendTable">
               <thead>
                 <tr>
-                  <th>發放/除息日</th>
+                  <th title="依發放/除息日遞減排序（最新在前）">發放/除息日 ▾</th>
                   <th>標的代號 / 名稱</th>
                   <th>配息型態</th>
                   <th class="text-right">每股配息</th>

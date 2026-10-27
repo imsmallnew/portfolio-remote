@@ -75,6 +75,10 @@
     txPage: 1,
     txPerPage: 50,
 
+    // Realized & Dividend UI Filters
+    realizedFilterSymbol: 'all',
+    dividendFilterSymbol: 'all',
+
     // Investment Advice UI & Settings
     adviceSettings: {
       profitType: localStorage.getItem('fubon_advice_profit_type') || 'pct', // 'pct' or 'amount'
@@ -2497,24 +2501,83 @@
   }
 
   // 7. Render Realized P/L Table (已實現損益紀錄)
+  function populateRealizedSymbolFilter() {
+    const select = document.getElementById('realizedFilterSymbol');
+    if (!select) return;
+    const currentVal = state.realizedFilterSymbol || 'all';
+
+    const counts = {};
+    const symNames = {};
+    for (const r of (state.realizedRecords || [])) {
+      if (!r.symbol) continue;
+      counts[r.symbol] = (counts[r.symbol] || 0) + 1;
+      if (!symNames[r.symbol]) {
+        symNames[r.symbol] = r.name || state.quotes[r.symbol]?.name || r.symbol;
+      }
+    }
+
+    const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+    let opts = `<option value="all">所有標的 (${state.realizedRecords?.length || 0} 筆結算)</option>`;
+    for (const sym of symbols) {
+      const name = symNames[sym];
+      const count = counts[sym];
+      const selected = sym === currentVal ? 'selected' : '';
+      opts += `<option value="${escapeHtml(sym)}" ${selected}>${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)</option>`;
+    }
+    select.innerHTML = opts;
+    select.value = symbols.includes(currentVal) ? currentVal : 'all';
+  }
+
   function renderRealizedTable() {
     const tbody = document.getElementById('realizedTableBody');
     const tfoot = document.getElementById('realizedTableFoot');
     const sumEl = document.getElementById('realizedSummaryText');
+    const sumLabel = document.getElementById('realizedSummaryLabel');
+    const statsEl = document.getElementById('realizedStatsCount');
     if (!tbody) return;
 
-    const records = state.realizedRecords || [];
-    let totalRealized = 0;
+    populateRealizedSymbolFilter();
 
-    if (records.length === 0) {
+    let allRecords = [...(state.realizedRecords || [])];
+    // Sort DESC by date (最新結算在最上方)
+    allRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const currentFilter = state.realizedFilterSymbol || 'all';
+    const filteredRecords = currentFilter === 'all'
+      ? allRecords
+      : allRecords.filter(r => r.symbol === currentFilter);
+
+    if (statsEl) {
+      statsEl.textContent = currentFilter === 'all'
+        ? `顯示全部 ${allRecords.length} 筆結算`
+        : `顯示 ${filteredRecords.length} / ${allRecords.length} 筆結算 (${currentFilter})`;
+    }
+
+    if (allRecords.length === 0) {
       tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 36px; color: var(--text-tertiary);">目前尚無已實現結算紀錄</td></tr>`;
       if (tfoot) tfoot.innerHTML = '';
+      if (sumEl) sumEl.textContent = 'NT$ 0';
+      if (sumLabel) sumLabel.textContent = '歷史已實現損益累計：';
       return;
     }
 
+    if (filteredRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 36px; color: var(--text-tertiary);">標的「${escapeHtml(currentFilter)}」尚無已實現結算紀錄</td></tr>`;
+      if (tfoot) tfoot.innerHTML = '';
+      if (sumEl) sumEl.textContent = 'NT$ 0';
+      return;
+    }
+
+    let filteredRealizedTwd = 0;
+    let filteredCostTwd = 0;
+    let totalShares = 0;
+
     let rowsHtml = '';
-    for (const r of records) {
-      totalRealized += (r.realizedPlTwd || 0);
+    for (const r of filteredRecords) {
+      filteredRealizedTwd += (r.realizedPlTwd || 0);
+      filteredCostTwd += (r.cost || (r.buyPrice * r.shares) || 0);
+      totalShares += (r.shares || 0);
+
       const plClass = getValClass(r.realizedPlTwd);
       const sign = (r.realizedPlTwd || 0) > 0 ? '+' : '';
 
@@ -2522,7 +2585,7 @@
         <tr>
           <td class="mono">${r.date || '--'}</td>
           <td>
-            <span class="symbol-badge">${escapeHtml(r.symbol)}</span>
+            <span class="symbol-badge is-clickable" onclick="window.fubonApp.filterRealizedBy('${escapeHtml(r.symbol)}')" title="點擊切換篩選「${escapeHtml(r.symbol)}」表現">${escapeHtml(r.symbol)}</span>
             <span class="symbol-name">${escapeHtml(r.name || '')}</span>
           </td>
           <td class="text-right mono">${formatShares(r.shares)}</td>
@@ -2541,45 +2604,121 @@
     }
 
     tbody.innerHTML = rowsHtml;
-    if (sumEl) sumEl.textContent = `NT$ ${formatMoney(totalRealized)}`;
+
+    // Summary Pill Update
+    const overallRoi = filteredCostTwd > 0 ? (filteredRealizedTwd / filteredCostTwd) * 100 : 0;
+    const sign = filteredRealizedTwd > 0 ? '+' : '';
+
+    if (sumLabel) {
+      sumLabel.textContent = currentFilter === 'all'
+        ? '歷史已實現損益累計：'
+        : `${currentFilter} 累計已實現損益：`;
+    }
+    if (sumEl) {
+      sumEl.textContent = `${sign}NT$ ${formatMoney(filteredRealizedTwd)}`;
+      sumEl.className = `${getValClass(filteredRealizedTwd)} mono font-semibold`;
+    }
 
     if (tfoot) {
+      const labelText = currentFilter === 'all'
+        ? `已實現損益累計合計 (${allRecords.length} 筆結算)`
+        : `${escapeHtml(currentFilter)} 已實現損益合計 (${filteredRecords.length} 筆結算)`;
+
       tfoot.innerHTML = `
         <tr>
-          <td colspan="6" class="text-left"><strong>已實現損益累計合計 (${records.length} 筆結算)</strong></td>
-          <td class="text-right mono font-semibold val-up">NT$ ${formatMoney(totalRealized)}</td>
-          <td colspan="3"></td>
+          <td colspan="2" class="text-left"><strong>${labelText}</strong></td>
+          <td class="text-right mono font-semibold">${formatShares(totalShares)}</td>
+          <td colspan="3" class="text-right text-muted" style="font-size:0.82rem;">總成本 NT$ ${formatMoney(filteredCostTwd)}</td>
+          <td class="text-right mono font-semibold ${getValClass(filteredRealizedTwd)}">${sign}NT$ ${formatMoney(filteredRealizedTwd)}</td>
+          <td class="text-right"><span class="kpi-badge ${getBadgeClass(filteredRealizedTwd)}">${formatPercent(overallRoi)}</span></td>
+          <td colspan="2"></td>
         </tr>
       `;
     }
   }
 
   // 8. Render Dividend Table (配息收入表)
+  function populateDividendSymbolFilter() {
+    const select = document.getElementById('dividendFilterSymbol');
+    if (!select) return;
+    const currentVal = state.dividendFilterSymbol || 'all';
+
+    const counts = {};
+    const symNames = {};
+    for (const d of (state.dividendRecords || [])) {
+      if (!d.symbol) continue;
+      counts[d.symbol] = (counts[d.symbol] || 0) + 1;
+      if (!symNames[d.symbol]) {
+        symNames[d.symbol] = d.name || state.quotes[d.symbol]?.name || d.symbol;
+      }
+    }
+
+    const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+    let opts = `<option value="all">所有標的 (${state.dividendRecords?.length || 0} 筆發放)</option>`;
+    for (const sym of symbols) {
+      const name = symNames[sym];
+      const count = counts[sym];
+      const selected = sym === currentVal ? 'selected' : '';
+      opts += `<option value="${escapeHtml(sym)}" ${selected}>${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)</option>`;
+    }
+    select.innerHTML = opts;
+    select.value = symbols.includes(currentVal) ? currentVal : 'all';
+  }
+
   function renderDividendTable() {
     const tbody = document.getElementById('dividendTableBody');
     const tfoot = document.getElementById('dividendTableFoot');
     const sumEl = document.getElementById('dividendSummaryText');
+    const sumLabel = document.getElementById('dividendSummaryLabel');
+    const statsEl = document.getElementById('dividendStatsCount');
     if (!tbody) return;
 
-    const records = state.dividendRecords || [];
-    let totalDividendTwd = 0;
+    populateDividendSymbolFilter();
 
-    if (records.length === 0) {
+    let allRecords = [...(state.dividendRecords || [])];
+    // Sort DESC by date (最新發放在最上方)
+    allRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const currentFilter = state.dividendFilterSymbol || 'all';
+    const filteredRecords = currentFilter === 'all'
+      ? allRecords
+      : allRecords.filter(d => d.symbol === currentFilter);
+
+    if (statsEl) {
+      statsEl.textContent = currentFilter === 'all'
+        ? `顯示全部 ${allRecords.length} 筆發放`
+        : `顯示 ${filteredRecords.length} / ${allRecords.length} 筆發放 (${currentFilter})`;
+    }
+
+    if (allRecords.length === 0) {
       tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 36px; color: var(--text-tertiary);">目前尚無配息收入紀錄</td></tr>`;
       if (tfoot) tfoot.innerHTML = '';
+      if (sumEl) sumEl.textContent = 'NT$ 0';
+      if (sumLabel) sumLabel.textContent = '歷史總配息收入累計：';
       return;
     }
 
+    if (filteredRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 36px; color: var(--text-tertiary);">標的「${escapeHtml(currentFilter)}」尚無配息收入紀錄</td></tr>`;
+      if (tfoot) tfoot.innerHTML = '';
+      if (sumEl) sumEl.textContent = 'NT$ 0';
+      return;
+    }
+
+    let filteredDividendTwd = 0;
+    let totalShares = 0;
+
     let rowsHtml = '';
-    for (const d of records) {
+    for (const d of filteredRecords) {
       const amtTwd = d.currency === 'USD' ? (d.amount * state.usdRate) : (d.amount || 0);
-      totalDividendTwd += amtTwd;
+      filteredDividendTwd += amtTwd;
+      totalShares += (d.shares || 0);
 
       rowsHtml += `
         <tr>
           <td class="mono">${d.date || '--'}</td>
           <td>
-            <span class="symbol-badge">${escapeHtml(d.symbol)}</span>
+            <span class="symbol-badge is-clickable" onclick="window.fubonApp.filterDividendBy('${escapeHtml(d.symbol)}')" title="點擊切換篩選「${escapeHtml(d.symbol)}」配息表現">${escapeHtml(d.symbol)}</span>
             <span class="symbol-name">${escapeHtml(d.name || '')}</span>
           </td>
           <td><span class="tag-badge tag-tw_etf">${escapeHtml(d.type || '現金股利')}</span></td>
@@ -2598,13 +2737,25 @@
     }
 
     tbody.innerHTML = rowsHtml;
-    if (sumEl) sumEl.textContent = `NT$ ${formatMoney(totalDividendTwd)}`;
+
+    if (sumLabel) {
+      sumLabel.textContent = currentFilter === 'all'
+        ? '歷史總配息收入累計：'
+        : `${currentFilter} 累計配息收入：`;
+    }
+    if (sumEl) sumEl.textContent = `NT$ ${formatMoney(filteredDividendTwd)}`;
 
     if (tfoot) {
+      const labelText = currentFilter === 'all'
+        ? `總配息收入累計合計 (${allRecords.length} 筆發放)`
+        : `${escapeHtml(currentFilter)} 配息收入合計 (${filteredRecords.length} 筆發放)`;
+
       tfoot.innerHTML = `
         <tr>
-          <td colspan="7" class="text-left"><strong>總配息收入累計合計 (${records.length} 筆發放)</strong></td>
-          <td class="text-right mono font-semibold val-up">NT$ ${formatMoney(totalDividendTwd)}</td>
+          <td colspan="4" class="text-left"><strong>${labelText}</strong></td>
+          <td class="text-right mono font-semibold">${formatShares(totalShares)}</td>
+          <td colspan="2"></td>
+          <td class="text-right mono font-semibold val-up">NT$ ${formatMoney(filteredDividendTwd)}</td>
           <td colspan="2"></td>
         </tr>
       `;
@@ -3924,6 +4075,9 @@
       }
       realSelect.innerHTML = realOpts;
     }
+
+    populateRealizedSymbolFilter();
+    populateDividendSymbolFilter();
   }
 
   function openAddTxModal(initialSymbol = null, initialAction = null) {
@@ -4976,6 +5130,18 @@
       renderTransactionsTable();
     });
 
+    // Realized P/L Symbol Filter
+    document.getElementById('realizedFilterSymbol')?.addEventListener('change', (e) => {
+      state.realizedFilterSymbol = e.target.value;
+      renderRealizedTable();
+    });
+
+    // Dividend Symbol Filter
+    document.getElementById('dividendFilterSymbol')?.addEventListener('change', (e) => {
+      state.dividendFilterSymbol = e.target.value;
+      renderDividendTable();
+    });
+
     // Transactions Pagination
     document.getElementById('btnPagePrev')?.addEventListener('click', () => {
       if (state.txPage > 1) {
@@ -5995,6 +6161,18 @@
     openAddRealizedModal: () => openAddRealizedModal(),
     editRealizedRecord: (id) => openEditRealizedModal(id),
     deleteRealizedRecord: (id) => deleteRealizedRecord(id),
+    filterRealizedBy: (sym) => {
+      state.realizedFilterSymbol = (state.realizedFilterSymbol === sym) ? 'all' : (sym || 'all');
+      const sel = document.getElementById('realizedFilterSymbol');
+      if (sel) sel.value = state.realizedFilterSymbol;
+      renderRealizedTable();
+    },
+    filterDividendBy: (sym) => {
+      state.dividendFilterSymbol = (state.dividendFilterSymbol === sym) ? 'all' : (sym || 'all');
+      const sel = document.getElementById('dividendFilterSymbol');
+      if (sel) sel.value = state.dividendFilterSymbol;
+      renderDividendTable();
+    },
     deleteExpenseItem: (idx) => deleteExpenseItemRow(idx),
     deleteDcaItem: (idx) => deleteDcaItemRow(idx),
     openImportExportModal: () => {

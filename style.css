@@ -1152,6 +1152,18 @@ body {
   color: var(--text-primary);
 }
 
+.symbol-badge.is-clickable {
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.symbol-badge.is-clickable:hover {
+  background: var(--primary-blue-subtle);
+  color: var(--primary-blue-light);
+}
+
 .symbol-name {
   font-size: 0.78rem;
   color: var(--text-secondary);
