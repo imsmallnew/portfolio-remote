@@ -3693,3 +3693,421 @@ body {
   color: var(--text-tertiary);
   font-size: 0.85rem;
 }
+
+/* ==========================================================================
+   Transactions Table - Additional FIFO & Sell Columns
+   ========================================================================== */
+.col-tx-fifo { min-width: 95px; }
+.col-tx-sell-price { min-width: 95px; }
+.col-tx-proceeds { min-width: 110px; }
+.col-tx-cost { min-width: 105px; }
+.col-tx-pl { min-width: 105px; }
+
+/* ==========================================================================
+   Core vs Satellite Ratio Simulator (比例模擬器)
+   ========================================================================== */
+.cs-simulator-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-simulator-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #a855f7);
+}
+
+.cs-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cs-sim-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs-sim-icon {
+  font-size: 1.4rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.cs-sim-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cs-sim-desc {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin: 2px 0 0;
+}
+
+.cs-sim-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cs-preset-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.cs-preset-btn {
+  font-family: inherit;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.cs-preset-btn.active {
+  background: var(--primary-blue);
+  color: #ffffff;
+  border-color: var(--primary-blue);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+.cs-sim-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cs-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cs-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.86rem;
+}
+
+.cs-slider-badge {
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.cs-slider-badge.core-badge {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.cs-slider-badge.sat-badge {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.cs-slider-ratio {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+}
+
+.cs-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #06b6d4, #3b82f6 50%, #8b5cf6 80%, #ec4899);
+  outline: none;
+  cursor: pointer;
+  margin: 6px 0;
+}
+
+.cs-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--primary-blue);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), 0 0 6px rgba(59, 130, 246, 0.8);
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+
+.cs-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.cs-range-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+}
+
+.cs-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  padding: 0 4px;
+}
+
+.cs-sim-targets-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr;
+  gap: 14px;
+}
+
+@media (max-width: 920px) {
+  .cs-sim-targets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cs-sim-target-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-sim-target-box.box-core {
+  border-left: 3px solid #06b6d4;
+}
+
+.cs-sim-target-box.box-sat {
+  border-left: 3px solid #a855f7;
+}
+
+.target-box-title {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+}
+
+.target-box-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.target-box-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.cs-sim-rebalance-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rebalance-box-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rebalance-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.rebalance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rebalance-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rebalance-msg {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.val-highlight {
+  color: #fbbf24;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
+}
+
+.val-highlight:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fef08a;
+}
+
+.btn-rebalance-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+/* ==========================================================================
+   Satellite Rebalance Planner Modal (衛星標的規劃彈窗)
+   ========================================================================== */
+.modal-xl {
+  max-width: 1100px;
+  width: 96%;
+}
+
+.rebal-kpi-banner {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 680px) {
+  .rebal-kpi-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rebal-kpi-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rebal-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.rebal-kpi-title {
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.rebal-kpi-target {
+  color: var(--text-secondary);
+}
+
+.rebal-kpi-main {
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.rebal-kpi-status {
+  font-size: 0.84rem;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.rebal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rebal-toolbar-left,
+.rebal-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rebal-input {
+  width: 95px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  text-align: right;
+  transition: var(--transition-fast);
+}
+
+.rebal-input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
+.rebal-quick-btn {
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.rebal-quick-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+}
+

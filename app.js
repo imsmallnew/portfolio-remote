@@ -79,9 +79,12 @@
     realizedFilterSymbol: 'all',
     dividendFilterSymbol: 'all',
 
-    // Core vs Satellite Analytics UI
+    // Core vs Satellite Analytics UI & Rebalance Simulator
     csMarketFilter: 'all', // 'all', 'tw', 'us'
     csSort: 'pl', // 'pl' (未實現損益) or 'cost' (總成本)
+    rebalanceRatio: parseInt(localStorage.getItem('fubon_rebal_ratio') || '80', 10),
+    rebalancePlan: JSON.parse(localStorage.getItem('fubon_rebal_plan') || '{}'),
+    customRebalItems: JSON.parse(localStorage.getItem('fubon_custom_rebal') || '[]'),
 
     // Investment Advice UI & Settings
     adviceSettings: {
@@ -2452,7 +2455,7 @@
     if (btnNext) btnNext.disabled = state.txPage >= totalPages;
 
     if (pagedList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding: 36px; color: var(--text-tertiary);">無符合條件之買賣交易紀錄</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding: 36px; color: var(--text-tertiary);">無符合條件之買賣交易紀錄</td></tr>`;
       return;
     }
 
@@ -2464,44 +2467,168 @@
 
       const isSell = tx.action.includes('賣');
 
-      rowsHtml += `
-        <tr data-txid="${tx.id}">
-          <td class="col-tx-date mono">${tx.date}</td>
-          <td class="col-tx-symbol">
-            <span class="symbol-badge">${escapeHtml(tx.symbol)}</span>
-            <span class="symbol-name">${escapeHtml(tx.name || '')}</span>
-          </td>
-          <td class="col-tx-action">
-            <span class="tx-badge ${badgeClass}">${escapeHtml(tx.action)}</span>
-          </td>
-          <td class="col-tx-shares text-right mono font-semibold">
-            ${isSell ? '-' : '+'}${formatShares(tx.shares)}
-          </td>
-          <td class="col-tx-price text-right mono">
-            ${formatMoney(tx.price, 2)}
-          </td>
-          <td class="col-tx-amount text-right mono ${isSell ? 'val-up' : ''}">
-            ${isSell ? '+' : '-'}${formatMoney(tx.total_amount, 2)}
-          </td>
-          <td class="col-tx-curr text-center">
-            <span class="tag-badge">${tx.currency || 'TWD'}</span>
-          </td>
-          <td class="col-tx-linkage">
-            <span class="tx-linkage-tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              已連動持股
-            </span>
-          </td>
-          <td class="col-tx-actions text-center admin-only">
-            <div class="row-actions admin-only">
-              <button class="btn-table-action" onclick="window.fubonApp.openEditTxModal('${tx.id}')" title="編輯此筆交易">編輯</button>
-              <button class="btn-table-action text-danger" onclick="window.fubonApp.openDeleteTxModal('${tx.id}')" title="刪除此筆交易">刪除</button>
-            </div>
-          </td>
-        </tr>
-      `;
+      if (isSell) {
+        const info = getSellTransactionRealizedInfo(tx);
+        const pl = info.realizedPl || 0;
+        const plSign = pl > 0 ? '+' : '';
+        const plClass = getValClass(pl);
+
+        rowsHtml += `
+          <tr data-txid="${tx.id}">
+            <td class="col-tx-date mono">${tx.date}</td>
+            <td class="col-tx-symbol">
+              <span class="symbol-badge">${escapeHtml(tx.symbol)}</span>
+              <span class="symbol-name">${escapeHtml(tx.name || '')}</span>
+            </td>
+            <td class="col-tx-action">
+              <span class="tx-badge ${badgeClass}">${escapeHtml(tx.action)}</span>
+            </td>
+            <td class="col-tx-shares text-right mono font-semibold text-danger">
+              -${formatShares(tx.shares)}
+            </td>
+            <td class="col-tx-fifo text-right mono">
+              ${formatMoney(info.fifoPrice, 2)}
+            </td>
+            <td class="col-tx-sell-price text-right mono font-semibold">
+              ${formatMoney(info.sellPrice, 2)}
+            </td>
+            <td class="col-tx-proceeds text-right mono font-semibold val-up">
+              NT$ ${formatMoney(info.proceeds)}
+            </td>
+            <td class="col-tx-cost text-right mono">
+              NT$ ${formatMoney(info.cost)}
+            </td>
+            <td class="col-tx-pl text-right mono font-semibold ${plClass}">
+              ${plSign}NT$ ${formatMoney(pl)}
+            </td>
+            <td class="col-tx-curr text-center">
+              <span class="tag-badge">${tx.currency || 'TWD'}</span>
+            </td>
+            <td class="col-tx-actions text-center admin-only">
+              <div class="row-actions admin-only">
+                <button class="btn-table-action" onclick="window.fubonApp.openEditTxModal('${tx.id}')" title="編輯此筆交易">編輯</button>
+                <button class="btn-table-action text-danger" onclick="window.fubonApp.openDeleteTxModal('${tx.id}')" title="刪除此筆交易">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        // Buy / Regular DCA transaction
+        rowsHtml += `
+          <tr data-txid="${tx.id}">
+            <td class="col-tx-date mono">${tx.date}</td>
+            <td class="col-tx-symbol">
+              <span class="symbol-badge">${escapeHtml(tx.symbol)}</span>
+              <span class="symbol-name">${escapeHtml(tx.name || '')}</span>
+            </td>
+            <td class="col-tx-action">
+              <span class="tx-badge ${badgeClass}">${escapeHtml(tx.action)}</span>
+            </td>
+            <td class="col-tx-shares text-right mono font-semibold text-cyan">
+              +${formatShares(tx.shares)}
+            </td>
+            <td class="col-tx-fifo text-right mono font-semibold">
+              ${formatMoney(tx.price, 2)}
+            </td>
+            <td class="col-tx-sell-price text-right mono text-tertiary">
+              --
+            </td>
+            <td class="col-tx-proceeds text-right mono">
+              NT$ ${formatMoney(tx.total_amount)}
+            </td>
+            <td class="col-tx-cost text-right mono text-tertiary">
+              --
+            </td>
+            <td class="col-tx-pl text-right mono text-tertiary">
+              --
+            </td>
+            <td class="col-tx-curr text-center">
+              <span class="tag-badge">${tx.currency || 'TWD'}</span>
+            </td>
+            <td class="col-tx-actions text-center admin-only">
+              <div class="row-actions admin-only">
+                <button class="btn-table-action" onclick="window.fubonApp.openEditTxModal('${tx.id}')" title="編輯此筆交易">編輯</button>
+                <button class="btn-table-action text-danger" onclick="window.fubonApp.openDeleteTxModal('${tx.id}')" title="刪除此筆交易">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
     }
     tbody.innerHTML = rowsHtml;
+  }
+
+  // Helper: Retrieve matching realized & FIFO details for sell transaction
+  function getSellTransactionRealizedInfo(tx) {
+    if (!tx || !tx.action || !tx.action.includes('賣')) return {};
+
+    if (tx.sellPrice !== undefined && tx.buyPrice !== undefined && tx.cost !== undefined) {
+      const proceeds = tx.proceeds || (tx.sellPrice * tx.shares);
+      return {
+        fifoPrice: tx.buyPrice,
+        sellPrice: tx.sellPrice,
+        shares: tx.shares,
+        proceeds: proceeds,
+        cost: tx.cost,
+        realizedPl: tx.realizedPl !== undefined ? tx.realizedPl : (proceeds - tx.cost)
+      };
+    }
+
+    const reals = state.realizedRecords || [];
+    // 1. Exact match by date, symbol, shares
+    let r = reals.find(x =>
+      (x.date === tx.date || Math.abs(new Date(x.date) - new Date(tx.date)) <= 86400000 * 2) &&
+      (x.symbol === tx.symbol || x.name === tx.name || (tx.symbol === '領袖' && x.symbol === '00403A')) &&
+      Math.abs(x.shares - tx.shares) < 0.01
+    );
+    if (r) {
+      const proceeds = r.proceeds || (r.sellPrice * r.shares);
+      const cost = r.cost || (r.buyPrice * r.shares);
+      return {
+        fifoPrice: r.buyPrice,
+        sellPrice: r.sellPrice,
+        shares: r.shares,
+        proceeds: proceeds,
+        cost: cost,
+        realizedPl: r.realizedPl !== undefined ? r.realizedPl : (proceeds - cost)
+      };
+    }
+
+    // 2. Check if multiple realized sum to tx.shares on that date
+    const multi = reals.filter(x =>
+      (x.date === tx.date || Math.abs(new Date(x.date) - new Date(tx.date)) <= 86400000 * 2) &&
+      (x.symbol === tx.symbol || x.name === tx.name)
+    );
+    const sumShares = multi.reduce((s, x) => s + (x.shares || 0), 0);
+    if (Math.abs(sumShares - tx.shares) < 0.01 && multi.length > 0) {
+      const sumProc = multi.reduce((s, x) => s + (x.proceeds || (x.sellPrice * x.shares)), 0);
+      const sumCost = multi.reduce((s, x) => s + (x.cost || (x.buyPrice * x.shares)), 0);
+      const sumPl = multi.reduce((s, x) => s + (x.realizedPl !== undefined ? x.realizedPl : (x.proceeds - x.cost)), 0);
+      return {
+        fifoPrice: tx.shares > 0 ? (sumCost / tx.shares) : 0,
+        sellPrice: tx.shares > 0 ? (sumProc / tx.shares) : 0,
+        shares: tx.shares,
+        proceeds: sumProc,
+        cost: sumCost,
+        realizedPl: sumPl
+      };
+    }
+
+    // Fallback: estimate from tx.price as sell price and holding avgCost as FIFO
+    const h = (state.holdings && state.holdings[tx.symbol]) ? state.holdings[tx.symbol] : null;
+    const fifo = tx.fifoPrice || (h && h.avgCost > 0 ? h.avgCost : tx.price);
+    const sellPrice = tx.price;
+    const proceeds = tx.total_amount || (sellPrice * tx.shares);
+    const cost = fifo * tx.shares;
+    const pl = proceeds - cost;
+    return {
+      fifoPrice: fifo,
+      sellPrice: sellPrice,
+      shares: tx.shares,
+      proceeds: proceeds,
+      cost: cost,
+      realizedPl: pl
+    };
   }
 
   // 7. Render Realized P/L Table (已實現損益紀錄)
@@ -2904,6 +3031,266 @@
     document.querySelectorAll('#csSortFilters .cs-pill-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.sort === sortBy);
     });
+
+    // Rebalance Ratio Simulator Calculations
+    const ratio = state.rebalanceRatio || 80;
+    const targetCorePct = ratio;
+    const targetSatPct = 100 - ratio;
+    const targetCoreVal = Math.round(totalCostAll * (targetCorePct / 100));
+    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
+    const diffSatVal = satCost - targetSatVal; // If positive, satellite needs to sell this amount
+
+    state.lastSimTargetSatVal = targetSatVal;
+    state.lastSimDiffSatVal = diffSatVal;
+
+    const simRatioText = document.getElementById('csSimRatioText');
+    const simCorePct = document.getElementById('csSimCorePct');
+    const simSatPct = document.getElementById('csSimSatPct');
+    const simSlider = document.getElementById('csRatioSlider');
+    const simTargetCoreVal = document.getElementById('csSimTargetCoreVal');
+    const simTargetCoreSub = document.getElementById('csSimTargetCoreSub');
+    const simTargetSatVal = document.getElementById('csSimTargetSatVal');
+    const simTargetSatSub = document.getElementById('csSimTargetSatSub');
+    const simRebalanceMsg = document.getElementById('csSimRebalanceMsg');
+
+    if (simRatioText) {
+      const corePart = (ratio / 10).toFixed(ratio % 10 === 0 ? 0 : 1);
+      const satPart = ((100 - ratio) / 10).toFixed(ratio % 10 === 0 ? 0 : 1);
+      simRatioText.textContent = `${corePart} : ${satPart}`;
+    }
+    if (simCorePct) simCorePct.textContent = `${targetCorePct}%`;
+    if (simSatPct) simSatPct.textContent = `${targetSatPct}%`;
+    if (simSlider && parseInt(simSlider.value, 10) !== ratio) simSlider.value = ratio;
+    if (simTargetCoreVal) simTargetCoreVal.textContent = `NT$ ${formatMoney(targetCoreVal)}`;
+    if (simTargetCoreSub) simTargetCoreSub.textContent = `依 ${targetCorePct}% 計算 (總成本 NT$ ${formatMoney(totalCostAll)})`;
+    if (simTargetSatVal) simTargetSatVal.textContent = `NT$ ${formatMoney(targetSatVal)}`;
+    if (simTargetSatSub) simTargetSatSub.textContent = `依 ${targetSatPct}% 計算`;
+
+    if (simRebalanceMsg) {
+      if (diffSatVal > 0) {
+        simRebalanceMsg.innerHTML = `
+          衛星需要賣出 <strong class="val-highlight mono is-clickable" id="csSimDiffAmountClick" onclick="window.fubonApp.openSatelliteRebalanceModal()" title="點擊進入規劃衛星標的">NT$ ${formatMoney(diffSatVal)}</strong> 回收資金轉投入到主力
+        `;
+      } else {
+        simRebalanceMsg.innerHTML = `
+          衛星目前成本 (NT$ ${formatMoney(satCost)}) 已低於目標水位，無需賣出，可增持主力核心 <strong class="mono text-cyan">NT$ ${formatMoney(Math.abs(diffSatVal))}</strong>
+        `;
+      }
+    }
+
+    document.querySelectorAll('.cs-preset-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.ratio, 10) === ratio);
+    });
+  }
+
+  // Satellite Rebalance & Selling Planner Modal Logic
+  function openSatelliteRebalanceModal() {
+    const modal = document.getElementById('satelliteRebalanceModalBackdrop');
+    if (!modal) return;
+    modal.classList.add('show');
+    renderRebalanceTable();
+  }
+
+  function closeSatelliteRebalanceModal() {
+    const modal = document.getElementById('satelliteRebalanceModalBackdrop');
+    if (!modal) return;
+    modal.classList.remove('show');
+  }
+
+  function getSatelliteHoldingsForRebalance() {
+    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001 && !h.coreHolding);
+    // Combine with custom items
+    const custom = state.customRebalItems || [];
+    return [...allActive, ...custom];
+  }
+
+  function renderRebalanceTable() {
+    const tbody = document.getElementById('rebalanceTableBody');
+    const tfoot = document.getElementById('rebalanceTableFoot');
+    if (!tbody) return;
+
+    // Get current target diff and target satellite cost
+    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
+    const totalCostAll = allActive.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const ratio = state.rebalanceRatio || 80;
+    const targetCoreVal = Math.round(totalCostAll * (ratio / 100));
+    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
+
+    const satList = allActive.filter(h => !h.coreHolding);
+    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const targetDiff = Math.max(0, satCost - targetSatVal);
+
+    // Update targets text in banner
+    const targetProceedsText = document.getElementById('rebalTargetProceedsText');
+    const targetCostText = document.getElementById('rebalTargetCostText');
+    if (targetProceedsText) targetProceedsText.textContent = `NT$ ${formatMoney(targetDiff)}`;
+    if (targetCostText) targetCostText.textContent = `NT$ ${formatMoney(targetSatVal)}`;
+
+    const items = getSatelliteHoldingsForRebalance();
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding:30px; color:var(--text-tertiary);">目前尚無衛星配置標的</td></tr>`;
+      if (tfoot) tfoot.innerHTML = '';
+      return;
+    }
+
+    let sumPlannedProceeds = 0;
+    let sumRemainingCost = 0;
+    let sumCurrentCost = 0;
+    let rowsHtml = '';
+
+    items.forEach((item) => {
+      const sym = item.symbol;
+      const name = item.name || '';
+      const shares = item.currentShares || 0;
+      const isCustom = !!item.isCustom;
+
+      const rate = (item.currency === 'USD') ? state.usdRate : 1.0;
+      const avgCost = (item.avgCost || 0) * rate;
+      const price = ((item.price !== undefined ? item.price : item.currentPrice) || 0) * rate;
+      const priceDiff = price - avgCost;
+      const diffRoi = avgCost > 0 ? ((priceDiff / avgCost) * 100).toFixed(2) : '0.00';
+      const diffSign = priceDiff > 0 ? '+' : '';
+      const diffClass = getValClass(priceDiff);
+
+      const plannedShares = state.rebalancePlan[sym] !== undefined ? Math.min(shares, Math.max(0, state.rebalancePlan[sym])) : 0;
+      const remainingShares = Math.max(0, shares - plannedShares);
+
+      const plannedProceeds = Math.round(plannedShares * price);
+      const remainingCost = Math.round(remainingShares * avgCost);
+      const currentCost = Math.round(shares * avgCost);
+
+      sumPlannedProceeds += plannedProceeds;
+      sumRemainingCost += remainingCost;
+      sumCurrentCost += currentCost;
+
+      rowsHtml += `
+        <tr data-sym="${sym}">
+          <td>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="symbol-badge">${escapeHtml(sym)}</span>
+              <span class="symbol-name">${escapeHtml(name)}</span>
+              ${isCustom ? '<span class="tag-badge" style="font-size:0.65rem;">自訂</span>' : ''}
+            </div>
+          </td>
+          <td class="text-right mono font-semibold">${formatShares(shares)}</td>
+          <td class="text-right mono">NT$ ${formatMoney(avgCost, 2)}</td>
+          <td class="text-right mono font-semibold">NT$ ${formatMoney(price, 2)}</td>
+          <td class="text-right mono font-semibold ${diffClass}">
+            ${diffSign}NT$ ${formatMoney(priceDiff, 2)}<br>
+            <span style="font-size:0.72rem; opacity:0.85;">(${diffSign}${diffRoi}%)</span>
+          </td>
+          <td class="text-right">
+            <div style="display:flex; align-items:center; gap:4px; justify-content:flex-end;">
+              <input type="number" step="any" min="0" max="${shares}" value="${plannedShares}" 
+                class="rebal-input mono" 
+                data-sym="${sym}"
+                onchange="window.fubonApp.updateRebalShares('${sym}', this.value)"
+                oninput="window.fubonApp.updateRebalShares('${sym}', this.value)">
+              <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${shares})" title="賣出全數">全</button>
+              <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${Number((shares * 0.5).toFixed(2))})" title="賣出半數">半</button>
+            </div>
+          </td>
+          <td class="text-right mono font-semibold">${formatShares(remainingShares)}</td>
+          <td class="text-right mono font-semibold val-up">NT$ ${formatMoney(plannedProceeds)}</td>
+          <td class="text-right mono font-semibold">NT$ ${formatMoney(remainingCost)}</td>
+          <td class="text-center">
+            ${isCustom ? `<button type="button" class="btn-table-action text-danger" onclick="window.fubonApp.deleteCustomRebalItem('${sym}')" title="刪除此自訂項目">&times;</button>` : '<span style="color:var(--text-tertiary); font-size:0.75rem;">--</span>'}
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = rowsHtml;
+
+    // Table Footer Summary Row
+    if (tfoot) {
+      tfoot.innerHTML = `
+        <tr style="border-top:2px solid var(--border-medium); font-weight:700;">
+          <td colspan="5">加總統計 (共 ${items.length} 檔衛星標的)</td>
+          <td class="text-right mono" colspan="2">規劃總回收：</td>
+          <td class="text-right mono val-up" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
+          <td class="text-right mono" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingCost)}</td>
+          <td></td>
+        </tr>
+      `;
+    }
+
+    // Update Top Banner Comparisons
+    const plannedProceedsVal = document.getElementById('rebalPlannedProceedsVal');
+    const proceedsStatus = document.getElementById('rebalProceedsStatus');
+    const remainingCostVal = document.getElementById('rebalRemainingCostVal');
+    const costStatus = document.getElementById('rebalCostStatus');
+
+    if (plannedProceedsVal) plannedProceedsVal.textContent = `NT$ ${formatMoney(sumPlannedProceeds)}`;
+    if (proceedsStatus) {
+      const diff = sumPlannedProceeds - targetDiff;
+      if (diff >= 0) {
+        proceedsStatus.innerHTML = `<span class="val-up font-bold" style="color:#10b981;">🟢 已達標 (超出 +NT$ ${formatMoney(diff)})</span>`;
+      } else {
+        proceedsStatus.innerHTML = `<span class="val-down font-bold" style="color:#ef4444;">🔴 未達標 (還差 NT$ ${formatMoney(Math.abs(diff))})</span>`;
+      }
+    }
+
+    if (remainingCostVal) remainingCostVal.textContent = `NT$ ${formatMoney(sumRemainingCost)}`;
+    if (costStatus) {
+      const diffCost = sumRemainingCost - targetSatVal;
+      const diffSign = diffCost >= 0 ? '+' : '-';
+      costStatus.innerHTML = `<span class="mono" style="color:var(--text-secondary);">與目標差 ${diffSign}NT$ ${formatMoney(Math.abs(diffCost))} (原成本 NT$ ${formatMoney(sumCurrentCost)})</span>`;
+    }
+  }
+
+  function updateRebalShares(sym, val) {
+    const num = Math.max(0, parseFloat(val) || 0);
+    state.rebalancePlan[sym] = num;
+    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    renderRebalanceTable();
+  }
+
+  function setRebalQuick(sym, shares) {
+    state.rebalancePlan[sym] = shares;
+    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    renderRebalanceTable();
+  }
+
+  function addCustomRebalItem() {
+    const sym = prompt('請輸入欲規劃的新增標的代號 (例如：0056 或 AAPL)：');
+    if (!sym) return;
+    const cleanSym = sym.trim().toUpperCase();
+    if (state.customRebalItems.some(x => x.symbol === cleanSym)) {
+      alert(`標的「${cleanSym}」已在自訂規劃清單中！`);
+      return;
+    }
+    const name = prompt('請輸入標的名稱：', cleanSym) || cleanSym;
+    const sharesStr = prompt('請輸入預計持有或規劃股數：', '1000');
+    const shares = parseFloat(sharesStr) || 0;
+    const costStr = prompt('請輸入每股成本 (NT$)：', '30');
+    const avgCost = parseFloat(costStr) || 0;
+    const priceStr = prompt('請輸入即時現價 (NT$)：', String(avgCost));
+    const price = parseFloat(priceStr) || avgCost;
+
+    const newItem = {
+      symbol: cleanSym,
+      name: name,
+      currentShares: shares,
+      avgCost: avgCost,
+      price: price,
+      currency: 'TWD',
+      isCustom: true
+    };
+
+    state.customRebalItems.push(newItem);
+    localStorage.setItem('fubon_custom_rebal', JSON.stringify(state.customRebalItems));
+    renderRebalanceTable();
+    showNotification(`已新增自訂規劃標的「${cleanSym}」`, 'success');
+  }
+
+  function deleteCustomRebalItem(sym) {
+    if (!confirm(`確定刪除自訂規劃標的「${sym}」？`)) return;
+    state.customRebalItems = state.customRebalItems.filter(x => x.symbol !== sym);
+    delete state.rebalancePlan[sym];
+    localStorage.setItem('fubon_custom_rebal', JSON.stringify(state.customRebalItems));
+    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    renderRebalanceTable();
   }
 
   function renderCsHoldingItem(h, rank, groupCost, totalCost, maxVal, sortBy, isCore) {
@@ -5352,6 +5739,64 @@
       renderCoreSatelliteAnalytics();
     });
 
+    // Rebalance Ratio Slider & Presets
+    const ratioSlider = document.getElementById('csRatioSlider');
+    if (ratioSlider) {
+      const handleSliderChange = (e) => {
+        state.rebalanceRatio = parseInt(e.target.value, 10);
+        localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+        renderCoreSatelliteAnalytics();
+      };
+      ratioSlider.addEventListener('input', handleSliderChange);
+      ratioSlider.addEventListener('change', handleSliderChange);
+    }
+
+    document.querySelectorAll('.cs-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = parseInt(btn.dataset.ratio, 10);
+        if (!isNaN(r)) {
+          state.rebalanceRatio = r;
+          localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+          renderCoreSatelliteAnalytics();
+        }
+      });
+    });
+
+    document.getElementById('btnOpenRebalanceModal')?.addEventListener('click', openSatelliteRebalanceModal);
+    document.getElementById('csSimDiffAmountClick')?.addEventListener('click', openSatelliteRebalanceModal);
+    document.getElementById('btnSatelliteRebalanceClose')?.addEventListener('click', closeSatelliteRebalanceModal);
+    document.getElementById('btnSatelliteRebalanceCancel')?.addEventListener('click', closeSatelliteRebalanceModal);
+    document.getElementById('satelliteRebalanceModalBackdrop')?.addEventListener('click', (e) => {
+      if (e.target.id === 'satelliteRebalanceModalBackdrop') closeSatelliteRebalanceModal();
+    });
+
+    // Rebalance Modal Quick Actions
+    document.getElementById('btnRebalSellAll')?.addEventListener('click', () => {
+      const items = getSatelliteHoldingsForRebalance();
+      items.forEach(item => {
+        state.rebalancePlan[item.symbol] = item.currentShares || 0;
+      });
+      localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+      renderRebalanceTable();
+    });
+
+    document.getElementById('btnRebalSellHalf')?.addEventListener('click', () => {
+      const items = getSatelliteHoldingsForRebalance();
+      items.forEach(item => {
+        state.rebalancePlan[item.symbol] = Number(((item.currentShares || 0) * 0.5).toFixed(2));
+      });
+      localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+      renderRebalanceTable();
+    });
+
+    document.getElementById('btnRebalReset')?.addEventListener('click', () => {
+      state.rebalancePlan = {};
+      localStorage.removeItem('fubon_rebal_plan');
+      renderRebalanceTable();
+    });
+
+    document.getElementById('btnAddCustomRebalItem')?.addEventListener('click', addCustomRebalItem);
+
     // Transactions Pagination
     document.getElementById('btnPagePrev')?.addEventListener('click', () => {
       if (state.txPage > 1) {
@@ -6389,6 +6834,11 @@
       if (!checkAdminOrPrompt('資料匯入 / 匯出')) return;
       document.getElementById('importExportModalBackdrop')?.classList.add('show');
     },
+    openSatelliteRebalanceModal: () => openSatelliteRebalanceModal(),
+    closeSatelliteRebalanceModal: () => closeSatelliteRebalanceModal(),
+    updateRebalShares: (sym, val) => updateRebalShares(sym, val),
+    setRebalQuick: (sym, shares) => setRebalQuick(sym, shares),
+    deleteCustomRebalItem: (sym) => deleteCustomRebalItem(sym),
     switchToPortfolio: (pid) => {
       const clean = (pid || 'main').trim().toLowerCase();
       try {
