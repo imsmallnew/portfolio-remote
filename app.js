@@ -84,6 +84,8 @@
     csSort: 'pl', // 'pl' (未實現損益) or 'cost' (總成本)
     rebalanceRatio: parseInt(localStorage.getItem('fubon_rebal_ratio') || '80', 10),
     rebalancePlan: JSON.parse(localStorage.getItem('fubon_rebal_plan') || '{}'),
+    rebalanceSellPrices: JSON.parse(localStorage.getItem('fubon_rebal_prices') || '{}'),
+    rebalanceOrder: JSON.parse(localStorage.getItem('fubon_rebal_order') || '[]'),
     customRebalItems: JSON.parse(localStorage.getItem('fubon_custom_rebal') || '[]'),
 
     // Investment Advice UI & Settings
@@ -2466,12 +2468,18 @@
       else if (tx.action.includes('賣')) badgeClass = 'tx-sell';
 
       const isSell = tx.action.includes('賣');
+      const isUsd = (tx.currency === 'USD');
+      const rate = state.usdRate || 32.5;
 
       if (isSell) {
         const info = getSellTransactionRealizedInfo(tx);
         const pl = info.realizedPl || 0;
-        const plSign = pl > 0 ? '+' : '';
-        const plClass = getValClass(pl);
+        const plTwd = (info.realizedPlTwd !== undefined) ? info.realizedPlTwd : (isUsd ? Math.round(pl * rate) : pl);
+        const plSign = plTwd > 0 ? '+' : '';
+        const plClass = getValClass(plTwd);
+
+        const proceedsTwd = isUsd ? Math.round(info.proceeds * rate) : info.proceeds;
+        const costTwd = isUsd ? Math.round(info.cost * rate) : info.cost;
 
         rowsHtml += `
           <tr data-txid="${tx.id}">
@@ -2487,19 +2495,26 @@
               -${formatShares(tx.shares)}
             </td>
             <td class="col-tx-fifo text-right mono">
-              ${formatMoney(info.fifoPrice, 2)}
+              ${isUsd 
+                ? `US$ ${formatMoney(info.fifoPrice, 2)}<div class="tx-sub-curr mono">≈ NT$ ${formatMoney(Math.round(info.fifoPrice * rate))}</div>` 
+                : `NT$ ${formatMoney(info.fifoPrice, 2)}`}
             </td>
             <td class="col-tx-sell-price text-right mono font-semibold">
-              ${formatMoney(info.sellPrice, 2)}
+              ${isUsd 
+                ? `US$ ${formatMoney(info.sellPrice, 2)}<div class="tx-sub-curr mono">≈ NT$ ${formatMoney(Math.round(info.sellPrice * rate))}</div>` 
+                : `NT$ ${formatMoney(info.sellPrice, 2)}`}
             </td>
             <td class="col-tx-proceeds text-right mono font-semibold val-up">
-              NT$ ${formatMoney(info.proceeds)}
+              NT$ ${formatMoney(proceedsTwd)}
+              ${isUsd ? `<div class="tx-sub-curr mono">US$ ${formatMoney(info.proceeds, 2)}</div>` : ''}
             </td>
             <td class="col-tx-cost text-right mono">
-              NT$ ${formatMoney(info.cost)}
+              NT$ ${formatMoney(costTwd)}
+              ${isUsd ? `<div class="tx-sub-curr mono">US$ ${formatMoney(info.cost, 2)}</div>` : ''}
             </td>
             <td class="col-tx-pl text-right mono font-semibold ${plClass}">
-              ${plSign}NT$ ${formatMoney(pl)}
+              ${plSign}NT$ ${formatMoney(plTwd)}
+              ${isUsd ? `<div class="tx-sub-curr mono">${pl > 0 ? '+' : ''}US$ ${formatMoney(pl, 2)}</div>` : ''}
             </td>
             <td class="col-tx-curr text-center">
               <span class="tag-badge">${tx.currency || 'TWD'}</span>
@@ -2514,6 +2529,7 @@
         `;
       } else {
         // Buy / Regular DCA transaction
+        const twdAmount = isUsd ? Math.round(tx.total_amount * rate) : tx.total_amount;
         rowsHtml += `
           <tr data-txid="${tx.id}">
             <td class="col-tx-date mono">${tx.date}</td>
@@ -2528,19 +2544,22 @@
               +${formatShares(tx.shares)}
             </td>
             <td class="col-tx-fifo text-right mono font-semibold">
-              ${formatMoney(tx.price, 2)}
+              ${isUsd 
+                ? `US$ ${formatMoney(tx.price, 2)}<div class="tx-sub-curr mono">≈ NT$ ${formatMoney(Math.round(tx.price * rate))}</div>` 
+                : `NT$ ${formatMoney(tx.price, 2)}`}
             </td>
-            <td class="col-tx-sell-price text-right mono text-tertiary">
-              --
+            <td class="col-tx-sell-price text-right mono">
+              <span class="cell-na">--</span>
             </td>
-            <td class="col-tx-proceeds text-right mono">
-              NT$ ${formatMoney(tx.total_amount)}
+            <td class="col-tx-proceeds text-right mono font-semibold">
+              NT$ ${formatMoney(twdAmount)}
+              ${isUsd ? `<div class="tx-sub-curr mono">US$ ${formatMoney(tx.total_amount, 2)}</div>` : ''}
             </td>
-            <td class="col-tx-cost text-right mono text-tertiary">
-              --
+            <td class="col-tx-cost text-right mono">
+              <span class="cell-na">--</span>
             </td>
-            <td class="col-tx-pl text-right mono text-tertiary">
-              --
+            <td class="col-tx-pl text-right mono">
+              <span class="cell-na">--</span>
             </td>
             <td class="col-tx-curr text-center">
               <span class="tag-badge">${tx.currency || 'TWD'}</span>
@@ -2561,6 +2580,7 @@
   // Helper: Retrieve matching realized & FIFO details for sell transaction
   function getSellTransactionRealizedInfo(tx) {
     if (!tx || !tx.action || !tx.action.includes('賣')) return {};
+    const currency = tx.currency || 'TWD';
 
     if (tx.sellPrice !== undefined && tx.buyPrice !== undefined && tx.cost !== undefined) {
       const proceeds = tx.proceeds || (tx.sellPrice * tx.shares);
@@ -2570,7 +2590,9 @@
         shares: tx.shares,
         proceeds: proceeds,
         cost: tx.cost,
-        realizedPl: tx.realizedPl !== undefined ? tx.realizedPl : (proceeds - tx.cost)
+        realizedPl: tx.realizedPl !== undefined ? tx.realizedPl : (proceeds - tx.cost),
+        realizedPlTwd: tx.realizedPlTwd,
+        currency: currency
       };
     }
 
@@ -2590,7 +2612,9 @@
         shares: r.shares,
         proceeds: proceeds,
         cost: cost,
-        realizedPl: r.realizedPl !== undefined ? r.realizedPl : (proceeds - cost)
+        realizedPl: r.realizedPl !== undefined ? r.realizedPl : (proceeds - cost),
+        realizedPlTwd: r.realizedPlTwd,
+        currency: r.currency || currency
       };
     }
 
@@ -2604,13 +2628,16 @@
       const sumProc = multi.reduce((s, x) => s + (x.proceeds || (x.sellPrice * x.shares)), 0);
       const sumCost = multi.reduce((s, x) => s + (x.cost || (x.buyPrice * x.shares)), 0);
       const sumPl = multi.reduce((s, x) => s + (x.realizedPl !== undefined ? x.realizedPl : (x.proceeds - x.cost)), 0);
+      const sumPlTwd = multi.reduce((s, x) => s + (x.realizedPlTwd !== undefined ? x.realizedPlTwd : (x.realizedPl || 0)), 0);
       return {
         fifoPrice: tx.shares > 0 ? (sumCost / tx.shares) : 0,
         sellPrice: tx.shares > 0 ? (sumProc / tx.shares) : 0,
         shares: tx.shares,
         proceeds: sumProc,
         cost: sumCost,
-        realizedPl: sumPl
+        realizedPl: sumPl,
+        realizedPlTwd: sumPlTwd,
+        currency: multi[0].currency || currency
       };
     }
 
@@ -2627,7 +2654,8 @@
       shares: tx.shares,
       proceeds: proceeds,
       cost: cost,
-      realizedPl: pl
+      realizedPl: pl,
+      currency: currency
     };
   }
 
@@ -3126,9 +3154,19 @@
     if (targetProceedsText) targetProceedsText.textContent = `NT$ ${formatMoney(targetDiff)}`;
     if (targetCostText) targetCostText.textContent = `NT$ ${formatMoney(targetSatVal)}`;
 
-    const items = getSatelliteHoldingsForRebalance();
+    let items = getSatelliteHoldingsForRebalance();
+    if (state.rebalanceOrder && state.rebalanceOrder.length > 0) {
+      items.sort((a, b) => {
+        const idxA = state.rebalanceOrder.indexOf(a.symbol);
+        const idxB = state.rebalanceOrder.indexOf(b.symbol);
+        const orderA = idxA === -1 ? 9999 : idxA;
+        const orderB = idxB === -1 ? 9999 : idxB;
+        return orderA - orderB;
+      });
+    }
+
     if (items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding:30px; color:var(--text-tertiary);">目前尚無衛星配置標的</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:30px; color:var(--text-tertiary);">目前尚無衛星配置標的</td></tr>`;
       if (tfoot) tfoot.innerHTML = '';
       return;
     }
@@ -3143,74 +3181,147 @@
       const name = item.name || '';
       const shares = item.currentShares || 0;
       const isCustom = !!item.isCustom;
+      const isUsd = (item.currency === 'USD');
+      const rate = isUsd ? (state.usdRate || 32.5) : 1.0;
 
-      const rate = (item.currency === 'USD') ? state.usdRate : 1.0;
-      const avgCost = (item.avgCost || 0) * rate;
-      const price = ((item.price !== undefined ? item.price : item.currentPrice) || 0) * rate;
-      const priceDiff = price - avgCost;
-      const diffRoi = avgCost > 0 ? ((priceDiff / avgCost) * 100).toFixed(2) : '0.00';
-      const diffSign = priceDiff > 0 ? '+' : '';
-      const diffClass = getValClass(priceDiff);
+      // 原幣價格（每股股價）
+      const avgCostNative = item.avgCost || 0;
+      const currentPriceNative = ((item.price !== undefined ? item.price : item.currentPrice) || 0);
 
-      const plannedShares = state.rebalancePlan[sym] !== undefined ? Math.min(shares, Math.max(0, state.rebalancePlan[sym])) : 0;
+      // 每股損益 (價差) 與 報酬率
+      const priceDiffNative = currentPriceNative - avgCostNative;
+      const diffRoi = avgCostNative > 0 ? ((priceDiffNative / avgCostNative) * 100).toFixed(2) : '0.00';
+      const diffSign = priceDiffNative > 0 ? '+' : '';
+      const diffClass = getValClass(priceDiffNative);
+
+      // 規劃賣出股數
+      const plannedShares = state.rebalancePlan[sym] !== undefined 
+        ? Math.min(shares, Math.max(0, state.rebalancePlan[sym])) 
+        : 0;
       const remainingShares = Math.max(0, shares - plannedShares);
 
-      const plannedProceeds = Math.round(plannedShares * price);
-      const remainingCost = Math.round(remainingShares * avgCost);
-      const currentCost = Math.round(shares * avgCost);
+      // 規劃賣出價格（自行設定，預設為即時現價）
+      const customPrice = state.rebalanceSellPrices[sym];
+      const plannedPriceNative = (customPrice !== undefined && customPrice !== null && !isNaN(customPrice))
+        ? customPrice
+        : currentPriceNative;
 
-      sumPlannedProceeds += plannedProceeds;
-      sumRemainingCost += remainingCost;
-      sumCurrentCost += currentCost;
+      // 規劃賣出金額 = 規劃賣出股數 × 規劃賣出價格
+      const plannedProceedsNative = plannedShares * plannedPriceNative;
+      const plannedProceedsTwd = Math.round(plannedProceedsNative * rate);
+
+      // 剩餘股數成本 = 剩餘股數 × 成本均價
+      const remainingCostNative = remainingShares * avgCostNative;
+      const remainingCostTwd = Math.round(remainingCostNative * rate);
+
+      const currentCostTwd = Math.round(shares * avgCostNative * rate);
+
+      sumPlannedProceeds += plannedProceedsTwd;
+      sumRemainingCost += remainingCostTwd;
+      sumCurrentCost += currentCostTwd;
 
       rowsHtml += `
-        <tr data-sym="${sym}">
-          <td>
+        <tr class="rebal-row" data-sym="${sym}" draggable="true">
+          <td class="col-rebal-drag text-center" title="拖曳以排序">
+            <span style="cursor:grab; font-size:1.1rem; line-height:1;">⠿</span>
+          </td>
+          <td class="col-rebal-symbol">
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="symbol-badge">${escapeHtml(sym)}</span>
               <span class="symbol-name">${escapeHtml(name)}</span>
-              ${isCustom ? '<span class="tag-badge" style="font-size:0.65rem;">自訂</span>' : ''}
+              ${isCustom ? `<button type="button" class="btn-table-action text-danger" onclick="window.fubonApp.deleteCustomRebalItem('${sym}')" title="刪除此自訂項目" style="padding:0 4px; font-size:0.75rem;">&times;</button>` : ''}
             </div>
           </td>
-          <td class="text-right mono font-semibold">${formatShares(shares)}</td>
-          <td class="text-right mono">NT$ ${formatMoney(avgCost, 2)}</td>
-          <td class="text-right mono font-semibold">NT$ ${formatMoney(price, 2)}</td>
+          <td class="col-rebal-cost text-right mono">
+            ${isUsd 
+              ? `US$ ${formatMoney(avgCostNative, 2)}<div class="price-sub-twd mono">≈ NT$ ${formatMoney(Math.round(avgCostNative * rate))}</div>` 
+              : `NT$ ${formatMoney(avgCostNative, 2)}`}
+          </td>
+          <td class="col-rebal-price text-right mono font-semibold">
+            ${isUsd 
+              ? `US$ ${formatMoney(currentPriceNative, 2)}<div class="price-sub-twd mono">≈ NT$ ${formatMoney(Math.round(currentPriceNative * rate))}</div>` 
+              : `NT$ ${formatMoney(currentPriceNative, 2)}`}
+          </td>
           <td class="text-right mono font-semibold ${diffClass}">
-            ${diffSign}NT$ ${formatMoney(priceDiff, 2)}<br>
+            ${diffSign}${isUsd ? 'US$ ' : 'NT$ '}${formatMoney(Math.abs(priceDiffNative), 2)}<br>
             <span style="font-size:0.72rem; opacity:0.85;">(${diffSign}${diffRoi}%)</span>
           </td>
+          <td class="text-right mono font-semibold">${formatShares(shares)}</td>
           <td class="text-right">
             <div style="display:flex; align-items:center; gap:4px; justify-content:flex-end;">
               <input type="number" step="any" min="0" max="${shares}" value="${plannedShares}" 
                 class="rebal-input mono" 
                 data-sym="${sym}"
                 onchange="window.fubonApp.updateRebalShares('${sym}', this.value)"
-                oninput="window.fubonApp.updateRebalShares('${sym}', this.value)">
+                oninput="window.fubonApp.updateRebalShares('${sym}', this.value)"
+                title="輸入規劃賣出股數">
               <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${shares})" title="賣出全數">全</button>
               <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${Number((shares * 0.5).toFixed(2))})" title="賣出半數">半</button>
             </div>
           </td>
-          <td class="text-right mono font-semibold">${formatShares(remainingShares)}</td>
-          <td class="text-right mono font-semibold val-up">NT$ ${formatMoney(plannedProceeds)}</td>
-          <td class="text-right mono font-semibold">NT$ ${formatMoney(remainingCost)}</td>
-          <td class="text-center">
-            ${isCustom ? `<button type="button" class="btn-table-action text-danger" onclick="window.fubonApp.deleteCustomRebalItem('${sym}')" title="刪除此自訂項目">&times;</button>` : '<span style="color:var(--text-tertiary); font-size:0.75rem;">--</span>'}
+          <td class="text-right">
+            <input type="number" step="any" min="0" value="${plannedPriceNative}" 
+              class="rebal-input mono" 
+              style="width: 82px;"
+              data-sym="${sym}"
+              onchange="window.fubonApp.updateRebalPrice('${sym}', this.value)"
+              oninput="window.fubonApp.updateRebalPrice('${sym}', this.value)"
+              title="設定目標賣出單價（${isUsd ? 'USD' : 'TWD'}）">
           </td>
+          <td class="text-right mono font-semibold val-up">
+            NT$ ${formatMoney(plannedProceedsTwd)}
+            ${isUsd ? `<div class="price-sub-twd mono">US$ ${formatMoney(plannedProceedsNative, 2)}</div>` : ''}
+          </td>
+          <td class="text-right mono font-semibold">${formatShares(remainingShares)}</td>
+          <td class="text-right mono font-semibold">NT$ ${formatMoney(remainingCostTwd)}</td>
         </tr>
       `;
     });
 
     tbody.innerHTML = rowsHtml;
 
+    // Attach Drag & Drop Event Listeners for reordering
+    const rows = tbody.querySelectorAll('tr.rebal-row');
+    rows.forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        row.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', row.dataset.sym);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        tbody.querySelectorAll('.rebal-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const fromSym = e.dataTransfer.getData('text/plain');
+        const toSym = row.dataset.sym;
+        if (!fromSym || !toSym || fromSym === toSym) return;
+        reorderRebalanceItems(fromSym, toSym);
+      });
+    });
+
     // Table Footer Summary Row
     if (tfoot) {
       tfoot.innerHTML = `
         <tr style="border-top:2px solid var(--border-medium); font-weight:700;">
-          <td colspan="5">加總統計 (共 ${items.length} 檔衛星標的)</td>
-          <td class="text-right mono" colspan="2">規劃總回收：</td>
+          <td class="col-rebal-drag"></td>
+          <td class="col-rebal-symbol">加總統計 (${items.length} 檔)</td>
+          <td class="col-rebal-cost text-right mono">--</td>
+          <td class="col-rebal-price text-right mono">--</td>
+          <td colspan="4" class="text-right mono">規劃總回收：</td>
           <td class="text-right mono val-up" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
-          <td class="text-right mono" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingCost)}</td>
-          <td></td>
+          <td class="text-right mono">剩餘總成本：</td>
+          <td class="text-right mono font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingCost)}</td>
         </tr>
       `;
     }
@@ -3237,6 +3348,39 @@
       const diffSign = diffCost >= 0 ? '+' : '-';
       costStatus.innerHTML = `<span class="mono" style="color:var(--text-secondary);">與目標差 ${diffSign}NT$ ${formatMoney(Math.abs(diffCost))} (原成本 NT$ ${formatMoney(sumCurrentCost)})</span>`;
     }
+  }
+
+  function updateRebalPrice(sym, val) {
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      state.rebalanceSellPrices[sym] = num;
+    } else {
+      delete state.rebalanceSellPrices[sym];
+    }
+    localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
+    renderRebalanceTable();
+  }
+
+  function reorderRebalanceItems(fromSym, toSym) {
+    const items = getSatelliteHoldingsForRebalance();
+    let order = state.rebalanceOrder && state.rebalanceOrder.length > 0
+      ? [...state.rebalanceOrder]
+      : items.map(x => x.symbol);
+
+    items.forEach(it => {
+      if (!order.includes(it.symbol)) order.push(it.symbol);
+    });
+
+    const fromIdx = order.indexOf(fromSym);
+    const toIdx = order.indexOf(toSym);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    order.splice(fromIdx, 1);
+    order.splice(toIdx, 0, fromSym);
+
+    state.rebalanceOrder = order;
+    localStorage.setItem('fubon_rebal_order', JSON.stringify(order));
+    renderRebalanceTable();
   }
 
   function updateRebalShares(sym, val) {
@@ -6837,6 +6981,7 @@
     openSatelliteRebalanceModal: () => openSatelliteRebalanceModal(),
     closeSatelliteRebalanceModal: () => closeSatelliteRebalanceModal(),
     updateRebalShares: (sym, val) => updateRebalShares(sym, val),
+    updateRebalPrice: (sym, val) => updateRebalPrice(sym, val),
     setRebalQuick: (sym, shares) => setRebalQuick(sym, shares),
     deleteCustomRebalItem: (sym) => deleteCustomRebalItem(sym),
     switchToPortfolio: (pid) => {

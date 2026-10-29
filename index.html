@@ -598,11 +598,11 @@
                   <th class="col-tx-symbol">標的代號 / 名稱</th>
                   <th class="col-tx-action">型態</th>
                   <th class="col-tx-shares text-right">股數</th>
-                  <th class="col-tx-fifo text-right" title="先進先出購入成本價格">FIFO價格</th>
-                  <th class="col-tx-sell-price text-right" title="成交賣價（買進時為--）">賣出現價</th>
-                  <th class="col-tx-proceeds text-right" title="賣出總金額（買進時顯示成交總額）">賣出金額</th>
-                  <th class="col-tx-cost text-right" title="結算贖回之原始本金（買進時為--）">贖回本金</th>
-                  <th class="col-tx-pl text-right" title="賣出實際損益（買進時為--）">實際收益</th>
+                  <th class="col-tx-fifo text-right" title="買進成交價或先進先出成本價格">FIFO價格</th>
+                  <th class="col-tx-sell-price text-right" title="成交賣價（買進/定期定額無此項）">賣出現價 (賣出)</th>
+                  <th class="col-tx-proceeds text-right" title="成交總金額或賣出金額">成交/賣出金額</th>
+                  <th class="col-tx-cost text-right" title="結算贖回之原始本金（買進/定期定額無此項）">贖回本金 (賣出)</th>
+                  <th class="col-tx-pl text-right" title="賣出實際損益（買進/定期定額無此項）">實際收益 (賣出)</th>
                   <th class="col-tx-curr text-center">幣別</th>
                   <th class="col-tx-actions text-center admin-only">操作</th>
                 </tr>
@@ -2053,16 +2053,17 @@
             <table class="data-table" id="rebalanceTable">
               <thead>
                 <tr>
-                  <th style="min-width:130px;">標的代號 / 名稱</th>
+                  <th class="col-rebal-drag text-center" title="拖曳標的以調整排序" style="width:34px; min-width:34px;">⠿</th>
+                  <th class="col-rebal-symbol" style="min-width:110px;">標的代號 / 名稱</th>
+                  <th class="col-rebal-cost text-right" style="min-width:105px;" title="每股買入成本單價（區分幣別）">成本均價</th>
+                  <th class="col-rebal-price text-right" style="min-width:105px;" title="目前即時盤價或收盤價（區分幣別）">即時現價</th>
+                  <th class="text-right" style="min-width:100px;" title="現價與成本之每股損益與報酬率">損益</th>
                   <th class="text-right" style="min-width:85px;">目前股數</th>
-                  <th class="text-right" style="min-width:90px;">成本均價</th>
-                  <th class="text-right" style="min-width:90px;">即時現價</th>
-                  <th class="text-right" style="min-width:105px;" title="現價與成本之差額及報酬率">現價(差額)</th>
                   <th class="text-right" style="min-width:140px;">規劃賣出股數</th>
+                  <th class="text-right" style="min-width:120px;" title="可自行設定預計賣出之目標單價（預設為現價）">規劃賣出價格</th>
+                  <th class="text-right" style="min-width:125px;" title="規劃賣出股數 × 規劃賣出價格">規劃賣出金額</th>
                   <th class="text-right" style="min-width:85px;">剩餘股數</th>
-                  <th class="text-right" style="min-width:120px;" title="規劃賣出股數 × 現價">規劃賣出金額</th>
                   <th class="text-right" style="min-width:120px;" title="剩餘股數 × 成本均價">剩餘股數成本</th>
-                  <th class="text-center" style="width:60px;">操作</th>
                 </tr>
               </thead>
               <tbody id="rebalanceTableBody">
