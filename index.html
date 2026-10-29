@@ -2023,10 +2023,10 @@
               </div>
             </div>
 
-            <!-- KPI 2: 剩餘股數成本 vs 目標衛星金額 -->
+            <!-- KPI 2: 剩餘股數價值 vs 目標衛星金額 -->
             <div class="rebal-kpi-card" id="rebalCostCard">
               <div class="rebal-kpi-top">
-                <span class="rebal-kpi-title">📦 剩餘股數成本總和</span>
+                <span class="rebal-kpi-title">📦 剩餘股數價值總和</span>
                 <span class="rebal-kpi-target mono">目標剩餘：<strong id="rebalTargetCostText">NT$ 371,879</strong></span>
               </div>
               <div class="rebal-kpi-main mono font-bold" id="rebalRemainingCostVal">NT$ 793,221</div>
@@ -2036,7 +2036,7 @@
             </div>
           </div>
 
-          <!-- Quick Actions Bar -->
+          <!-- Quick Actions Bar & Filter -->
           <div class="rebal-toolbar">
             <div class="rebal-toolbar-left">
               <button type="button" class="btn btn-secondary btn-xs" id="btnRebalSellAll">全部出清 100%</button>
@@ -2044,7 +2044,10 @@
               <button type="button" class="btn btn-secondary btn-xs" id="btnRebalReset">重置歸零</button>
             </div>
             <div class="rebal-toolbar-right">
-              <button type="button" class="btn btn-secondary btn-xs" id="btnAddCustomRebalItem">+ 新增自訂規劃標的</button>
+              <label class="form-check-inline" style="font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px; user-select:none; color:var(--text-secondary);">
+                <input type="checkbox" id="rebalFilterHideZero" checked onchange="window.fubonApp.toggleRebalHideZero(this.checked)">
+                <span>隱藏目前股數為 0 的標的</span>
+              </label>
             </div>
           </div>
 
@@ -2055,15 +2058,16 @@
                 <tr>
                   <th class="col-rebal-drag text-center" title="拖曳標的以調整排序" style="width:34px; min-width:34px;">⠿</th>
                   <th class="col-rebal-symbol" style="min-width:110px;">標的代號 / 名稱</th>
-                  <th class="col-rebal-cost text-right" style="min-width:105px;" title="每股買入成本單價（區分幣別）">成本均價</th>
-                  <th class="col-rebal-price text-right" style="min-width:105px;" title="目前即時盤價或收盤價（區分幣別）">即時現價</th>
-                  <th class="text-right" style="min-width:100px;" title="現價與成本之每股損益與報酬率">損益</th>
+                  <th class="col-rebal-cost text-right" style="min-width:105px;" title="每股平均成本">平均成本</th>
+                  <th class="col-rebal-price text-right" style="min-width:125px;" title="目前即時現價與昨收價">即時現價 (昨收)</th>
+                  <th class="text-right" style="min-width:110px;" title="未實現損益 (NT) 與報酬率">未實現損益</th>
                   <th class="text-right" style="min-width:85px;">目前股數</th>
                   <th class="text-right" style="min-width:140px;">規劃賣出股數</th>
-                  <th class="text-right" style="min-width:120px;" title="可自行設定預計賣出之目標單價（預設為現價）">規劃賣出價格</th>
+                  <th class="text-right" style="min-width:110px;" title="可自行設定預計賣出之目標單價（預設為現價）">規劃賣出價格</th>
+                  <th class="text-center" style="min-width:65px;" title="計價幣別 (NT/USD)">幣別</th>
                   <th class="text-right" style="min-width:125px;" title="規劃賣出股數 × 規劃賣出價格">規劃賣出金額</th>
                   <th class="text-right" style="min-width:85px;">剩餘股數</th>
-                  <th class="text-right" style="min-width:120px;" title="剩餘股數 × 成本均價">剩餘股數成本</th>
+                  <th class="text-right" style="min-width:125px;" title="剩餘股數 × 即時現價">剩餘股數價值</th>
                 </tr>
               </thead>
               <tbody id="rebalanceTableBody">

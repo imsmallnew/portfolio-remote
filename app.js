@@ -86,6 +86,7 @@
     rebalancePlan: JSON.parse(localStorage.getItem('fubon_rebal_plan') || '{}'),
     rebalanceSellPrices: JSON.parse(localStorage.getItem('fubon_rebal_prices') || '{}'),
     rebalanceOrder: JSON.parse(localStorage.getItem('fubon_rebal_order') || '[]'),
+    rebalanceHideZero: localStorage.getItem('fubon_rebal_hide_zero') !== 'false',
     customRebalItems: JSON.parse(localStorage.getItem('fubon_custom_rebal') || '[]'),
 
     // Investment Advice UI & Settings
@@ -3126,16 +3127,27 @@
   }
 
   function getSatelliteHoldingsForRebalance() {
-    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001 && !h.coreHolding);
-    // Combine with custom items
-    const custom = state.customRebalItems || [];
-    return [...allActive, ...custom];
+    let list = Object.values(state.holdings || {}).filter(h => !h.coreHolding);
+    if (state.rebalanceHideZero) {
+      list = list.filter(h => h.currentShares > 0.0001);
+    }
+    return list;
+  }
+
+  function toggleRebalHideZero(checked) {
+    state.rebalanceHideZero = !!checked;
+    localStorage.setItem('fubon_rebal_hide_zero', state.rebalanceHideZero);
+    renderRebalanceTable();
   }
 
   function renderRebalanceTable() {
     const tbody = document.getElementById('rebalanceTableBody');
     const tfoot = document.getElementById('rebalanceTableFoot');
     if (!tbody) return;
+
+    // Sync checkbox state
+    const hideZeroCb = document.getElementById('rebalFilterHideZero');
+    if (hideZeroCb) hideZeroCb.checked = !!state.rebalanceHideZero;
 
     // Get current target diff and target satellite cost
     const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
@@ -3166,59 +3178,60 @@
     }
 
     if (items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:30px; color:var(--text-tertiary);">目前尚無衛星配置標的</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" class="text-center" style="padding:30px; color:var(--text-tertiary);">目前尚無衛星配置標的</td></tr>`;
       if (tfoot) tfoot.innerHTML = '';
       return;
     }
 
     let sumPlannedProceeds = 0;
-    let sumRemainingCost = 0;
-    let sumCurrentCost = 0;
+    let sumRemainingValue = 0;
+    let sumCurrentMarketValue = 0;
     let rowsHtml = '';
 
     items.forEach((item) => {
       const sym = item.symbol;
       const name = item.name || '';
       const shares = item.currentShares || 0;
-      const isCustom = !!item.isCustom;
-      const isUsd = (item.currency === 'USD');
+      const currency = item.currency || 'TWD';
+      const isUsd = (currency === 'USD');
       const rate = isUsd ? (state.usdRate || 32.5) : 1.0;
 
-      // 原幣價格（每股股價）
-      const avgCostNative = item.avgCost || 0;
-      const currentPriceNative = ((item.price !== undefined ? item.price : item.currentPrice) || 0);
+      // 1. 平均成本 & 即時現價 (昨收) 完全同步 holdingsTable 的顯示方式跟數字
+      const avgCost = item.avgCost || 0;
+      const currentPrice = item.currentPrice || 0;
+      const prevClose = item.prevClose || currentPrice;
 
-      // 每股損益 (價差) 與 報酬率
-      const priceDiffNative = currentPriceNative - avgCostNative;
-      const diffRoi = avgCostNative > 0 ? ((priceDiffNative / avgCostNative) * 100).toFixed(2) : '0.00';
-      const diffSign = priceDiffNative > 0 ? '+' : '';
-      const diffClass = getValClass(priceDiffNative);
+      // 2. 未實現損益 (NT) 與 報酬率 完全同步 holdingsTable
+      const plTwd = item.unrealizedPlTwd || 0;
+      const plSign = plTwd > 0 ? '+' : '';
+      const plClass = getValClass(plTwd);
+      const roiPct = item.roiPct || 0;
 
-      // 規劃賣出股數
+      // 3. 規劃賣出股數
       const plannedShares = state.rebalancePlan[sym] !== undefined 
         ? Math.min(shares, Math.max(0, state.rebalancePlan[sym])) 
         : 0;
       const remainingShares = Math.max(0, shares - plannedShares);
 
-      // 規劃賣出價格（自行設定，預設為即時現價）
+      // 4. 規劃賣出價格（自行設定，預設為即時現價）
       const customPrice = state.rebalanceSellPrices[sym];
-      const plannedPriceNative = (customPrice !== undefined && customPrice !== null && !isNaN(customPrice))
+      const plannedPrice = (customPrice !== undefined && customPrice !== null && !isNaN(customPrice))
         ? customPrice
-        : currentPriceNative;
+        : currentPrice;
 
-      // 規劃賣出金額 = 規劃賣出股數 × 規劃賣出價格
-      const plannedProceedsNative = plannedShares * plannedPriceNative;
+      // 5. 規劃賣出金額 = 規劃賣出股數 × 規劃賣出價格
+      const plannedProceedsNative = plannedShares * plannedPrice;
       const plannedProceedsTwd = Math.round(plannedProceedsNative * rate);
 
-      // 剩餘股數成本 = 剩餘股數 × 成本均價
-      const remainingCostNative = remainingShares * avgCostNative;
-      const remainingCostTwd = Math.round(remainingCostNative * rate);
+      // 6. 剩餘股數價值 = 剩餘股數 × 即時現價
+      const remainingMarketValNative = remainingShares * currentPrice;
+      const remainingMarketValTwd = Math.round(remainingMarketValNative * rate);
 
-      const currentCostTwd = Math.round(shares * avgCostNative * rate);
+      const currentMarketValTwd = Math.round(shares * currentPrice * rate);
 
       sumPlannedProceeds += plannedProceedsTwd;
-      sumRemainingCost += remainingCostTwd;
-      sumCurrentCost += currentCostTwd;
+      sumRemainingValue += remainingMarketValTwd;
+      sumCurrentMarketValue += currentMarketValTwd;
 
       rowsHtml += `
         <tr class="rebal-row" data-sym="${sym}" draggable="true">
@@ -3229,22 +3242,21 @@
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="symbol-badge">${escapeHtml(sym)}</span>
               <span class="symbol-name">${escapeHtml(name)}</span>
-              ${isCustom ? `<button type="button" class="btn-table-action text-danger" onclick="window.fubonApp.deleteCustomRebalItem('${sym}')" title="刪除此自訂項目" style="padding:0 4px; font-size:0.75rem;">&times;</button>` : ''}
             </div>
           </td>
           <td class="col-rebal-cost text-right mono">
-            ${isUsd 
-              ? `US$ ${formatMoney(avgCostNative, 2)}<div class="price-sub-twd mono">≈ NT$ ${formatMoney(Math.round(avgCostNative * rate))}</div>` 
-              : `NT$ ${formatMoney(avgCostNative, 2)}`}
+            ${formatMoney(avgCost, 2)}
+            <div class="price-sub mono">${currency}</div>
           </td>
           <td class="col-rebal-price text-right mono font-semibold">
-            ${isUsd 
-              ? `US$ ${formatMoney(currentPriceNative, 2)}<div class="price-sub-twd mono">≈ NT$ ${formatMoney(Math.round(currentPriceNative * rate))}</div>` 
-              : `NT$ ${formatMoney(currentPriceNative, 2)}`}
+            <strong class="text-cyan mono">${formatMoney(currentPrice, 2)}</strong>
+            <div class="price-sub mono">昨收 ${formatMoney(prevClose, 2)} ${currency}</div>
           </td>
-          <td class="text-right mono font-semibold ${diffClass}">
-            ${diffSign}${isUsd ? 'US$ ' : 'NT$ '}${formatMoney(Math.abs(priceDiffNative), 2)}<br>
-            <span style="font-size:0.72rem; opacity:0.85;">(${diffSign}${diffRoi}%)</span>
+          <td class="text-right mono font-semibold ${plClass}">
+            ${plSign}${formatMoney(plTwd)}<br>
+            <span class="kpi-badge ${getBadgeClass(plTwd)}" style="font-size:0.7rem; padding:1px 5px;">
+              ${formatPercent(roiPct)}
+            </span>
           </td>
           <td class="text-right mono font-semibold">${formatShares(shares)}</td>
           <td class="text-right">
@@ -3260,20 +3272,26 @@
             </div>
           </td>
           <td class="text-right">
-            <input type="number" step="any" min="0" value="${plannedPriceNative}" 
+            <input type="number" step="any" min="0" value="${plannedPrice}" 
               class="rebal-input mono" 
-              style="width: 82px;"
+              style="width: 78px;"
               data-sym="${sym}"
               onchange="window.fubonApp.updateRebalPrice('${sym}', this.value)"
               oninput="window.fubonApp.updateRebalPrice('${sym}', this.value)"
-              title="設定目標賣出單價（${isUsd ? 'USD' : 'TWD'}）">
+              title="設定目標賣出單價（${currency}）">
+          </td>
+          <td class="text-center">
+            <span class="tag-badge font-semibold">${currency}</span>
           </td>
           <td class="text-right mono font-semibold val-up">
             NT$ ${formatMoney(plannedProceedsTwd)}
-            ${isUsd ? `<div class="price-sub-twd mono">US$ ${formatMoney(plannedProceedsNative, 2)}</div>` : ''}
+            ${isUsd ? `<div class="price-sub mono">$${formatMoney(plannedProceedsNative, 2)} USD</div>` : ''}
           </td>
           <td class="text-right mono font-semibold">${formatShares(remainingShares)}</td>
-          <td class="text-right mono font-semibold">NT$ ${formatMoney(remainingCostTwd)}</td>
+          <td class="text-right mono font-semibold">
+            NT$ ${formatMoney(remainingMarketValTwd)}
+            ${isUsd ? `<div class="price-sub mono">$${formatMoney(remainingMarketValNative, 2)} USD</div>` : ''}
+          </td>
         </tr>
       `;
     });
@@ -3318,10 +3336,10 @@
           <td class="col-rebal-symbol">加總統計 (${items.length} 檔)</td>
           <td class="col-rebal-cost text-right mono">--</td>
           <td class="col-rebal-price text-right mono">--</td>
-          <td colspan="4" class="text-right mono">規劃總回收：</td>
-          <td class="text-right mono val-up" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
-          <td class="text-right mono">剩餘總成本：</td>
-          <td class="text-right mono font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingCost)}</td>
+          <td colspan="5" class="text-right mono">規劃總回收：</td>
+          <td class="text-right mono val-up font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
+          <td class="text-right mono">剩餘總價值：</td>
+          <td class="text-right mono font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingValue)}</td>
         </tr>
       `;
     }
@@ -3342,11 +3360,11 @@
       }
     }
 
-    if (remainingCostVal) remainingCostVal.textContent = `NT$ ${formatMoney(sumRemainingCost)}`;
+    if (remainingCostVal) remainingCostVal.textContent = `NT$ ${formatMoney(sumRemainingValue)}`;
     if (costStatus) {
-      const diffCost = sumRemainingCost - targetSatVal;
+      const diffCost = sumRemainingValue - targetSatVal;
       const diffSign = diffCost >= 0 ? '+' : '-';
-      costStatus.innerHTML = `<span class="mono" style="color:var(--text-secondary);">與目標差 ${diffSign}NT$ ${formatMoney(Math.abs(diffCost))} (原成本 NT$ ${formatMoney(sumCurrentCost)})</span>`;
+      costStatus.innerHTML = `<span class="mono" style="color:var(--text-secondary);">與目標差 ${diffSign}NT$ ${formatMoney(Math.abs(diffCost))} (原衛星市值 NT$ ${formatMoney(sumCurrentMarketValue)})</span>`;
     }
   }
 
@@ -6983,6 +7001,7 @@
     updateRebalShares: (sym, val) => updateRebalShares(sym, val),
     updateRebalPrice: (sym, val) => updateRebalPrice(sym, val),
     setRebalQuick: (sym, shares) => setRebalQuick(sym, shares),
+    toggleRebalHideZero: (checked) => toggleRebalHideZero(checked),
     deleteCustomRebalItem: (sym) => deleteCustomRebalItem(sym),
     switchToPortfolio: (pid) => {
       const clean = (pid || 'main').trim().toLowerCase();

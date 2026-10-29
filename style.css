@@ -4186,7 +4186,7 @@ body {
   left: 249px;
   z-index: 5;
   background: var(--bg-surface);
-  min-width: 105px;
+  min-width: 125px;
   text-align: right;
   vertical-align: bottom !important;
   border-bottom: 1px solid var(--border-subtle);
