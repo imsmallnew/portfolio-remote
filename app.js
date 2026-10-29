@@ -3181,6 +3181,29 @@
     renderRebalanceTable();
   }
 
+  function getRebalanceTargets() {
+    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
+    const totalCostAll = allActive.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const ratio = state.rebalanceRatio || 80;
+    const targetCoreVal = Math.round(totalCostAll * (ratio / 100));
+    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
+
+    const satList = allActive.filter(h => !h.coreHolding);
+    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const targetDiff = Math.max(0, satCost - targetSatVal);
+
+    return {
+      allActive,
+      totalCostAll,
+      ratio,
+      targetCoreVal,
+      targetSatVal,
+      satList,
+      satCost,
+      targetDiff
+    };
+  }
+
   function renderRebalanceTable() {
     const tbody = document.getElementById('rebalanceTableBody');
     const tfoot = document.getElementById('rebalanceTableFoot');
@@ -3191,15 +3214,7 @@
     if (hideZeroCb) hideZeroCb.checked = !!state.rebalanceHideZero;
 
     // Get current target diff and target satellite cost
-    const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
-    const totalCostAll = allActive.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const ratio = state.rebalanceRatio || 80;
-    const targetCoreVal = Math.round(totalCostAll * (ratio / 100));
-    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
-
-    const satList = allActive.filter(h => !h.coreHolding);
-    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const targetDiff = Math.max(0, satCost - targetSatVal);
+    const { targetDiff, targetSatVal } = getRebalanceTargets();
 
     // Update targets text in banner
     const targetProceedsText = document.getElementById('rebalTargetProceedsText');
@@ -3465,15 +3480,13 @@
   }
 
   function updateRebalSummary() {
-    const totalCost = (state.twCost || 0) + (state.usCostTwd || 0);
-    const targetCorePct = state.targetCoreRatio || 70;
-    const targetSatPct = 100 - targetCorePct;
-    const targetSatVal = Math.round(totalCost * (targetSatPct / 100));
+    const { targetDiff, targetSatVal } = getRebalanceTargets();
 
-    const allActive = (state.processedHoldings || []).filter(h => (h.currentShares || 0) > 0);
-    const satList = allActive.filter(h => !h.coreHolding);
-    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const targetDiff = Math.max(0, satCost - targetSatVal);
+    // Ensure target banner text is always strictly in sync
+    const targetProceedsText = document.getElementById('rebalTargetProceedsText');
+    const targetCostText = document.getElementById('rebalTargetCostText');
+    if (targetProceedsText) targetProceedsText.textContent = `NT$ ${formatMoney(targetDiff)}`;
+    if (targetCostText) targetCostText.textContent = `NT$ ${formatMoney(targetSatVal)}`;
 
     const items = getSatelliteHoldingsForRebalance();
     let sumPlannedProceeds = 0;
@@ -3502,9 +3515,14 @@
     if (proceedsStatus) {
       const diff = sumPlannedProceeds - targetDiff;
       if (diff >= 0) {
-        proceedsStatus.innerHTML = `<span class="val-up font-bold" style="color:#10b981;">🟢 已達標 (超出 +NT$ ${formatMoney(diff)})</span>`;
+        if (targetDiff === 0 && diff === 0) {
+          proceedsStatus.innerHTML = `<span class="val-up font-bold" style="color:#10b981;">🟢 已達標 (無需減持)</span>`;
+        } else {
+          proceedsStatus.innerHTML = `<span class="val-up font-bold" style="color:#10b981;">🟢 已達標 (超出 NT$ ${formatMoney(diff)} 元)</span>`;
+        }
       } else {
-        proceedsStatus.innerHTML = `<span class="val-down font-bold" style="color:#ef4444;">🔴 未達標 (還差 NT$ ${formatMoney(Math.abs(diff))})</span>`;
+        const deficit = targetDiff - sumPlannedProceeds;
+        proceedsStatus.innerHTML = `<span class="val-down font-bold" style="color:#ef4444;">🔴 未達標 (尚少 NT$ ${formatMoney(deficit)} 元)</span>`;
       }
     }
 
