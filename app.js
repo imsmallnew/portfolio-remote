@@ -3321,9 +3321,9 @@
                 class="rebal-input mono" 
                 id="rebalSharesInput_${sym}"
                 data-sym="${sym}"
-                onchange="window.fubonApp.updateRebalShares('${sym}', this.value)"
-                oninput="window.fubonApp.updateRebalShares('${sym}', this.value)"
-                title="輸入規劃賣出股數">
+                onchange="window.fubonApp.updateRebalShares('${sym}', this.value, true)"
+                oninput="window.fubonApp.updateRebalShares('${sym}', this.value, false)"
+                title="輸入規劃賣出股數（不可超過持有 ${formatShares(shares)} 股）">
               <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${shares})" title="賣出全數">全</button>
               <button type="button" class="rebal-quick-btn" onclick="window.fubonApp.setRebalQuick('${sym}', ${Number((shares * 0.5).toFixed(2))})" title="賣出半數">半</button>
             </div>
@@ -3570,11 +3570,31 @@
     renderRebalanceTable();
   }
 
-  function updateRebalShares(sym, val) {
+  function updateRebalShares(sym, val, isCommit = false) {
+    const items = getSatelliteHoldingsForRebalance();
+    const item = items.find(x => x.symbol === sym);
+    const maxShares = item ? (item.currentShares || 0) : 0;
+
+    let num = 0;
     if (val === '' || val === undefined || val === null) {
+      num = 0;
       state.rebalancePlan[sym] = 0;
     } else {
-      const num = Math.max(0, parseFloat(val) || 0);
+      const parsed = parseFloat(val);
+      if (isNaN(parsed) || parsed < 0) {
+        num = 0;
+        const inp = document.getElementById(`rebalSharesInput_${sym}`);
+        if (inp && val !== '') inp.value = 0;
+      } else if (parsed > maxShares) {
+        num = maxShares;
+        const inp = document.getElementById(`rebalSharesInput_${sym}`);
+        if (inp) inp.value = maxShares;
+        if (isCommit) {
+          showNotification(`「${sym}」規劃賣出股數不可超過持有股數 (${formatShares(maxShares)} 股)`, 'error');
+        }
+      } else {
+        num = parsed;
+      }
       state.rebalancePlan[sym] = num;
     }
     localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
@@ -3583,10 +3603,15 @@
   }
 
   function setRebalQuick(sym, shares) {
-    state.rebalancePlan[sym] = shares;
+    const items = getSatelliteHoldingsForRebalance();
+    const item = items.find(x => x.symbol === sym);
+    const maxShares = item ? (item.currentShares || 0) : shares;
+    const clampedShares = Math.min(maxShares, Math.max(0, shares));
+
+    state.rebalancePlan[sym] = clampedShares;
     localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
     const inp = document.getElementById(`rebalSharesInput_${sym}`);
-    if (inp) inp.value = shares;
+    if (inp) inp.value = clampedShares;
     updateRebalRowInPlace(sym);
     updateRebalSummary();
   }
@@ -7181,7 +7206,7 @@
     },
     openSatelliteRebalanceModal: () => openSatelliteRebalanceModal(),
     closeSatelliteRebalanceModal: () => closeSatelliteRebalanceModal(),
-    updateRebalShares: (sym, val) => updateRebalShares(sym, val),
+    updateRebalShares: (sym, val, isCommit) => updateRebalShares(sym, val, isCommit),
     updateRebalPrice: (sym, val) => updateRebalPrice(sym, val),
     setRebalQuick: (sym, shares) => setRebalQuick(sym, shares),
     toggleRebalHideZero: (checked) => toggleRebalHideZero(checked),
