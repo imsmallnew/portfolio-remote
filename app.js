@@ -83,6 +83,7 @@
     csMarketFilter: 'all', // 'all', 'tw', 'us'
     csSort: 'pl', // 'pl' (未實現損益) or 'cost' (總成本)
     rebalanceRatio: parseInt(localStorage.getItem('fubon_rebal_ratio') || '80', 10),
+    simExpanded: false, // Collapsed by default as requested
     rebalancePlan: JSON.parse(localStorage.getItem('fubon_rebal_plan') || '{}'),
     rebalanceSellPrices: JSON.parse(localStorage.getItem('fubon_rebal_prices') || '{}'),
     rebalanceOrder: JSON.parse(localStorage.getItem('fubon_rebal_order') || '[]'),
@@ -2997,8 +2998,11 @@
     const satCountText = document.getElementById('csSatCountText');
     const satCostVal = document.getElementById('csSatCostVal');
     const satPlVal = document.getElementById('csSatPlVal');
+    const csCorePctText = document.getElementById('csCorePctText');
+    const csSatPctText = document.getElementById('csSatPctText');
 
-    if (coreCountText) coreCountText.textContent = `${coreList.length} 檔 (${coreCostPct}%)`;
+    if (csCorePctText) csCorePctText.textContent = `(${coreCostPct}%)`;
+    if (coreCountText) coreCountText.textContent = `${coreList.length} 檔`;
     if (coreCostVal) coreCostVal.textContent = `NT$ ${formatMoney(coreCost)}`;
     if (corePlVal) {
       const sign = corePl > 0 ? '+' : '';
@@ -3006,7 +3010,8 @@
       corePlVal.className = `mono ${getValClass(corePl)}`;
     }
 
-    if (satCountText) satCountText.textContent = `${satList.length} 檔 (${satCostPct}%)`;
+    if (csSatPctText) csSatPctText.textContent = `(${satCostPct}%)`;
+    if (satCountText) satCountText.textContent = `${satList.length} 檔`;
     if (satCostVal) satCostVal.textContent = `NT$ ${formatMoney(satCost)}`;
     if (satPlVal) {
       const sign = satPl > 0 ? '+' : '';
@@ -3110,6 +3115,42 @@
     document.querySelectorAll('.cs-preset-btn').forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.ratio, 10) === ratio);
     });
+
+    // Update Simulator Collapsible DOM state
+    const simCollapsible = document.getElementById('csSimCollapsible');
+    const simToggleBtn = document.getElementById('btnSimToggle');
+    const simToggleArrow = document.getElementById('simToggleArrow');
+    if (simCollapsible) {
+      simCollapsible.style.display = state.simExpanded ? 'flex' : 'none';
+    }
+    if (simToggleBtn) {
+      simToggleBtn.classList.toggle('is-expanded', !!state.simExpanded);
+      simToggleBtn.setAttribute('aria-expanded', state.simExpanded ? 'true' : 'false');
+    }
+    if (simToggleArrow) {
+      simToggleArrow.textContent = state.simExpanded ? '▲' : '▼';
+    }
+  }
+
+  function toggleSimCollapse(forceOpen = null) {
+    if (forceOpen !== null) {
+      state.simExpanded = !!forceOpen;
+    } else {
+      state.simExpanded = !state.simExpanded;
+    }
+    const simCollapsible = document.getElementById('csSimCollapsible');
+    const simToggleBtn = document.getElementById('btnSimToggle');
+    const simToggleArrow = document.getElementById('simToggleArrow');
+    if (simCollapsible) {
+      simCollapsible.style.display = state.simExpanded ? 'flex' : 'none';
+    }
+    if (simToggleBtn) {
+      simToggleBtn.classList.toggle('is-expanded', !!state.simExpanded);
+      simToggleBtn.setAttribute('aria-expanded', state.simExpanded ? 'true' : 'false');
+    }
+    if (simToggleArrow) {
+      simToggleArrow.textContent = state.simExpanded ? '▲' : '▼';
+    }
   }
 
   // Satellite Rebalance & Selling Planner Modal Logic
@@ -5913,12 +5954,18 @@
       ratioSlider.addEventListener('change', handleSliderChange);
     }
 
+    // Simulator Toggle Button
+    document.getElementById('btnSimToggle')?.addEventListener('click', () => {
+      toggleSimCollapse();
+    });
+
     document.querySelectorAll('.cs-preset-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const r = parseInt(btn.dataset.ratio, 10);
         if (!isNaN(r)) {
           state.rebalanceRatio = r;
           localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+          toggleSimCollapse(true);
           renderCoreSatelliteAnalytics();
         }
       });
@@ -7003,6 +7050,7 @@
     setRebalQuick: (sym, shares) => setRebalQuick(sym, shares),
     toggleRebalHideZero: (checked) => toggleRebalHideZero(checked),
     deleteCustomRebalItem: (sym) => deleteCustomRebalItem(sym),
+    toggleSimCollapse: (forceOpen) => toggleSimCollapse(forceOpen),
     switchToPortfolio: (pid) => {
       const clean = (pid || 'main').trim().toLowerCase();
       try {

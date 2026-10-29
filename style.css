@@ -3565,6 +3565,36 @@ body {
   border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
+.cs-ratio-pct-highlight {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #facc15;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+}
+
+[data-theme="light"] .cs-ratio-pct-highlight {
+  color: #4b5563;
+  text-shadow: none;
+}
+
+.cs-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 0 2px;
+}
+
+@media (max-width: 640px) {
+  .cs-controls-bar {
+    justify-content: flex-start;
+  }
+}
+
 .cs-col-count {
   font-size: 0.78rem;
   color: var(--text-tertiary);
@@ -3793,6 +3823,63 @@ body {
   color: #ffffff;
   border-color: var(--primary-blue);
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+.cs-sim-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.82rem;
+  margin-left: 6px;
+  transition: all var(--transition-fast);
+}
+
+.cs-sim-toggle-btn:hover {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .cs-sim-toggle-btn {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme="light"] .cs-sim-toggle-btn:hover {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #ffffff;
+}
+
+.cs-sim-toggle-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+  line-height: 1;
+}
+
+.cs-sim-toggle-btn.is-expanded .cs-sim-toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.cs-sim-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: csFadeIn 0.25s ease;
+}
+
+@keyframes csFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .cs-sim-slider-row {

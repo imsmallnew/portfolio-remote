@@ -813,7 +813,87 @@
                   <p class="cs-subtitle">即時行情連動 · 依成本與未實現損益排序 · ⭐ 主力核心與衛星配置比重</p>
                 </div>
               </div>
+            </div>
 
+            <!-- Core vs Satellite Ratio Simulator & Satellite Rebalance Planner -->
+            <div class="cs-simulator-card" id="csSimulatorCard">
+              <div class="cs-sim-header">
+                <div class="cs-sim-title-group">
+                  <span class="cs-sim-icon">🎛️</span>
+                  <div>
+                    <h5 class="cs-sim-title">主力／衛星 配置比例模擬器</h5>
+                    <p class="cs-sim-desc">拖曳橫軸調整目標比例 · 即時試算衛星出金回收資金並規劃減持標的</p>
+                  </div>
+                </div>
+                <div class="cs-sim-presets">
+                  <span class="cs-preset-label">快捷比例：</span>
+                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="70">7 : 3</button>
+                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn active" data-ratio="80">8 : 2</button>
+                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="85">8.5 : 1.5</button>
+                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="90">9 : 1</button>
+                  <button type="button" class="cs-sim-toggle-btn" id="btnSimToggle" title="點開展開／收合調整滑桿" aria-expanded="false">
+                    <span class="cs-sim-toggle-arrow" id="simToggleArrow">▼</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Collapsible Simulator Body (Default closed) -->
+              <div class="cs-sim-collapsible" id="csSimCollapsible" style="display: none;">
+                <!-- Slider row -->
+                <div class="cs-sim-slider-row">
+                  <div class="cs-slider-wrap">
+                    <div class="cs-slider-header">
+                      <span class="cs-slider-badge core-badge">⭐ 主力目標: <strong id="csSimCorePct">80%</strong></span>
+                      <span class="cs-slider-ratio mono" id="csSimRatioText">8 : 2</span>
+                      <span class="cs-slider-badge sat-badge">🛰️ 衛星目標: <strong id="csSimSatPct">20%</strong></span>
+                    </div>
+                    <input type="range" class="cs-range-slider" id="csRatioSlider" min="50" max="95" step="1" value="80">
+                    <div class="cs-slider-ticks">
+                      <span>50%</span>
+                      <span>60%</span>
+                      <span>70%</span>
+                      <span>80%</span>
+                      <span>90%</span>
+                      <span>95%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Simulation Result Targets Banner -->
+                <div class="cs-sim-targets-grid">
+                  <div class="cs-sim-target-box box-core">
+                    <div class="target-box-title">目標主力核心金額</div>
+                    <div class="target-box-val mono" id="csSimTargetCoreVal">NT$ 1,487,518</div>
+                    <div class="target-box-sub" id="csSimTargetCoreSub">依 80% 計算</div>
+                  </div>
+
+                  <div class="cs-sim-target-box box-sat">
+                    <div class="target-box-title">目標衛星配置金額</div>
+                    <div class="target-box-val mono" id="csSimTargetSatVal">NT$ 371,879</div>
+                    <div class="target-box-sub" id="csSimTargetSatSub">依 20% 計算</div>
+                  </div>
+
+                  <div class="cs-sim-rebalance-box" id="csSimRebalanceBox">
+                    <div class="rebalance-box-content">
+                      <span class="rebalance-icon">⚖️</span>
+                      <div class="rebalance-info">
+                        <div class="rebalance-title">再平衡調整規劃</div>
+                        <div class="rebalance-msg" id="csSimRebalanceMsg">
+                          衛星需要賣出 <strong class="val-highlight mono is-clickable" id="csSimDiffAmountClick" title="點擊進入規劃衛星標的">NT$ 421,341</strong> 回收資金轉投入到主力
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm btn-rebalance-open" id="btnOpenRebalanceModal">
+                      <span>進入規劃衛星標的</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Market & Sort Filter Bar (Placed directly above Core vs Satellite cards) -->
+            <div class="cs-controls-bar">
               <div class="cs-controls-group">
                 <!-- Market Filter (全部 / 台股 / 美股) -->
                 <div class="cs-filter-pills" id="csMarketFilters">
@@ -833,99 +913,6 @@
               </div>
             </div>
 
-            <!-- Overall Core vs Satellite Ratio Bar -->
-            <div class="cs-ratio-overview">
-              <div class="cs-ratio-labels">
-                <div class="cs-ratio-label-core">
-                  <span class="cs-badge-dot core-dot"></span>
-                  <strong>⭐ 主力核心：</strong>
-                  <span class="mono" id="csCoreCostSummary">NT$ -- (--%)</span>
-                  <span class="cs-ratio-pl mono" id="csCorePlSummary">+NT$ -- (+--%)</span>
-                </div>
-                <div class="cs-ratio-label-sat">
-                  <span class="cs-badge-dot sat-dot"></span>
-                  <strong>🛰️ 衛星配置：</strong>
-                  <span class="mono" id="csSatCostSummary">NT$ -- (--%)</span>
-                  <span class="cs-ratio-pl mono" id="csSatPlSummary">+NT$ -- (+--%)</span>
-                </div>
-              </div>
-              <div class="cs-ratio-bar-track">
-                <div class="cs-ratio-bar-fill core-fill" id="csRatioBarCore" style="width: 50%;"></div>
-                <div class="cs-ratio-bar-fill sat-fill" id="csRatioBarSat" style="width: 50%;"></div>
-              </div>
-            </div>
-
-            <!-- Core vs Satellite Ratio Simulator & Satellite Rebalance Planner -->
-            <div class="cs-simulator-card" id="csSimulatorCard">
-              <div class="cs-sim-header">
-                <div class="cs-sim-title-group">
-                  <span class="cs-sim-icon">🎛️</span>
-                  <div>
-                    <h5 class="cs-sim-title">主力／衛星 配置比例模擬器 (再平衡試算)</h5>
-                    <p class="cs-sim-desc">拖曳橫軸調整目標比例 · 即時試算衛星出金回收資金並規劃減持標的</p>
-                  </div>
-                </div>
-                <div class="cs-sim-presets">
-                  <span class="cs-preset-label">快捷比例：</span>
-                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="70">7 : 3</button>
-                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn active" data-ratio="80">8 : 2</button>
-                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="85">8.5 : 1.5</button>
-                  <button type="button" class="btn btn-secondary btn-xs cs-preset-btn" data-ratio="90">9 : 1</button>
-                </div>
-              </div>
-
-              <!-- Slider row -->
-              <div class="cs-sim-slider-row">
-                <div class="cs-slider-wrap">
-                  <div class="cs-slider-header">
-                    <span class="cs-slider-badge core-badge">⭐ 主力目標: <strong id="csSimCorePct">80%</strong></span>
-                    <span class="cs-slider-ratio mono" id="csSimRatioText">8 : 2</span>
-                    <span class="cs-slider-badge sat-badge">🛰️ 衛星目標: <strong id="csSimSatPct">20%</strong></span>
-                  </div>
-                  <input type="range" class="cs-range-slider" id="csRatioSlider" min="50" max="95" step="1" value="80">
-                  <div class="cs-slider-ticks">
-                    <span>50%</span>
-                    <span>60%</span>
-                    <span>70%</span>
-                    <span>80%</span>
-                    <span>90%</span>
-                    <span>95%</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Simulation Result Targets Banner -->
-              <div class="cs-sim-targets-grid">
-                <div class="cs-sim-target-box box-core">
-                  <div class="target-box-title">目標主力核心金額</div>
-                  <div class="target-box-val mono" id="csSimTargetCoreVal">NT$ 1,487,518</div>
-                  <div class="target-box-sub" id="csSimTargetCoreSub">依 80% 計算</div>
-                </div>
-
-                <div class="cs-sim-target-box box-sat">
-                  <div class="target-box-title">目標衛星配置金額</div>
-                  <div class="target-box-val mono" id="csSimTargetSatVal">NT$ 371,879</div>
-                  <div class="target-box-sub" id="csSimTargetSatSub">依 20% 計算</div>
-                </div>
-
-                <div class="cs-sim-rebalance-box" id="csSimRebalanceBox">
-                  <div class="rebalance-box-content">
-                    <span class="rebalance-icon">⚖️</span>
-                    <div class="rebalance-info">
-                      <div class="rebalance-title">再平衡調整規劃</div>
-                      <div class="rebalance-msg" id="csSimRebalanceMsg">
-                        衛星需要賣出 <strong class="val-highlight mono is-clickable" id="csSimDiffAmountClick" title="點擊進入規劃衛星標的">NT$ 421,341</strong> 回收資金轉投入到主力
-                      </div>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-primary btn-sm btn-rebalance-open" id="btnOpenRebalanceModal">
-                    <span>進入規劃衛星標的</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <!-- Two-Column Breakdown (Core on Left, Satellite on Right) -->
             <div class="cs-columns-grid">
               <!-- Column 1: Core Holdings -->
@@ -933,6 +920,7 @@
                 <div class="cs-column-header">
                   <div class="cs-col-title-wrap">
                     <span class="cs-col-badge badge-core">⭐ 主力核心</span>
+                    <span class="cs-ratio-pct-highlight" id="csCorePctText">(--%)</span>
                     <span class="cs-col-count" id="csCoreCountText">0 檔</span>
                   </div>
                   <div class="cs-col-totals">
@@ -956,6 +944,7 @@
                 <div class="cs-column-header">
                   <div class="cs-col-title-wrap">
                     <span class="cs-col-badge badge-sat">🛰️ 衛星配置</span>
+                    <span class="cs-ratio-pct-highlight" id="csSatPctText">(--%)</span>
                     <span class="cs-col-count" id="csSatCountText">0 檔</span>
                   </div>
                   <div class="cs-col-totals">
