@@ -3304,6 +3304,7 @@
             <div style="display:flex; align-items:center; gap:4px; justify-content:flex-end;">
               <input type="number" step="any" min="0" max="${shares}" value="${plannedShares}" 
                 class="rebal-input mono" 
+                id="rebalSharesInput_${sym}"
                 data-sym="${sym}"
                 onchange="window.fubonApp.updateRebalShares('${sym}', this.value)"
                 oninput="window.fubonApp.updateRebalShares('${sym}', this.value)"
@@ -3315,6 +3316,7 @@
           <td class="text-right">
             <input type="number" step="any" min="0" value="${plannedPrice}" 
               class="rebal-input mono" 
+              id="rebalPriceInput_${sym}"
               style="width: 78px;"
               data-sym="${sym}"
               onchange="window.fubonApp.updateRebalPrice('${sym}', this.value)"
@@ -3324,12 +3326,12 @@
           <td class="text-center">
             <span class="tag-badge font-semibold">${currency}</span>
           </td>
-          <td class="text-right mono font-semibold val-up">
+          <td class="text-right mono font-semibold val-up" id="rebalProceedsCell_${sym}">
             NT$ ${formatMoney(plannedProceedsTwd)}
             ${isUsd ? `<div class="price-sub mono">$${formatMoney(plannedProceedsNative, 2)} USD</div>` : ''}
           </td>
-          <td class="text-right mono font-semibold">${formatShares(remainingShares)}</td>
-          <td class="text-right mono font-semibold">
+          <td class="text-right mono font-semibold" id="rebalRemSharesCell_${sym}">${formatShares(remainingShares)}</td>
+          <td class="text-right mono font-semibold" id="rebalRemValCell_${sym}">
             NT$ ${formatMoney(remainingMarketValTwd)}
             ${isUsd ? `<div class="price-sub mono">$${formatMoney(remainingMarketValNative, 2)} USD</div>` : ''}
           </td>
@@ -3378,12 +3380,117 @@
           <td class="col-rebal-cost text-right mono">--</td>
           <td class="col-rebal-price text-right mono">--</td>
           <td colspan="5" class="text-right mono">規劃總回收：</td>
-          <td class="text-right mono val-up font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
+          <td class="text-right mono val-up font-bold" id="rebalTfootProceeds" style="font-size:1rem;">NT$ ${formatMoney(sumPlannedProceeds)}</td>
           <td class="text-right mono">剩餘總價值：</td>
-          <td class="text-right mono font-bold" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingValue)}</td>
+          <td class="text-right mono font-bold" id="rebalTfootRemaining" style="font-size:1rem;">NT$ ${formatMoney(sumRemainingValue)}</td>
         </tr>
       `;
     }
+
+    // Update Top Banner Comparisons & Summary
+    updateRebalSummary();
+  }
+
+  function calculateRebalanceItemMetrics(item) {
+    const sym = item.symbol;
+    const shares = item.currentShares || 0;
+    const currency = item.currency || 'TWD';
+    const isUsd = (currency === 'USD');
+    const rate = isUsd ? (state.usdRate || 32.5) : 1.0;
+    const currentPrice = item.currentPrice || 0;
+
+    const plannedShares = state.rebalancePlan[sym] !== undefined 
+      ? Math.min(shares, Math.max(0, state.rebalancePlan[sym])) 
+      : 0;
+    const remainingShares = Math.max(0, shares - plannedShares);
+
+    const customPrice = state.rebalanceSellPrices[sym];
+    const plannedPrice = (customPrice !== undefined && customPrice !== null && !isNaN(customPrice))
+      ? customPrice
+      : currentPrice;
+
+    const plannedProceedsNative = plannedShares * plannedPrice;
+    const plannedProceedsTwd = Math.round(plannedProceedsNative * rate);
+
+    const remainingMarketValNative = remainingShares * currentPrice;
+    const remainingMarketValTwd = Math.round(remainingMarketValNative * rate);
+
+    const currentMarketValTwd = Math.round(shares * currentPrice * rate);
+
+    return {
+      sym,
+      shares,
+      currency,
+      isUsd,
+      rate,
+      currentPrice,
+      plannedShares,
+      remainingShares,
+      plannedPrice,
+      plannedProceedsNative,
+      plannedProceedsTwd,
+      remainingMarketValNative,
+      remainingMarketValTwd,
+      currentMarketValTwd
+    };
+  }
+
+  function updateRebalRowInPlace(sym) {
+    const items = getSatelliteHoldingsForRebalance();
+    const item = items.find(x => x.symbol === sym);
+    if (!item) return;
+
+    const m = calculateRebalanceItemMetrics(item);
+
+    const proceedsEl = document.getElementById(`rebalProceedsCell_${sym}`);
+    if (proceedsEl) {
+      proceedsEl.innerHTML = `
+        NT$ ${formatMoney(m.plannedProceedsTwd)}
+        ${m.isUsd ? `<div class="price-sub mono">$${formatMoney(m.plannedProceedsNative, 2)} USD</div>` : ''}
+      `;
+    }
+
+    const remSharesEl = document.getElementById(`rebalRemSharesCell_${sym}`);
+    if (remSharesEl) {
+      remSharesEl.textContent = formatShares(m.remainingShares);
+    }
+
+    const remValEl = document.getElementById(`rebalRemValCell_${sym}`);
+    if (remValEl) {
+      remValEl.innerHTML = `
+        NT$ ${formatMoney(m.remainingMarketValTwd)}
+        ${m.isUsd ? `<div class="price-sub mono">$${formatMoney(m.remainingMarketValNative, 2)} USD</div>` : ''}
+      `;
+    }
+  }
+
+  function updateRebalSummary() {
+    const totalCost = (state.twCost || 0) + (state.usCostTwd || 0);
+    const targetCorePct = state.targetCoreRatio || 70;
+    const targetSatPct = 100 - targetCorePct;
+    const targetSatVal = Math.round(totalCost * (targetSatPct / 100));
+
+    const allActive = (state.processedHoldings || []).filter(h => (h.currentShares || 0) > 0);
+    const satList = allActive.filter(h => !h.coreHolding);
+    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
+    const targetDiff = Math.max(0, satCost - targetSatVal);
+
+    const items = getSatelliteHoldingsForRebalance();
+    let sumPlannedProceeds = 0;
+    let sumRemainingValue = 0;
+    let sumCurrentMarketValue = 0;
+
+    items.forEach(item => {
+      const m = calculateRebalanceItemMetrics(item);
+      sumPlannedProceeds += m.plannedProceedsTwd;
+      sumRemainingValue += m.remainingMarketValTwd;
+      sumCurrentMarketValue += m.currentMarketValTwd;
+    });
+
+    const tfootProceeds = document.getElementById('rebalTfootProceeds');
+    if (tfootProceeds) tfootProceeds.textContent = `NT$ ${formatMoney(sumPlannedProceeds)}`;
+    const tfootRemaining = document.getElementById('rebalTfootRemaining');
+    if (tfootRemaining) tfootRemaining.textContent = `NT$ ${formatMoney(sumRemainingValue)}`;
 
     // Update Top Banner Comparisons
     const plannedProceedsVal = document.getElementById('rebalPlannedProceedsVal');
@@ -3410,14 +3517,17 @@
   }
 
   function updateRebalPrice(sym, val) {
-    const num = parseFloat(val);
-    if (!isNaN(num) && num >= 0) {
-      state.rebalanceSellPrices[sym] = num;
-    } else {
+    if (val === '' || val === undefined || val === null) {
       delete state.rebalanceSellPrices[sym];
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num >= 0) {
+        state.rebalanceSellPrices[sym] = num;
+      }
     }
     localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
-    renderRebalanceTable();
+    updateRebalRowInPlace(sym);
+    updateRebalSummary();
   }
 
   function reorderRebalanceItems(fromSym, toSym) {
@@ -3443,16 +3553,24 @@
   }
 
   function updateRebalShares(sym, val) {
-    const num = Math.max(0, parseFloat(val) || 0);
-    state.rebalancePlan[sym] = num;
+    if (val === '' || val === undefined || val === null) {
+      state.rebalancePlan[sym] = 0;
+    } else {
+      const num = Math.max(0, parseFloat(val) || 0);
+      state.rebalancePlan[sym] = num;
+    }
     localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
-    renderRebalanceTable();
+    updateRebalRowInPlace(sym);
+    updateRebalSummary();
   }
 
   function setRebalQuick(sym, shares) {
     state.rebalancePlan[sym] = shares;
     localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
-    renderRebalanceTable();
+    const inp = document.getElementById(`rebalSharesInput_${sym}`);
+    if (inp) inp.value = shares;
+    updateRebalRowInPlace(sym);
+    updateRebalSummary();
   }
 
   function addCustomRebalItem() {
