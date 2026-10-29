@@ -815,7 +815,79 @@
               </div>
             </div>
 
-            <!-- Core vs Satellite Ratio Simulator & Satellite Rebalance Planner -->
+            <!-- Market & Sort Filter Bar (Placed directly above Core vs Satellite cards) -->
+            <div class="cs-controls-bar">
+              <div class="cs-controls-group">
+                <!-- Market Filter (全部 / 台股 / 美股) -->
+                <div class="cs-filter-pills" id="csMarketFilters">
+                  <button type="button" class="cs-pill-btn active" data-market="all">全部標的</button>
+                  <button type="button" class="cs-pill-btn" data-market="tw">台股</button>
+                  <button type="button" class="cs-pill-btn" data-market="us">美股</button>
+                </div>
+
+                <!-- Sort Toggle (未實現損益 / 總成本) -->
+                <div class="cs-sort-group">
+                  <span class="cs-sort-label">排序：</span>
+                  <div class="cs-filter-pills" id="csSortFilters">
+                    <button type="button" class="cs-pill-btn active" data-sort="pl">未實現損益 ▾</button>
+                    <button type="button" class="cs-pill-btn" data-sort="cost">總成本 ▾</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Two-Column Breakdown (Core on Left, Satellite on Right) -->
+            <div class="cs-columns-grid">
+              <!-- Column 1: Core Holdings -->
+              <div class="cs-column-card cs-core-card">
+                <div class="cs-column-header">
+                  <div class="cs-col-title-wrap">
+                    <span class="cs-col-badge badge-core">⭐ 主力核心</span>
+                    <span class="cs-ratio-pct-highlight" id="csCorePctText">(--%)</span>
+                    <span class="cs-col-count" id="csCoreCountText">0 檔</span>
+                  </div>
+                  <div class="cs-col-totals">
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總成本</span>
+                      <strong class="mono" id="csCoreCostVal">NT$ 0</strong>
+                    </div>
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">未實現損益</span>
+                      <strong class="mono" id="csCorePlVal">NT$ 0</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="cs-holdings-list" id="csCoreHoldingsList">
+                  <!-- Dynamically injected -->
+                </div>
+              </div>
+
+              <!-- Column 2: Satellite Holdings -->
+              <div class="cs-column-card cs-sat-card">
+                <div class="cs-column-header">
+                  <div class="cs-col-title-wrap">
+                    <span class="cs-col-badge badge-sat">🛰️ 衛星配置</span>
+                    <span class="cs-ratio-pct-highlight" id="csSatPctText">(--%)</span>
+                    <span class="cs-col-count" id="csSatCountText">0 檔</span>
+                  </div>
+                  <div class="cs-col-totals">
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總成本</span>
+                      <strong class="mono" id="csSatCostVal">NT$ 0</strong>
+                    </div>
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">未實現損益</span>
+                      <strong class="mono" id="csSatPlVal">NT$ 0</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="cs-holdings-list" id="csSatHoldingsList">
+                  <!-- Dynamically injected -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Core vs Satellite Ratio Simulator & Satellite Rebalance Planner (Placed directly above 資產大類配置比重) -->
             <div class="cs-simulator-card" id="csSimulatorCard">
               <div class="cs-sim-header">
                 <div class="cs-sim-title-group">
@@ -888,78 +960,6 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Market & Sort Filter Bar (Placed directly above Core vs Satellite cards) -->
-            <div class="cs-controls-bar">
-              <div class="cs-controls-group">
-                <!-- Market Filter (全部 / 台股 / 美股) -->
-                <div class="cs-filter-pills" id="csMarketFilters">
-                  <button type="button" class="cs-pill-btn active" data-market="all">全部標的</button>
-                  <button type="button" class="cs-pill-btn" data-market="tw">台股</button>
-                  <button type="button" class="cs-pill-btn" data-market="us">美股</button>
-                </div>
-
-                <!-- Sort Toggle (未實現損益 / 總成本) -->
-                <div class="cs-sort-group">
-                  <span class="cs-sort-label">排序：</span>
-                  <div class="cs-filter-pills" id="csSortFilters">
-                    <button type="button" class="cs-pill-btn active" data-sort="pl">未實現損益 ▾</button>
-                    <button type="button" class="cs-pill-btn" data-sort="cost">總成本 ▾</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Two-Column Breakdown (Core on Left, Satellite on Right) -->
-            <div class="cs-columns-grid">
-              <!-- Column 1: Core Holdings -->
-              <div class="cs-column-card cs-core-card">
-                <div class="cs-column-header">
-                  <div class="cs-col-title-wrap">
-                    <span class="cs-col-badge badge-core">⭐ 主力核心</span>
-                    <span class="cs-ratio-pct-highlight" id="csCorePctText">(--%)</span>
-                    <span class="cs-col-count" id="csCoreCountText">0 檔</span>
-                  </div>
-                  <div class="cs-col-totals">
-                    <div class="cs-col-metric">
-                      <span class="cs-metric-lbl">總成本</span>
-                      <strong class="mono" id="csCoreCostVal">NT$ 0</strong>
-                    </div>
-                    <div class="cs-col-metric">
-                      <span class="cs-metric-lbl">未實現損益</span>
-                      <strong class="mono" id="csCorePlVal">NT$ 0</strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="cs-holdings-list" id="csCoreHoldingsList">
-                  <!-- Dynamically injected -->
-                </div>
-              </div>
-
-              <!-- Column 2: Satellite Holdings -->
-              <div class="cs-column-card cs-sat-card">
-                <div class="cs-column-header">
-                  <div class="cs-col-title-wrap">
-                    <span class="cs-col-badge badge-sat">🛰️ 衛星配置</span>
-                    <span class="cs-ratio-pct-highlight" id="csSatPctText">(--%)</span>
-                    <span class="cs-col-count" id="csSatCountText">0 檔</span>
-                  </div>
-                  <div class="cs-col-totals">
-                    <div class="cs-col-metric">
-                      <span class="cs-metric-lbl">總成本</span>
-                      <strong class="mono" id="csSatCostVal">NT$ 0</strong>
-                    </div>
-                    <div class="cs-col-metric">
-                      <span class="cs-metric-lbl">未實現損益</span>
-                      <strong class="mono" id="csSatPlVal">NT$ 0</strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="cs-holdings-list" id="csSatHoldingsList">
-                  <!-- Dynamically injected -->
                 </div>
               </div>
             </div>
