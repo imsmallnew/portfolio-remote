@@ -1071,8 +1071,13 @@
       };
     }
 
-    // Process transactions
-    const sortedTx = [...state.transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Process transactions using FIFO (先進先出法)
+    const sortedTx = [...state.transactions].sort((a, b) => {
+      const dDiff = new Date(a.date) - new Date(b.date);
+      if (dDiff !== 0) return dDiff;
+      return (a.id || '').localeCompare(b.id || '');
+    });
+    const fifoLots = {};
 
     for (const tx of sortedTx) {
       const sym = tx.symbol;
@@ -1105,6 +1110,10 @@
         };
       }
 
+      if (!fifoLots[sym]) {
+        fifoLots[sym] = [];
+      }
+
       const h = holdings[sym];
       h.txCount += 1;
       const isSell = tx.action && tx.action.includes('賣');
@@ -1114,16 +1123,39 @@
       if (!isSell) {
         h.totalBoughtShares += shares;
         h.totalBoughtCost += amount;
-        h.currentShares += shares;
-        h.investedCost += amount;
+        const unitCost = shares > 0 ? (amount / shares) : (parseFloat(tx.price) || 0);
+        fifoLots[sym].push({
+          shares: shares,
+          unitCost: unitCost,
+          amount: amount
+        });
       } else {
         h.totalSoldShares += shares;
         h.totalSoldRevenue += amount;
-        const avgCostBefore = h.currentShares > 0 ? (h.investedCost / h.currentShares) : 0;
-        const costBasisOfSold = shares * avgCostBefore;
-        h.currentShares = Math.max(0, h.currentShares - shares);
-        h.investedCost = Math.max(0, h.investedCost - costBasisOfSold);
+        let sellQty = shares;
+        while (sellQty > 0.000001 && fifoLots[sym].length > 0) {
+          const lot = fifoLots[sym][0];
+          if (lot.shares <= sellQty + 0.000001) {
+            sellQty -= lot.shares;
+            fifoLots[sym].shift();
+          } else {
+            lot.shares -= sellQty;
+            lot.amount = lot.shares * lot.unitCost;
+            sellQty = 0;
+            break;
+          }
+        }
       }
+    }
+
+    // Sync remaining shares and invested cost from FIFO lots
+    for (const [sym, h] of Object.entries(holdings)) {
+      const symLots = fifoLots[sym] || [];
+      const remainingShares = symLots.reduce((sum, l) => sum + l.shares, 0);
+      const remainingCost = symLots.reduce((sum, l) => sum + (l.shares * l.unitCost), 0);
+
+      h.currentShares = remainingShares;
+      h.investedCost = remainingCost;
     }
 
     // Calculate TWD Market Values & P/L
