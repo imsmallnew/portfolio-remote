@@ -1116,11 +1116,22 @@
 
       const h = holdings[sym];
       h.txCount += 1;
-      const isSell = tx.action && tx.action.includes('賣');
+      const isSplit = tx.action && tx.action.includes('分割');
+      const isSell = !isSplit && tx.action && tx.action.includes('賣');
       const shares = Math.abs(parseFloat(tx.shares) || 0);
       const amount = Math.abs(parseFloat(tx.total_amount) || 0);
 
-      if (!isSell) {
+      if (isSplit) {
+        // 股票分割 / 反分割：調整此日前該標的在庫的所有 FIFO 庫存批次
+        const ratio = parseFloat(tx.split_ratio || tx.shares) || 1;
+        if (ratio > 0 && fifoLots[sym]) {
+          for (const lot of fifoLots[sym]) {
+            lot.shares = lot.shares * ratio;
+            lot.unitCost = lot.unitCost / ratio;
+            lot.amount = lot.shares * lot.unitCost;
+          }
+        }
+      } else if (!isSell) {
         h.totalBoughtShares += shares;
         h.totalBoughtCost += amount;
         const unitCost = shares > 0 ? (amount / shares) : (parseFloat(tx.price) || 0);
@@ -2573,12 +2584,55 @@
       let badgeClass = 'tx-buy';
       if (tx.action.includes('定期')) badgeClass = 'tx-regular';
       else if (tx.action.includes('賣')) badgeClass = 'tx-sell';
+      else if (tx.action.includes('分割')) badgeClass = 'tx-split';
 
-      const isSell = tx.action.includes('賣');
+      const isSplit = tx.action.includes('分割');
+      const isSell = !isSplit && tx.action.includes('賣');
       const isUsd = (tx.currency === 'USD');
       const rate = state.usdRate || 32.5;
 
-      if (isSell) {
+      if (isSplit) {
+        const ratio = parseFloat(tx.split_ratio || tx.shares) || 1;
+        rowsHtml += `
+          <tr data-txid="${tx.id}">
+            <td class="col-tx-date mono">${tx.date}</td>
+            <td class="col-tx-symbol">
+              <span class="symbol-badge">${escapeHtml(tx.symbol)}</span>
+              <span class="symbol-name">${escapeHtml(tx.name || '')}</span>
+            </td>
+            <td class="col-tx-action">
+              <span class="tx-badge ${badgeClass}">${escapeHtml(tx.action)}</span>
+            </td>
+            <td class="col-tx-shares text-right mono font-semibold" style="color: var(--cyan-accent);">
+              1 拆 ${ratio} 股
+            </td>
+            <td class="col-tx-fifo text-right mono text-tertiary-xs">
+              成本折算 1/${ratio}
+            </td>
+            <td class="col-tx-sell-price text-right mono">
+              <span class="cell-na">--</span>
+            </td>
+            <td class="col-tx-proceeds text-right mono">
+              <span class="cell-na">庫存分割</span>
+            </td>
+            <td class="col-tx-cost text-right mono">
+              <span class="cell-na">--</span>
+            </td>
+            <td class="col-tx-pl text-right mono">
+              <span class="cell-na">--</span>
+            </td>
+            <td class="col-tx-curr text-center">
+              <span class="tag-badge">${tx.currency || 'TWD'}</span>
+            </td>
+            <td class="col-tx-actions text-center admin-only">
+              <div class="row-actions admin-only">
+                <button class="btn-table-action" onclick="window.fubonApp.openEditTxModal('${tx.id}')" title="編輯此筆交易">編輯</button>
+                <button class="btn-table-action text-danger" onclick="window.fubonApp.openDeleteTxModal('${tx.id}')" title="刪除此筆交易">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else if (isSell) {
         const info = getSellTransactionRealizedInfo(tx);
         const pl = info.realizedPl || 0;
         const plTwd = (info.realizedPlTwd !== undefined) ? info.realizedPlTwd : (isUsd ? Math.round(pl * rate) : pl);
@@ -4200,10 +4254,20 @@
       if (!sym) continue;
       if (!lotsBySymbol[sym]) lotsBySymbol[sym] = [];
 
-      const isSell = tx.action && tx.action.includes('賣');
+      const isSplit = tx.action && tx.action.includes('分割');
+      const isSell = !isSplit && tx.action && tx.action.includes('賣');
       const shares = Math.abs(parseFloat(tx.shares) || 0);
 
-      if (!isSell) {
+      if (isSplit) {
+        const ratio = parseFloat(tx.split_ratio || tx.shares) || 1;
+        if (ratio > 0 && lotsBySymbol[sym]) {
+          for (const lot of lotsBySymbol[sym]) {
+            lot.remainingShares = lot.remainingShares * ratio;
+            lot.originalShares = lot.originalShares * ratio;
+            lot.price = lot.price / ratio;
+          }
+        }
+      } else if (!isSell) {
         if (shares > 0) {
           lotsBySymbol[sym].push({
             id: tx.id,
@@ -5357,6 +5421,11 @@
     document.getElementById('txFormTotal').value = tx.total_amount;
     document.getElementById('txFormNote').value = tx.note || '';
 
+    const ratioInput = document.getElementById('txFormSplitRatio');
+    if (ratioInput) {
+      ratioInput.value = tx.split_ratio || tx.shares || 8;
+    }
+
     updateFormQuoteHelper(tx.symbol);
     modal.classList.add('show');
   }
@@ -5384,12 +5453,39 @@
 
     const action = document.getElementById('txFormAction').value;
     const hintEl = document.getElementById('sharesAvailableHint');
-    if (hintEl) {
-      if (action.includes('賣')) {
-        hintEl.textContent = `⚠️ 目前最多可賣出 ${formatShares(h ? h.currentShares : 0)} 股`;
-        hintEl.style.color = '#f59e0b';
-      } else {
-        hintEl.textContent = '';
+    const splitGroup = document.getElementById('txSplitRatioGroup');
+    const priceRow = document.getElementById('txBuySellPriceRow');
+    const totalGroup = document.getElementById('txBuySellTotalGroup');
+
+    if (action.includes('分割')) {
+      if (splitGroup) splitGroup.style.display = 'block';
+      if (priceRow) priceRow.style.display = 'none';
+      if (totalGroup) totalGroup.style.display = 'none';
+      if (hintEl) hintEl.textContent = '';
+      const sharesInput = document.getElementById('txFormShares');
+      const priceInput = document.getElementById('txFormPrice');
+      const totalInput = document.getElementById('txFormTotal');
+      if (sharesInput) sharesInput.removeAttribute('required');
+      if (priceInput) priceInput.removeAttribute('required');
+      if (totalInput) totalInput.removeAttribute('required');
+    } else {
+      if (splitGroup) splitGroup.style.display = 'none';
+      if (priceRow) priceRow.style.display = 'flex';
+      if (totalGroup) totalGroup.style.display = 'block';
+      const sharesInput = document.getElementById('txFormShares');
+      const priceInput = document.getElementById('txFormPrice');
+      const totalInput = document.getElementById('txFormTotal');
+      if (sharesInput) sharesInput.setAttribute('required', 'required');
+      if (priceInput) priceInput.setAttribute('required', 'required');
+      if (totalInput) totalInput.setAttribute('required', 'required');
+
+      if (hintEl) {
+        if (action.includes('賣')) {
+          hintEl.textContent = `⚠️ 目前最多可賣出 ${formatShares(h ? h.currentShares : 0)} 股`;
+          hintEl.style.color = '#f59e0b';
+        } else {
+          hintEl.textContent = '';
+        }
       }
     }
   }
@@ -5401,15 +5497,32 @@
     const isEdit = !!state.editingTxId;
     const symbol = document.getElementById('txFormSymbol').value;
     const q = state.quotes[symbol] || {};
-
-    const shares = parseFloat(document.getElementById('txFormShares').value);
-    const price = parseFloat(document.getElementById('txFormPrice').value);
-    const total = parseFloat(document.getElementById('txFormTotal').value);
     const action = document.getElementById('txFormAction').value;
+    const isSplit = action.includes('分割');
 
-    if (!symbol || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0 || isNaN(total) || total <= 0) {
-      showNotification('請完整填寫有效股數、單價與金額', 'error');
-      return;
+    let shares = 0;
+    let price = 0;
+    let total = 0;
+    let splitRatio = 1;
+
+    if (isSplit) {
+      splitRatio = parseFloat(document.getElementById('txFormSplitRatio')?.value);
+      if (isNaN(splitRatio) || splitRatio <= 0) {
+        showNotification('請輸入有效的分割比例（大於 0 的數值）', 'error');
+        return;
+      }
+      shares = splitRatio; // 記錄 1 拆 N
+      price = 0;
+      total = 0;
+    } else {
+      shares = parseFloat(document.getElementById('txFormShares').value);
+      price = parseFloat(document.getElementById('txFormPrice').value);
+      total = parseFloat(document.getElementById('txFormTotal').value);
+
+      if (!symbol || isNaN(shares) || shares <= 0 || isNaN(price) || price <= 0 || isNaN(total) || total <= 0) {
+        showNotification('請完整填寫有效股數、單價與金額', 'error');
+        return;
+      }
     }
 
     const txData = {
@@ -5424,6 +5537,12 @@
       currency: q.currency || 'TWD',
       note: document.getElementById('txFormNote').value.trim()
     };
+    if (isSplit) {
+      txData.split_ratio = splitRatio;
+      if (!txData.note) {
+        txData.note = `股票分割 1 拆 ${splitRatio} 股`;
+      }
+    }
 
     if (isEdit) {
       const idx = state.transactions.findIndex(t => t.id === state.editingTxId);
@@ -5461,7 +5580,7 @@
     await persistState(['transactions', 'realizedRecords']);
 
     showNotification(
-      isEdit ? `交易修改成功！持有股數已同步連動` : `新增交易成功！持有股數與成本已即刻連動更新`,
+      isEdit ? `交易修改成功！持有股數已同步連動` : (isSplit ? `股票分割設定成功！已依 1 拆 ${splitRatio} 調整歷史庫存批次與每股平均成本` : `新增交易成功！持有股數與成本已即刻連動更新`),
       'success'
     );
   }

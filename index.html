@@ -1352,8 +1352,20 @@
                 <option value="單筆買進">單筆買進</option>
                 <option value="定期定額">定期定額</option>
                 <option value="賣出">賣出 (減持)</option>
+                <option value="股票分割">股票分割 (拆股/反分割)</option>
               </select>
             </div>
+          </div>
+
+          <!-- Split Ratio Field (Only visible when 股票分割 is selected) -->
+          <div class="form-group" id="txSplitRatioGroup" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: var(--radius-md); padding: 12px 14px;">
+            <label for="txFormSplitRatio" style="color: var(--cyan-accent); font-weight: 600;">股票分割比例 (1 股拆為 N 股) <span class="req">*</span></label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.9rem; color: var(--text-secondary);">1 拆</span>
+              <input type="number" id="txFormSplitRatio" step="any" min="0.0001" placeholder="例如：8" value="8" style="max-width: 120px;">
+              <span style="font-size: 0.9rem; color: var(--text-secondary);">股 (反分割可填小數，例如 1 拆 0.5 股)</span>
+            </div>
+            <span class="form-hint" style="color: var(--cyan-accent); margin-top: 6px;">💡 系統將自動把拆股日前所有尚未賣出的庫存批次依比例調整股數與每股歷史成本，總投入成本不變！</span>
           </div>
 
           <div class="form-group">
@@ -1370,7 +1382,7 @@
             <button type="button" class="btn-link" id="btnApplyCurrentPrice">帶入現價</button>
           </div>
 
-          <div class="form-row">
+          <div class="form-row" id="txBuySellPriceRow">
             <div class="form-group flex-1">
               <label for="txFormShares">成交股數 <span class="req">*</span></label>
               <input type="number" id="txFormShares" step="any" min="0.0001" placeholder="例如 100" required>
@@ -1382,7 +1394,7 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" id="txBuySellTotalGroup">
             <label for="txFormTotal">總成交金額 (<span id="formCurrLabel">TWD</span>) <span class="req">*</span></label>
             <div class="input-with-action">
               <input type="number" id="txFormTotal" step="any" min="0.01" placeholder="自動計算" required>
