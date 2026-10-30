@@ -554,6 +554,70 @@
         status: 'rejected',
         rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+    },
+
+    // 衛星標的減持/出金規劃模擬器 - 依登入使用者 (Gmail) 獨立雲端紀錄
+    getRebalanceDocId(email, rawPid) {
+      const cleanEmail = (email || '').toLowerCase().trim().replace(/[^a-z0-9_@.-]/g, '_') || 'guest';
+      const pid = this.canonicalPid(rawPid || this.currentPortfolioId || 'main');
+      return `${cleanEmail}__${pid}`;
+    },
+
+    async loadUserRebalance(email, rawPid) {
+      if (!this.isConfigured || !this.db || !email) return null;
+      try {
+        const docId = this.getRebalanceDocId(email, rawPid);
+        const docSnap = await this.db.collection('rebalance_plans').doc(docId).get();
+        if (docSnap.exists) {
+          return { exists: true, data: docSnap.data() };
+        }
+        return { exists: false };
+      } catch (err) {
+        console.warn(`[CloudStore] 載入使用者再平衡設定失敗 (${email}):`, err);
+        return { exists: false, error: err.message };
+      }
+    },
+
+    async saveUserRebalance(email, rawPid, rebalanceData) {
+      if (!this.isConfigured || !this.db || !email) return false;
+      try {
+        const docId = this.getRebalanceDocId(email, rawPid);
+        const pid = this.canonicalPid(rawPid || this.currentPortfolioId || 'main');
+        const payload = {
+          userEmail: (email || '').toLowerCase().trim(),
+          userId: this.currentUser ? this.currentUser.uid : '',
+          portfolioId: pid,
+          rebalancePlan: rebalanceData.rebalancePlan || {},
+          rebalanceSellPrices: rebalanceData.rebalanceSellPrices || {},
+          rebalanceOrder: rebalanceData.rebalanceOrder || [],
+          rebalanceRatio: rebalanceData.rebalanceRatio !== undefined ? rebalanceData.rebalanceRatio : 80,
+          rebalanceHideZero: rebalanceData.rebalanceHideZero !== undefined ? !!rebalanceData.rebalanceHideZero : true,
+          lastUpdated: new Date().toLocaleString('zh-TW', { hour12: false }),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        await this.db.collection('rebalance_plans').doc(docId).set(payload, { merge: true });
+        return true;
+      } catch (err) {
+        console.error(`[CloudStore] 儲存使用者再平衡設定失敗 (${email}):`, err);
+        return false;
+      }
+    },
+
+    subscribeUserRebalance(email, rawPid, callback) {
+      if (!this.isConfigured || !this.db || !email) return null;
+      try {
+        const docId = this.getRebalanceDocId(email, rawPid);
+        return this.db.collection('rebalance_plans').doc(docId).onSnapshot((docSnap) => {
+          if (docSnap.exists) {
+            callback(docSnap.data());
+          }
+        }, (err) => {
+          console.warn(`[CloudStore] 即時監聽再平衡設定注意 (${docId}):`, err);
+        });
+      } catch (err) {
+        console.warn(`[CloudStore] 註冊即時監聽失敗:`, err);
+        return null;
+      }
     }
   };
 

@@ -89,6 +89,7 @@
     rebalanceOrder: JSON.parse(localStorage.getItem('fubon_rebal_order') || '[]'),
     rebalanceHideZero: localStorage.getItem('fubon_rebal_hide_zero') !== 'false',
     customRebalItems: JSON.parse(localStorage.getItem('fubon_custom_rebal') || '[]'),
+    unsubUserRebalance: null,
 
     // Investment Advice UI & Settings
     adviceSettings: {
@@ -519,6 +520,14 @@
       }
     }
 
+    if (!user) {
+      if (state.unsubUserRebalance) {
+        state.unsubUserRebalance();
+        state.unsubUserRebalance = null;
+      }
+      updateRebalCloudStatusUI();
+    }
+
     applyAuthMode();
     loadAndSubscribeCloudData();
   }
@@ -576,6 +585,9 @@
           showNotification('已自動同步其他裝置的最新修改！', 'info');
         }
       });
+
+      // Sync user-specific rebalance planner data from/to Firebase
+      await syncUserRebalanceFromCloud();
     } catch (err) {
       console.error('載入雲端資料失敗:', err);
       showNotification('載入雲端資料失敗，暫時顯示展示資料', 'error');
@@ -3154,10 +3166,184 @@
   }
 
   // Satellite Rebalance & Selling Planner Modal Logic
+  let rebalanceCloudSaveTimer = null;
+
+  function updateRebalCloudStatusUI(customMsg = null, isSaving = false) {
+    const statusText = document.getElementById('rebalCloudStatusText');
+    const statusIcon = document.getElementById('rebalCloudStatusIcon');
+    if (!statusText) return;
+
+    if (customMsg) {
+      statusText.innerHTML = customMsg;
+      if (statusIcon) statusIcon.textContent = isSaving ? '⏳' : '☁️';
+      return;
+    }
+
+    const cloud = window.cloudStore;
+    const user = cloud?.currentUser;
+    if (cloud && cloud.isConfigured && user && user.email) {
+      if (statusIcon) statusIcon.textContent = '☁️';
+      statusText.innerHTML = `已連線 Firebase 雲端：<strong style="color:var(--text-primary);">${escapeHtml(user.email)}</strong>（獨立跨裝置儲存）`;
+    } else {
+      if (statusIcon) statusIcon.textContent = '💡';
+      statusText.innerHTML = `未登入 Google 帳號，目前僅儲存於本地瀏覽器 · 登入後可全裝置自動同步`;
+    }
+  }
+
+  async function syncUserRebalanceFromCloud() {
+    const cloud = window.cloudStore;
+    if (!cloud || !cloud.isConfigured) {
+      updateRebalCloudStatusUI();
+      return;
+    }
+
+    const user = cloud.currentUser;
+    if (!user || !user.email) {
+      updateRebalCloudStatusUI();
+      return;
+    }
+
+    const pid = cloud.currentPortfolioId || 'main';
+
+    try {
+      updateRebalCloudStatusUI('正在讀取 Firebase 雲端出金規劃...', true);
+      const res = await cloud.loadUserRebalance(user.email, pid);
+
+      if (res && res.exists && res.data) {
+        // Cloud has existing record for this user
+        const d = res.data;
+        if (d.rebalancePlan !== undefined) state.rebalancePlan = d.rebalancePlan || {};
+        if (d.rebalanceSellPrices !== undefined) state.rebalanceSellPrices = d.rebalanceSellPrices || {};
+        if (d.rebalanceOrder !== undefined) state.rebalanceOrder = d.rebalanceOrder || [];
+        if (d.rebalanceRatio !== undefined) state.rebalanceRatio = d.rebalanceRatio;
+        if (d.rebalanceHideZero !== undefined) state.rebalanceHideZero = !!d.rebalanceHideZero;
+
+        localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+        localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
+        localStorage.setItem('fubon_rebal_order', JSON.stringify(state.rebalanceOrder));
+        localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+        localStorage.setItem('fubon_rebal_hide_zero', state.rebalanceHideZero);
+
+        renderRebalanceTable();
+        updateRebalSummary();
+        renderCoreSatelliteAnalytics();
+        updateRebalCloudStatusUI();
+        console.log(`[Rebalance] 已成功載入 ${user.email} 的雲端規劃紀錄`);
+      } else {
+        // Cloud does not have a record yet -> Write current local data to DB!
+        // 「請以目前local資料寫入DB」
+        updateRebalCloudStatusUI('正在將本機出金規劃寫入 Firebase 雲端...', true);
+        const localPayload = {
+          rebalancePlan: state.rebalancePlan || {},
+          rebalanceSellPrices: state.rebalanceSellPrices || {},
+          rebalanceOrder: state.rebalanceOrder || [],
+          rebalanceRatio: state.rebalanceRatio !== undefined ? state.rebalanceRatio : 80,
+          rebalanceHideZero: state.rebalanceHideZero !== undefined ? !!state.rebalanceHideZero : true
+        };
+        await cloud.saveUserRebalance(user.email, pid, localPayload);
+        updateRebalCloudStatusUI();
+        showNotification(`☁️ 已將目前本機出金規劃自動寫入 Firebase 雲端資料庫 (${user.email})！`, 'success');
+        console.log(`[Rebalance] 已將本機資料初始化寫入 Firebase (${user.email})`);
+      }
+
+      // Setup real-time listener across devices
+      if (state.unsubUserRebalance) {
+        state.unsubUserRebalance();
+        state.unsubUserRebalance = null;
+      }
+      state.unsubUserRebalance = cloud.subscribeUserRebalance(user.email, pid, (remoteData) => {
+        if (!remoteData) return;
+        let changed = false;
+        if (remoteData.rebalancePlan && JSON.stringify(remoteData.rebalancePlan) !== JSON.stringify(state.rebalancePlan)) {
+          state.rebalancePlan = remoteData.rebalancePlan;
+          localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+          changed = true;
+        }
+        if (remoteData.rebalanceSellPrices && JSON.stringify(remoteData.rebalanceSellPrices) !== JSON.stringify(state.rebalanceSellPrices)) {
+          state.rebalanceSellPrices = remoteData.rebalanceSellPrices;
+          localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
+          changed = true;
+        }
+        if (remoteData.rebalanceOrder && JSON.stringify(remoteData.rebalanceOrder) !== JSON.stringify(state.rebalanceOrder)) {
+          state.rebalanceOrder = remoteData.rebalanceOrder;
+          localStorage.setItem('fubon_rebal_order', JSON.stringify(state.rebalanceOrder));
+          changed = true;
+        }
+        if (remoteData.rebalanceRatio !== undefined && remoteData.rebalanceRatio !== state.rebalanceRatio) {
+          state.rebalanceRatio = remoteData.rebalanceRatio;
+          localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+          changed = true;
+        }
+        if (remoteData.rebalanceHideZero !== undefined && remoteData.rebalanceHideZero !== state.rebalanceHideZero) {
+          state.rebalanceHideZero = remoteData.rebalanceHideZero;
+          localStorage.setItem('fubon_rebal_hide_zero', state.rebalanceHideZero);
+          changed = true;
+        }
+        if (changed) {
+          renderRebalanceTable();
+          updateRebalSummary();
+          renderCoreSatelliteAnalytics();
+          updateRebalCloudStatusUI();
+          showNotification('已自動同步其他裝置的最新減持/出金規劃！', 'info');
+        }
+      });
+
+    } catch (err) {
+      console.error('[Rebalance] 雲端同步失敗:', err);
+      updateRebalCloudStatusUI(`雲端連線失敗，目前暫存於本機 (${escapeHtml(err.message || err)})`);
+    }
+  }
+
+  function scheduleUserRebalanceCloudSave(immediate = false) {
+    // 1. Always update local storage first
+    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
+    localStorage.setItem('fubon_rebal_order', JSON.stringify(state.rebalanceOrder));
+    localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+    localStorage.setItem('fubon_rebal_hide_zero', state.rebalanceHideZero);
+
+    // 2. If logged into Firebase, save to user's independent cloud document
+    const cloud = window.cloudStore;
+    const user = cloud?.currentUser;
+    if (!cloud || !cloud.isConfigured || !user || !user.email) {
+      updateRebalCloudStatusUI();
+      return;
+    }
+
+    const pid = cloud.currentPortfolioId || 'main';
+
+    const saveNow = async () => {
+      try {
+        updateRebalCloudStatusUI('正在同步至雲端...', true);
+        const payload = {
+          rebalancePlan: state.rebalancePlan || {},
+          rebalanceSellPrices: state.rebalanceSellPrices || {},
+          rebalanceOrder: state.rebalanceOrder || [],
+          rebalanceRatio: state.rebalanceRatio !== undefined ? state.rebalanceRatio : 80,
+          rebalanceHideZero: state.rebalanceHideZero !== undefined ? !!state.rebalanceHideZero : true
+        };
+        await cloud.saveUserRebalance(user.email, pid, payload);
+        updateRebalCloudStatusUI();
+      } catch (e) {
+        console.warn('雲端儲存出金規劃失敗:', e);
+        updateRebalCloudStatusUI('雲端儲存失敗，已保留本機紀錄');
+      }
+    };
+
+    if (immediate) {
+      if (rebalanceCloudSaveTimer) clearTimeout(rebalanceCloudSaveTimer);
+      saveNow();
+    } else {
+      if (rebalanceCloudSaveTimer) clearTimeout(rebalanceCloudSaveTimer);
+      rebalanceCloudSaveTimer = setTimeout(saveNow, 600);
+    }
+  }
+
   function openSatelliteRebalanceModal() {
     const modal = document.getElementById('satelliteRebalanceModalBackdrop');
     if (!modal) return;
     modal.classList.add('show');
+    updateRebalCloudStatusUI();
     renderRebalanceTable();
   }
 
@@ -3177,7 +3363,7 @@
 
   function toggleRebalHideZero(checked) {
     state.rebalanceHideZero = !!checked;
-    localStorage.setItem('fubon_rebal_hide_zero', state.rebalanceHideZero);
+    scheduleUserRebalanceCloudSave(true);
     renderRebalanceTable();
   }
 
@@ -3543,7 +3729,7 @@
         state.rebalanceSellPrices[sym] = num;
       }
     }
-    localStorage.setItem('fubon_rebal_prices', JSON.stringify(state.rebalanceSellPrices));
+    scheduleUserRebalanceCloudSave(false);
     updateRebalRowInPlace(sym);
     updateRebalSummary();
   }
@@ -3566,7 +3752,7 @@
     order.splice(toIdx, 0, fromSym);
 
     state.rebalanceOrder = order;
-    localStorage.setItem('fubon_rebal_order', JSON.stringify(order));
+    scheduleUserRebalanceCloudSave(true);
     renderRebalanceTable();
   }
 
@@ -3597,7 +3783,7 @@
       }
       state.rebalancePlan[sym] = num;
     }
-    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    scheduleUserRebalanceCloudSave(isCommit);
     updateRebalRowInPlace(sym);
     updateRebalSummary();
   }
@@ -3609,9 +3795,9 @@
     const clampedShares = Math.min(maxShares, Math.max(0, shares));
 
     state.rebalancePlan[sym] = clampedShares;
-    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
     const inp = document.getElementById(`rebalSharesInput_${sym}`);
     if (inp) inp.value = clampedShares;
+    scheduleUserRebalanceCloudSave(true);
     updateRebalRowInPlace(sym);
     updateRebalSummary();
   }
@@ -3653,7 +3839,7 @@
     state.customRebalItems = state.customRebalItems.filter(x => x.symbol !== sym);
     delete state.rebalancePlan[sym];
     localStorage.setItem('fubon_custom_rebal', JSON.stringify(state.customRebalItems));
-    localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+    scheduleUserRebalanceCloudSave(true);
     renderRebalanceTable();
   }
 
@@ -6108,7 +6294,7 @@
     if (ratioSlider) {
       const handleSliderChange = (e) => {
         state.rebalanceRatio = parseInt(e.target.value, 10);
-        localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+        scheduleUserRebalanceCloudSave(e.type === 'change');
         renderCoreSatelliteAnalytics();
       };
       ratioSlider.addEventListener('input', handleSliderChange);
@@ -6125,7 +6311,7 @@
         const r = parseInt(btn.dataset.ratio, 10);
         if (!isNaN(r)) {
           state.rebalanceRatio = r;
-          localStorage.setItem('fubon_rebal_ratio', state.rebalanceRatio);
+          scheduleUserRebalanceCloudSave(true);
           toggleSimCollapse(true);
           renderCoreSatelliteAnalytics();
         }
@@ -6146,7 +6332,7 @@
       items.forEach(item => {
         state.rebalancePlan[item.symbol] = item.currentShares || 0;
       });
-      localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+      scheduleUserRebalanceCloudSave(true);
       renderRebalanceTable();
     });
 
@@ -6155,14 +6341,41 @@
       items.forEach(item => {
         state.rebalancePlan[item.symbol] = Number(((item.currentShares || 0) * 0.5).toFixed(2));
       });
-      localStorage.setItem('fubon_rebal_plan', JSON.stringify(state.rebalancePlan));
+      scheduleUserRebalanceCloudSave(true);
       renderRebalanceTable();
     });
 
     document.getElementById('btnRebalReset')?.addEventListener('click', () => {
       state.rebalancePlan = {};
-      localStorage.removeItem('fubon_rebal_plan');
+      scheduleUserRebalanceCloudSave(true);
       renderRebalanceTable();
+    });
+
+    // 手動一鍵強制同步至 Firebase 雲端按鈕
+    document.getElementById('btnRebalForceCloudSync')?.addEventListener('click', async () => {
+      const cloud = window.cloudStore;
+      const user = cloud?.currentUser;
+      if (!cloud || !cloud.isConfigured || !user || !user.email) {
+        showNotification('請先登入 Google 帳號以啟用雲端同步！', 'info');
+        return;
+      }
+      try {
+        updateRebalCloudStatusUI('正在將本機出金規劃寫入 Firebase 雲端...', true);
+        const pid = cloud.currentPortfolioId || 'main';
+        const payload = {
+          rebalancePlan: state.rebalancePlan || {},
+          rebalanceSellPrices: state.rebalanceSellPrices || {},
+          rebalanceOrder: state.rebalanceOrder || [],
+          rebalanceRatio: state.rebalanceRatio !== undefined ? state.rebalanceRatio : 80,
+          rebalanceHideZero: state.rebalanceHideZero !== undefined ? !!state.rebalanceHideZero : true
+        };
+        await cloud.saveUserRebalance(user.email, pid, payload);
+        updateRebalCloudStatusUI();
+        showNotification(`✅ 已成功將目前規劃資料寫入 Firebase 雲端 (${user.email})！不同裝置登入此帳號皆可同步！`, 'success');
+      } catch (err) {
+        console.error('雲端同步失敗:', err);
+        showNotification('雲端同步失敗：' + (err.message || err), 'error');
+      }
     });
 
     document.getElementById('btnAddCustomRebalItem')?.addEventListener('click', addCustomRebalItem);

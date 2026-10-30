@@ -62,6 +62,16 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false;
     }
+
+    // 衛星減持／出金規劃模擬器：每個登入 Google 帳號獨立讀寫自己專屬的規劃紀錄
+    match /rebalance_plans/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 訪客白名單審核申請
+    match /whitelist_requests/{docId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
 ```

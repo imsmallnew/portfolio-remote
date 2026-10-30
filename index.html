@@ -2067,11 +2067,13 @@
           </div>
         </div>
 
-        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:0.78rem; color:var(--text-tertiary);">
-            💡 輸入規劃賣出股數後會自動即時儲存至本地瀏覽器
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div id="rebalCloudStatus" style="font-size:0.8rem; display:flex; align-items:center; gap:6px; color:var(--text-secondary);">
+            <span id="rebalCloudStatusIcon">☁️</span>
+            <span id="rebalCloudStatusText">💡 輸入規劃賣出股數後會自動即時同步至 Firebase 雲端 (依 Google 帳號個別獨立儲存)</span>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-secondary btn-xs" id="btnRebalForceCloudSync" title="將目前規劃資料立即強制覆蓋寫入 Firebase 雲端">☁️ 立即同步至雲端</button>
             <button type="button" class="btn btn-secondary" id="btnSatelliteRebalanceCancel">關閉</button>
           </div>
         </div>
