@@ -2022,8 +2022,13 @@ body {
   display: none !important;
 }
 
-/* Sensitive reserves (Insurance, Cash Pool, Net Worth) hidden in public view mode */
-[data-auth-mode="view"] .sensitive-reserves {
+/* Sensitive reserves (Insurance, Cash Pool, Net Worth) hidden in public view mode or for non-owners */
+[data-auth-mode="view"] .sensitive-reserves,
+[data-auth-mode="viewer"] .sensitive-reserves,
+html:not([data-show-reserves="true"]) .sensitive-reserves,
+body:not([data-show-reserves="true"]) .sensitive-reserves,
+html[data-show-reserves="false"] .sensitive-reserves,
+body[data-show-reserves="false"] .sensitive-reserves {
   display: none !important;
 }
 

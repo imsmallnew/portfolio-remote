@@ -829,6 +829,9 @@
     ];
     const targetKeys = keysToSave || allKeys;
     for (const key of targetKeys) {
+      if (key === 'fundReserves' && typeof canViewSensitiveReserves === 'function' && !canViewSensitiveReserves()) {
+        continue;
+      }
       if (state[key] !== undefined) {
         payload[key] = state[key];
       }
@@ -864,10 +867,61 @@
     });
   }
 
-  // 2. Auth Mode (View-Only vs Admin Edit Mode)
+  // 2. Auth Mode (View-Only vs Admin Edit Mode) & Privacy Protection
+  function canViewSensitiveReserves() {
+    // 訪客切換進來觀看請隱藏
+    if (state.authMode !== 'admin') {
+      return false;
+    }
+
+    const cloud = window.cloudStore;
+    if (!cloud || !cloud.isConfigured) {
+      // 本機單機/離線環境：依 admin 模式顯示
+      return state.authMode === 'admin';
+    }
+
+    // 雲端多租戶環境：管理員也不能看到別人的資金狀況為保護隱私
+    // 僅限該投資組合之「真正擁有者本人」在管理員模式下可見
+    return cloud.isTruePortfolioOwner ? cloud.isTruePortfolioOwner() : false;
+  }
+
+  function updateSensitiveReservesUi() {
+    const show = canViewSensitiveReserves();
+
+    document.documentElement.setAttribute('data-show-reserves', show ? 'true' : 'false');
+    if (document.body) {
+      document.body.setAttribute('data-show-reserves', show ? 'true' : 'false');
+    }
+
+    const reservesEls = document.querySelectorAll('.sensitive-reserves');
+    reservesEls.forEach(el => {
+      if (show) {
+        el.style.removeProperty('display');
+      } else {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+
+    if (!show) {
+      // 安全清除敏感 DOM 數字，避免他人透過 F12 檢視原始碼窺探資金
+      const totalRes = document.getElementById('fundTotalReserves');
+      if (totalRes) totalRes.textContent = 'NT$ --';
+      const totalIns = document.getElementById('fundTotalInsurance');
+      if (totalIns) totalIns.textContent = 'NT$ --';
+      const invMv = document.getElementById('fundInvestmentMarketValue');
+      if (invMv) invMv.textContent = 'NT$ --';
+      const nw = document.getElementById('fundTotalNetWorth');
+      if (nw) nw.textContent = 'NT$ --';
+      const anNw = document.getElementById('analyticsNetWorthVal');
+      if (anNw) anNw.textContent = 'NT$ --';
+    }
+  }
+
   function applyAuthMode() {
     document.documentElement.setAttribute('data-auth-mode', state.authMode);
     sessionStorage.setItem('fubon_auth_mode', state.authMode);
+
+    updateSensitiveReservesUi();
 
     const icon = document.getElementById('authIcon');
     const text = document.getElementById('authStatusText');
@@ -1270,6 +1324,10 @@
   // Fund Reserves Handlers & Render
   // -------------------------------------------------------------
   function renderFundReserves() {
+    updateSensitiveReservesUi();
+    if (!canViewSensitiveReserves()) {
+      return;
+    }
     const reserves = state.fundReserves || {
       livingReserveTwd: 0,
       investCapitalTwd: 0,
@@ -1450,7 +1508,10 @@
   }
 
   function openFundModal() {
-    if (!checkAdminOrPrompt('編輯資金水位與資產儲備')) return;
+    if (!canViewSensitiveReserves()) {
+      showNotification('⚠️ 權限不足：資金水位與資產儲備僅限該組合擁有者本人編輯，他人及管理員無法檢視或修改', 'warning');
+      return;
+    }
     const modal = document.getElementById('fundModalBackdrop');
     if (!modal) return;
 

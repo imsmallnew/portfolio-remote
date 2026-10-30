@@ -159,12 +159,6 @@
       // 系統最高管理員 (Daniel: imsmallnew@gmail.com 或 localAcl.ownerEmail)
       const isSystemAdmin = this.isDanielUser(lowerEmail);
 
-      if (isSystemAdmin) {
-        this.userRole = 'owner';
-        this.portfolioOwnerEmail = lowerEmail;
-        return;
-      }
-
       // 檢查此登入者是否已獲白名單授權（查詢 access/main 中的 viewers 或 localAcl）
       let isApprovedInWhitelist = false;
       if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
@@ -188,6 +182,10 @@
       // 1. 若為核心儀表板 'main' (包含 ?id=imsmallnew, ?id=main, ?id=daniel)
       if (pid === 'main') {
         this.portfolioOwnerEmail = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+        if (isSystemAdmin) {
+          this.userRole = 'owner';
+          return;
+        }
         if (isApprovedInWhitelist) {
           // 授權親友/訪客：可以「看」Daniel / 其他人的資料
           this.userRole = 'viewer';
@@ -208,7 +206,13 @@
             const docViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
 
             if (docOwner === lowerEmail) {
-              // 該組合之擁有者：可以「進入維護自己的資料」
+              // 該組合之擁有者：可以進入維護自己的資料
+              this.userRole = 'owner';
+              return;
+            }
+            if (isSystemAdmin) {
+              // 系統最高管理員切換進來看別人的空間：
+              // 可以維護/協助除錯，但 this.portfolioOwnerEmail 仍為空間真實擁有者 docOwner
               this.userRole = 'owner';
               return;
             }
@@ -225,6 +229,11 @@
             const mySlug = this.getUserSlug(lowerEmail);
             if (pid === mySlug) {
               this.portfolioOwnerEmail = lowerEmail;
+              this.userRole = 'owner';
+              return;
+            }
+            if (isSystemAdmin) {
+              this.portfolioOwnerEmail = '';
               this.userRole = 'owner';
               return;
             }
@@ -257,6 +266,24 @@
         return true;
       }
       return this.userRole === 'owner';
+    },
+
+    // 嚴格隱私權限檢查：僅「該投資組合之真正擁有者本人」回傳 true
+    // 依使用者隱私規範：即使是系統管理員 Daniel，查看別人的投資組合也不能視為擁有者，保護他人資金水位與淨資產隱私
+    isTruePortfolioOwner() {
+      if (!this.currentUser || !this.currentUser.email) return false;
+      const userEmail = (this.currentUser.email || '').toLowerCase().trim();
+      const pid = (this.currentPortfolioId || 'main').toLowerCase().trim();
+
+      if (pid === 'main' || pid === 'daniel' || pid === 'imsmallnew') {
+        return this.isDanielUser(userEmail);
+      }
+      const targetOwner = (this.portfolioOwnerEmail || '').toLowerCase().trim();
+      if (targetOwner) {
+        return userEmail === targetOwner;
+      }
+      const mySlug = this.getUserSlug(userEmail);
+      return pid === mySlug;
     },
 
     async signInWithGoogle() {
