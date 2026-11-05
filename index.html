@@ -810,12 +810,17 @@
                 <span class="cs-header-icon">⚖️</span>
                 <div>
                   <h4 class="cs-title">證券持股：主力核心 vs 衛星配置損益分析</h4>
-                  <p class="cs-subtitle">即時行情連動 · 依成本與未實現損益排序 · ⭐ 主力核心與衛星配置比重</p>
+                  <p class="cs-subtitle">即時行情連動 · 依目前持有市值、成本與未實現損益排序 · ⭐ 主力核心與衛星配置市值比重</p>
                 </div>
               </div>
 
               <!-- Market & Sort Filter Pills (Horizontally aligned to the right of title) -->
               <div class="cs-controls-group">
+                <div class="cs-total-mv-pill" title="目前篩選範圍之證券持有總市值（主力核心市值 + 衛星配置市值）">
+                  <span class="cs-total-mv-lbl">總市值</span>
+                  <strong class="mono text-cyan" id="csTotalMvVal">NT$ 0</strong>
+                </div>
+
                 <!-- Market Filter (全部 / 台股 / 美股) -->
                 <div class="cs-filter-pills" id="csMarketFilters">
                   <button type="button" class="cs-pill-btn active" data-market="all">全部標的</button>
@@ -823,11 +828,12 @@
                   <button type="button" class="cs-pill-btn" data-market="us">美股</button>
                 </div>
 
-                <!-- Sort Toggle (未實現損益 / 總成本) -->
+                <!-- Sort Toggle (未實現損益 / 總市值 / 總成本) -->
                 <div class="cs-sort-group">
                   <span class="cs-sort-label">排序：</span>
                   <div class="cs-filter-pills" id="csSortFilters">
                     <button type="button" class="cs-pill-btn active" data-sort="pl">未實現損益 ▾</button>
+                    <button type="button" class="cs-pill-btn" data-sort="mv">總市值 ▾</button>
                     <button type="button" class="cs-pill-btn" data-sort="cost">總成本 ▾</button>
                   </div>
                 </div>
@@ -845,6 +851,10 @@
                     <span class="cs-col-count" id="csCoreCountText">0 檔</span>
                   </div>
                   <div class="cs-col-totals">
+                    <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總市值</span>
+                      <strong class="mono text-cyan" id="csCoreMvVal">NT$ 0</strong>
+                    </div>
                     <div class="cs-col-metric">
                       <span class="cs-metric-lbl">總成本</span>
                       <strong class="mono" id="csCoreCostVal">NT$ 0</strong>
@@ -870,6 +880,10 @@
                   </div>
                   <div class="cs-col-totals">
                     <div class="cs-col-metric">
+                      <span class="cs-metric-lbl">總市值</span>
+                      <strong class="mono text-cyan" id="csSatMvVal">NT$ 0</strong>
+                    </div>
+                    <div class="cs-col-metric">
                       <span class="cs-metric-lbl">總成本</span>
                       <strong class="mono" id="csSatCostVal">NT$ 0</strong>
                     </div>
@@ -892,7 +906,7 @@
                   <span class="cs-sim-icon">🎛️</span>
                   <div>
                     <h5 class="cs-sim-title">主力／衛星 配置比例模擬器</h5>
-                    <p class="cs-sim-desc">拖曳橫軸調整目標比例 · 即時試算衛星出金回收資金並規劃減持標的</p>
+                    <p class="cs-sim-desc">以「目前持有市值」為基準調整目標比例 · 即時試算衛星出金回收資金並規劃減持標的</p>
                   </div>
                 </div>
                 <div class="cs-sim-presets">
@@ -932,15 +946,15 @@
                 <!-- Simulation Result Targets Banner -->
                 <div class="cs-sim-targets-grid">
                   <div class="cs-sim-target-box box-core">
-                    <div class="target-box-title">目標主力核心金額</div>
-                    <div class="target-box-val mono" id="csSimTargetCoreVal">NT$ 1,487,518</div>
-                    <div class="target-box-sub" id="csSimTargetCoreSub">依 80% 計算</div>
+                    <div class="target-box-title">目標主力核心市值</div>
+                    <div class="target-box-val mono" id="csSimTargetCoreVal">NT$ 0</div>
+                    <div class="target-box-sub" id="csSimTargetCoreSub">依 80% 總市值計算</div>
                   </div>
 
                   <div class="cs-sim-target-box box-sat">
-                    <div class="target-box-title">目標衛星配置金額</div>
-                    <div class="target-box-val mono" id="csSimTargetSatVal">NT$ 371,879</div>
-                    <div class="target-box-sub" id="csSimTargetSatSub">依 20% 計算</div>
+                    <div class="target-box-title">目標衛星配置市值</div>
+                    <div class="target-box-val mono" id="csSimTargetSatVal">NT$ 0</div>
+                    <div class="target-box-sub" id="csSimTargetSatSub">依 20% 總市值計算</div>
                   </div>
 
                   <div class="cs-sim-rebalance-box" id="csSimRebalanceBox">
@@ -2001,7 +2015,7 @@
           <div>
             <h3 class="modal-title">🛰️ 衛星標的減持／出金規劃模擬器</h3>
             <p class="modal-subtitle" style="margin:2px 0 0; font-size:0.8rem; color:var(--text-tertiary);">
-              自訂各衛星標的規劃賣出股數 · 即時比對目標回收金額與剩餘成本檢核
+              依「目前持有市值」計算目標比例 · 自訂各衛星標的規劃賣出股數與單價，即時檢核目標回收與剩餘市值
             </p>
           </div>
           <button class="modal-close-btn" id="btnSatelliteRebalanceClose">&times;</button>
@@ -2014,11 +2028,11 @@
             <div class="rebal-kpi-card" id="rebalProceedsCard">
               <div class="rebal-kpi-top">
                 <span class="rebal-kpi-title">🎯 規劃賣出金額總和</span>
-                <span class="rebal-kpi-target mono">目標回收：<strong id="rebalTargetProceedsText">NT$ 421,341</strong></span>
+                <span class="rebal-kpi-target mono">目標回收：<strong id="rebalTargetProceedsText">NT$ 0</strong></span>
               </div>
               <div class="rebal-kpi-main mono font-bold" id="rebalPlannedProceedsVal">NT$ 0</div>
               <div class="rebal-kpi-status" id="rebalProceedsStatus">
-                <span class="val-down font-bold">🔴 未達標 (尚少 NT$ 421,341 元)</span>
+                <span class="val-down font-bold">🔴 未達標</span>
               </div>
             </div>
 
@@ -2026,11 +2040,11 @@
             <div class="rebal-kpi-card" id="rebalCostCard">
               <div class="rebal-kpi-top">
                 <span class="rebal-kpi-title">📦 剩餘股數價值總和</span>
-                <span class="rebal-kpi-target mono">目標剩餘：<strong id="rebalTargetCostText">NT$ 371,879</strong></span>
+                <span class="rebal-kpi-target mono">目標剩餘市值：<strong id="rebalTargetCostText">NT$ 0</strong></span>
               </div>
-              <div class="rebal-kpi-main mono font-bold" id="rebalRemainingCostVal">NT$ 793,221</div>
+              <div class="rebal-kpi-main mono font-bold" id="rebalRemainingCostVal">NT$ 0</div>
               <div class="rebal-kpi-status" id="rebalCostStatus">
-                <span class="mono" style="color:var(--text-secondary);">與目標差 +NT$ 421,342</span>
+                <span class="mono" style="color:var(--text-secondary);">與目標差 NT$ 0</span>
               </div>
             </div>
           </div>

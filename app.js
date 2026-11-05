@@ -3103,27 +3103,32 @@
     const coreList = filtered.filter(h => !!h.coreHolding);
     const satList = filtered.filter(h => !h.coreHolding);
 
-    // Totals
-    const totalCostAll = filtered.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const totalPlAll = filtered.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
-    const totalMvAll = filtered.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+    // Totals (以四捨五入整數加總，確保主力市值 + 衛星市值 = 總市值 完全一致無誤差)
+    const coreCost = Math.round(coreList.reduce((s, h) => s + (h.investedCostTwd || 0), 0));
+    const corePl = Math.round(coreList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0));
+    const coreMv = Math.round(coreList.reduce((s, h) => s + (h.marketValueTwd || 0), 0));
 
-    const coreCost = coreList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const corePl = coreList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
-    const coreMv = coreList.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+    const satCost = Math.round(satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0));
+    const satPl = Math.round(satList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0));
+    const satMv = Math.round(satList.reduce((s, h) => s + (h.marketValueTwd || 0), 0));
 
-    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const satPl = satList.reduce((s, h) => s + (h.unrealizedPlTwd || 0), 0);
-    const satMv = satList.reduce((s, h) => s + (h.marketValueTwd || 0), 0);
+    const totalCostAll = coreCost + satCost;
+    const totalPlAll = corePl + satPl;
+    const totalMvAll = coreMv + satMv;
 
-    // Percentage of Cost
-    const coreCostPct = totalCostAll > 0 ? ((coreCost / totalCostAll) * 100).toFixed(1) : '0.0';
-    const satCostPct = totalCostAll > 0 ? ((satCost / totalCostAll) * 100).toFixed(1) : '0.0';
+    // Percentage of Market Value (一律以「目前持有市值」計算主力與衛星佔比，確保相加為 100.0%)
+    const coreMvPctNum = totalMvAll > 0 ? Number(((coreMv / totalMvAll) * 100).toFixed(1)) : 0;
+    const satMvPctNum = totalMvAll > 0 ? Number((100 - coreMvPctNum).toFixed(1)) : 0;
+    const coreMvPct = coreMvPctNum.toFixed(1);
+    const satMvPct = satMvPctNum.toFixed(1);
 
     const coreRoiPct = coreCost > 0 ? ((corePl / coreCost) * 100).toFixed(2) : '0.00';
     const satRoiPct = satCost > 0 ? ((satPl / satCost) * 100).toFixed(2) : '0.00';
 
     // Update Top Overview labels and bar
+    const totalMvEl = document.getElementById('csTotalMvVal');
+    if (totalMvEl) totalMvEl.textContent = `NT$ ${formatMoney(totalMvAll)}`;
+
     const coreCostSummary = document.getElementById('csCoreCostSummary');
     const corePlSummary = document.getElementById('csCorePlSummary');
     const satCostSummary = document.getElementById('csSatCostSummary');
@@ -3131,14 +3136,14 @@
     const barCore = document.getElementById('csRatioBarCore');
     const barSat = document.getElementById('csRatioBarSat');
 
-    if (coreCostSummary) coreCostSummary.textContent = `NT$ ${formatMoney(coreCost)} (${coreCostPct}%)`;
+    if (coreCostSummary) coreCostSummary.textContent = `NT$ ${formatMoney(coreMv)} (${coreMvPct}%)`;
     if (corePlSummary) {
       const sign = corePl > 0 ? '+' : '';
       corePlSummary.textContent = `${sign}NT$ ${formatMoney(corePl)} (${sign}${coreRoiPct}%)`;
       corePlSummary.className = `cs-ratio-pl mono ${getValClass(corePl)}`;
     }
 
-    if (satCostSummary) satCostSummary.textContent = `NT$ ${formatMoney(satCost)} (${satCostPct}%)`;
+    if (satCostSummary) satCostSummary.textContent = `NT$ ${formatMoney(satMv)} (${satMvPct}%)`;
     if (satPlSummary) {
       const sign = satPl > 0 ? '+' : '';
       satPlSummary.textContent = `${sign}NT$ ${formatMoney(satPl)} (${sign}${satRoiPct}%)`;
@@ -3146,22 +3151,25 @@
     }
 
     if (barCore && barSat) {
-      barCore.style.width = `${coreCostPct}%`;
-      barSat.style.width = `${satCostPct}%`;
+      barCore.style.width = `${coreMvPct}%`;
+      barSat.style.width = `${satMvPct}%`;
     }
 
     // Column Header Stats
     const coreCountText = document.getElementById('csCoreCountText');
+    const coreMvVal = document.getElementById('csCoreMvVal');
     const coreCostVal = document.getElementById('csCoreCostVal');
     const corePlVal = document.getElementById('csCorePlVal');
     const satCountText = document.getElementById('csSatCountText');
+    const satMvVal = document.getElementById('csSatMvVal');
     const satCostVal = document.getElementById('csSatCostVal');
     const satPlVal = document.getElementById('csSatPlVal');
     const csCorePctText = document.getElementById('csCorePctText');
     const csSatPctText = document.getElementById('csSatPctText');
 
-    if (csCorePctText) csCorePctText.textContent = `(${coreCostPct}%)`;
+    if (csCorePctText) csCorePctText.textContent = `(${coreMvPct}%)`;
     if (coreCountText) coreCountText.textContent = `${coreList.length} 檔`;
+    if (coreMvVal) coreMvVal.textContent = `NT$ ${formatMoney(coreMv)}`;
     if (coreCostVal) coreCostVal.textContent = `NT$ ${formatMoney(coreCost)}`;
     if (corePlVal) {
       const sign = corePl > 0 ? '+' : '';
@@ -3169,8 +3177,9 @@
       corePlVal.className = `mono ${getValClass(corePl)}`;
     }
 
-    if (csSatPctText) csSatPctText.textContent = `(${satCostPct}%)`;
+    if (csSatPctText) csSatPctText.textContent = `(${satMvPct}%)`;
     if (satCountText) satCountText.textContent = `${satList.length} 檔`;
+    if (satMvVal) satMvVal.textContent = `NT$ ${formatMoney(satMv)}`;
     if (satCostVal) satCostVal.textContent = `NT$ ${formatMoney(satCost)}`;
     if (satPlVal) {
       const sign = satPl > 0 ? '+' : '';
@@ -3178,9 +3187,12 @@
       satPlVal.className = `mono ${getValClass(satPl)}`;
     }
 
-    // Sort Lists (未實現損益 或 總成本 由大到小排序)
+    // Sort Lists (未實現損益 / 總市值 / 總成本 由大到小排序)
     const sortBy = state.csSort || 'pl';
-    if (sortBy === 'cost') {
+    if (sortBy === 'mv') {
+      coreList.sort((a, b) => (b.marketValueTwd || 0) - (a.marketValueTwd || 0));
+      satList.sort((a, b) => (b.marketValueTwd || 0) - (a.marketValueTwd || 0));
+    } else if (sortBy === 'cost') {
       coreList.sort((a, b) => (b.investedCostTwd || 0) - (a.investedCostTwd || 0));
       satList.sort((a, b) => (b.investedCostTwd || 0) - (a.investedCostTwd || 0));
     } else {
@@ -3195,11 +3207,13 @@
       if (coreList.length === 0) {
         coreContainer.innerHTML = '<div class="cs-empty-state">無符合篩選條件之主力核心標的</div>';
       } else {
-        const maxVal = sortBy === 'cost'
-          ? Math.max(...coreList.map(h => h.investedCostTwd || 0), 1)
-          : Math.max(...coreList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
+        const maxVal = sortBy === 'mv'
+          ? Math.max(...coreList.map(h => h.marketValueTwd || 0), 1)
+          : sortBy === 'cost'
+            ? Math.max(...coreList.map(h => h.investedCostTwd || 0), 1)
+            : Math.max(...coreList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
 
-        coreContainer.innerHTML = coreList.map((h, idx) => renderCsHoldingItem(h, idx + 1, coreCost, totalCostAll, maxVal, sortBy, true)).join('');
+        coreContainer.innerHTML = coreList.map((h, idx) => renderCsHoldingItem(h, idx + 1, coreMv, totalMvAll, maxVal, sortBy, true)).join('');
       }
     }
 
@@ -3209,11 +3223,13 @@
       if (satList.length === 0) {
         satContainer.innerHTML = '<div class="cs-empty-state">無符合篩選條件之衛星配置標的</div>';
       } else {
-        const maxVal = sortBy === 'cost'
-          ? Math.max(...satList.map(h => h.investedCostTwd || 0), 1)
-          : Math.max(...satList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
+        const maxVal = sortBy === 'mv'
+          ? Math.max(...satList.map(h => h.marketValueTwd || 0), 1)
+          : sortBy === 'cost'
+            ? Math.max(...satList.map(h => h.investedCostTwd || 0), 1)
+            : Math.max(...satList.map(h => Math.abs(h.unrealizedPlTwd || 0)), 1);
 
-        satContainer.innerHTML = satList.map((h, idx) => renderCsHoldingItem(h, idx + 1, satCost, totalCostAll, maxVal, sortBy, false)).join('');
+        satContainer.innerHTML = satList.map((h, idx) => renderCsHoldingItem(h, idx + 1, satMv, totalMvAll, maxVal, sortBy, false)).join('');
       }
     }
 
@@ -3225,13 +3241,13 @@
       btn.classList.toggle('active', btn.dataset.sort === sortBy);
     });
 
-    // Rebalance Ratio Simulator Calculations
+    // Rebalance Ratio Simulator Calculations (未來無論採用 7:3 或 8:2，一律以「目前持有市值」計算)
     const ratio = state.rebalanceRatio || 80;
     const targetCorePct = ratio;
     const targetSatPct = 100 - ratio;
-    const targetCoreVal = Math.round(totalCostAll * (targetCorePct / 100));
-    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
-    const diffSatVal = satCost - targetSatVal; // If positive, satellite needs to sell this amount
+    const targetCoreVal = Math.round(totalMvAll * (targetCorePct / 100));
+    const targetSatVal = Math.max(0, totalMvAll - targetCoreVal);
+    const diffSatVal = satMv - targetSatVal; // 若 > 0，代表衛星目前持有市值超過目標水位，需賣出此金額回收轉投入主力
 
     state.lastSimTargetSatVal = targetSatVal;
     state.lastSimDiffSatVal = diffSatVal;
@@ -3255,9 +3271,9 @@
     if (simSatPct) simSatPct.textContent = `${targetSatPct}%`;
     if (simSlider && parseInt(simSlider.value, 10) !== ratio) simSlider.value = ratio;
     if (simTargetCoreVal) simTargetCoreVal.textContent = `NT$ ${formatMoney(targetCoreVal)}`;
-    if (simTargetCoreSub) simTargetCoreSub.textContent = `依 ${targetCorePct}% 計算 (總成本 NT$ ${formatMoney(totalCostAll)})`;
+    if (simTargetCoreSub) simTargetCoreSub.textContent = `依 ${targetCorePct}% 計算 (總市值 NT$ ${formatMoney(totalMvAll)})`;
     if (simTargetSatVal) simTargetSatVal.textContent = `NT$ ${formatMoney(targetSatVal)}`;
-    if (simTargetSatSub) simTargetSatSub.textContent = `依 ${targetSatPct}% 計算`;
+    if (simTargetSatSub) simTargetSatSub.textContent = `依 ${targetSatPct}% 計算 (目前衛星市值 NT$ ${formatMoney(satMv)})`;
 
     if (simRebalanceMsg) {
       if (diffSatVal > 0) {
@@ -3266,7 +3282,7 @@
         `;
       } else {
         simRebalanceMsg.innerHTML = `
-          衛星目前成本 (NT$ ${formatMoney(satCost)}) 已低於目標水位，無需賣出，可增持主力核心 <strong class="mono text-cyan">NT$ ${formatMoney(Math.abs(diffSatVal))}</strong>
+          衛星目前市值 (NT$ ${formatMoney(satMv)}) 已低於目標水位 (NT$ ${formatMoney(targetSatVal)})，無需賣出，距離上限尚有 <strong class="mono text-cyan">NT$ ${formatMoney(Math.abs(diffSatVal))}</strong> 空間
         `;
       }
     }
@@ -3516,23 +3532,35 @@
 
   function getRebalanceTargets() {
     const allActive = Object.values(state.holdings || {}).filter(h => h.currentShares > 0.0001);
-    const totalCostAll = allActive.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const ratio = state.rebalanceRatio || 80;
-    const targetCoreVal = Math.round(totalCostAll * (ratio / 100));
-    const targetSatVal = Math.max(0, totalCostAll - targetCoreVal);
+    const market = state.csMarketFilter || 'all';
+    let filtered = allActive;
+    if (market === 'tw') {
+      filtered = allActive.filter(h => h.category === 'tw_stock' || h.category === 'tw_etf' || h.currency === 'TWD');
+    } else if (market === 'us') {
+      filtered = allActive.filter(h => h.category === 'us' || h.currency === 'USD');
+    }
 
-    const satList = allActive.filter(h => !h.coreHolding);
-    const satCost = satList.reduce((s, h) => s + (h.investedCostTwd || 0), 0);
-    const targetDiff = Math.max(0, satCost - targetSatVal);
+    const coreList = filtered.filter(h => !!h.coreHolding);
+    const satList = filtered.filter(h => !h.coreHolding);
+
+    const coreMv = Math.round(coreList.reduce((s, h) => s + (h.marketValueTwd || 0), 0));
+    const satMv = Math.round(satList.reduce((s, h) => s + (h.marketValueTwd || 0), 0));
+    const totalMvAll = coreMv + satMv;
+
+    const ratio = state.rebalanceRatio || 80;
+    const targetCoreVal = Math.round(totalMvAll * (ratio / 100));
+    const targetSatVal = Math.max(0, totalMvAll - targetCoreVal);
+    const targetDiff = Math.max(0, satMv - targetSatVal);
 
     return {
-      allActive,
-      totalCostAll,
+      allActive: filtered,
+      totalMvAll,
+      coreMv,
+      satMv,
       ratio,
       targetCoreVal,
       targetSatVal,
       satList,
-      satCost,
       targetDiff
     };
   }
@@ -3990,21 +4018,24 @@
     renderRebalanceTable();
   }
 
-  function renderCsHoldingItem(h, rank, groupCost, totalCost, maxVal, sortBy, isCore) {
+  function renderCsHoldingItem(h, rank, groupMv, totalMv, maxVal, sortBy, isCore) {
     const sym = escapeHtml(h.symbol);
     const name = escapeHtml(h.name || '');
+    const mv = h.marketValueTwd || 0;
     const cost = h.investedCostTwd || 0;
     const pl = h.unrealizedPlTwd || 0;
     const roi = h.roiPct || 0;
 
-    const costPctInGroup = groupCost > 0 ? ((cost / groupCost) * 100).toFixed(1) : '0.0';
-    const costPctInTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : '0.0';
+    const mvPctInGroup = groupMv > 0 ? ((mv / groupMv) * 100).toFixed(1) : '0.0';
+    const mvPctInTotal = totalMv > 0 ? ((mv / totalMv) * 100).toFixed(1) : '0.0';
 
     const plSign = pl > 0 ? '+' : '';
     const plClass = getValClass(pl);
 
     let barWidth = 0;
-    if (sortBy === 'cost') {
+    if (sortBy === 'mv') {
+      barWidth = Math.min(100, Math.max(4, (mv / maxVal) * 100));
+    } else if (sortBy === 'cost') {
       barWidth = Math.min(100, Math.max(4, (cost / maxVal) * 100));
     } else {
       barWidth = Math.min(100, Math.max(4, (Math.abs(pl) / maxVal) * 100));
@@ -4021,11 +4052,16 @@
           </div>
           <span class="tag-badge tag-${h.category}">${escapeHtml(h.type || '')}</span>
         </div>
-        <div class="cs-item-metrics">
+        <div class="cs-item-metrics cs-item-metrics-3col">
+          <div class="cs-metric-cell">
+            <span class="cs-cell-title">目前持有市值</span>
+            <span class="cs-cell-main mono text-cyan">NT$ ${formatMoney(mv)}</span>
+            <span class="cs-cell-sub mono">組內 ${mvPctInGroup}% (整體 ${mvPctInTotal}%)</span>
+          </div>
           <div class="cs-metric-cell">
             <span class="cs-cell-title">總投入成本</span>
             <span class="cs-cell-main mono">NT$ ${formatMoney(cost)}</span>
-            <span class="cs-cell-sub mono">組內佔比 ${costPctInGroup}% (整體 ${costPctInTotal}%)</span>
+            <span class="cs-cell-sub mono">均價 ${formatMoney(h.avgCost, 2)} ${escapeHtml(h.currency || 'TWD')}</span>
           </div>
           <div class="cs-metric-cell text-right">
             <span class="cs-cell-title">未實現損益</span>

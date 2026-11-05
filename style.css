@@ -3387,6 +3387,24 @@ body[data-show-reserves="false"] .sensitive-reserves {
   flex-wrap: wrap;
 }
 
+.cs-total-mv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
+}
+
+.cs-total-mv-lbl {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.76rem;
+}
+
 .cs-filter-pills {
   display: flex;
   align-items: center;
@@ -3614,6 +3632,7 @@ body[data-show-reserves="false"] .sensitive-reserves {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .cs-col-metric {
@@ -3683,6 +3702,16 @@ body[data-show-reserves="false"] .sensitive-reserves {
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cs-item-metrics.cs-item-metrics-3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 560px) {
+  .cs-item-metrics.cs-item-metrics-3col {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cs-metric-cell {
