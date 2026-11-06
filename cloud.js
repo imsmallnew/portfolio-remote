@@ -32,6 +32,49 @@
       return cleanId || 'main';
     },
 
+    isMobileDevice() {
+      const ua = navigator.userAgent || '';
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+        (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    },
+
+    isInAppBrowser() {
+      const ua = navigator.userAgent || '';
+      return /Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(ua);
+    },
+
+    handleAuthError(err, context = 'Google 登入') {
+      if (!err) return;
+      console.error(`${context} 失敗:`, err);
+      const errCode = err.code || '';
+      const errMsg = err.message || '';
+      const cfg = window.FIREBASE_CONFIG || {};
+      const projId = cfg.projectId || 'my-portfolio-dashboard-daniel';
+
+      if (errCode === 'auth/unauthorized-domain') {
+        const currentHost = window.location.hostname;
+        alert(`⚠️ Google 登入網域未授權：\n目前網址網域 [${currentHost}] 尚未加入 Firebase 授權名單。\n\n【解決方式】\n請至 Firebase Console (https://console.firebase.google.com/) -> 專案【${projId}】-> Authentication -> Settings -> 授權網域 (Authorized domains)，新增「${currentHost}」即可！`);
+        return;
+      }
+
+      if (errCode === 'auth/invalid-action-code' || errMsg.includes('The requested action is invalid') || errCode === 'auth/configuration-not-found' || errCode === 'auth/operation-not-allowed') {
+        alert(`⚠️ Firebase Google 登入設定提醒：\n錯誤代碼：${errCode}\n訊息：${errMsg}\n\n【解決步驟】\n這是因為新 Firebase 專案中尚未啟用 Google Sign-in 提供者：\n1. 請至 Firebase Console (https://console.firebase.google.com/)\n2. 點進專案【${projId}】\n3. 點選左側【Authentication】->【Sign-in method (登入方式)】\n4. 點擊【Google】-> 勾選開啟【啟用 (Enable)】\n5. 設定「專案支援電子郵件 (Project support email)」為您的信箱\n6. 按下【儲存 (Save)】！\n7. 確認【Settings】->【Authorized domains】包含目前網域名稱「${window.location.hostname}」\n\n💡 若暫時無法操作 Firebase 後台，您也可以在登入視窗下方使用管理員通關碼 (888) 直接進入管理員模式！`);
+        return;
+      }
+
+      if (errCode === 'auth/popup-blocked') {
+        console.warn("彈出視窗被瀏覽器阻擋");
+        return;
+      }
+
+      if (errCode === 'auth/popup-closed-by-user' || errCode === 'auth/cancelled-popup-request') {
+        console.log("使用者關閉了 Google 登入視窗");
+        return;
+      }
+
+      alert(`${context}失敗：` + (errMsg || errCode || err));
+    },
+
     getPortfolioIdFromUrl() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -60,6 +103,7 @@
 
         // 捕捉跳轉登入結果 (例如手機瀏覽器跳轉回來)
         this.auth.getRedirectResult().then(async (result) => {
+          sessionStorage.removeItem('fubon_auth_pending_redirect');
           if (result && result.user) {
             this.authInitialized = true;
             this.currentUser = result.user;
@@ -67,7 +111,9 @@
             this.emitAuth(this.currentUser, this.userRole);
           }
         }).catch((err) => {
-          console.warn("getRedirectResult 注意:", err);
+          sessionStorage.removeItem('fubon_auth_pending_redirect');
+          console.error("getRedirectResult 失敗:", err);
+          this.handleAuthError(err, 'Google 跳轉登入');
         });
 
         // 監聽身分驗證變化 (等待 Firebase 載入 IndexedDB 憑證)
@@ -75,8 +121,13 @@
           this.authInitialized = true;
           this.currentUser = user;
           if (user) {
+            sessionStorage.removeItem('fubon_auth_pending_redirect');
             await this.resolveUserRole(user.email);
           } else {
+            // 如果剛從 redirect 跳轉回來，且 redirectResult 還在處理中，暫緩認定為 unauthorized
+            if (sessionStorage.getItem('fubon_auth_pending_redirect') === '1') {
+              return;
+            }
             this.userRole = 'unauthorized';
             if (this.unsubscribeSnapshot) {
               this.unsubscribeSnapshot();
@@ -154,34 +205,65 @@
       }
       const lowerEmail = email.toLowerCase().trim();
       const localAcl = window.REMOTE_ACCESS_CONFIG || {};
-      const pid = this.currentPortfolioId || 'main';
+      const pid = this.canonicalPid(this.currentPortfolioId || 'main');
 
-      // 系統最高管理員 (Daniel: imsmallnew@gmail.com 或 localAcl.ownerEmail)
-      const isSystemAdmin = this.isDanielUser(lowerEmail);
+      // 系統最高管理員檢查順序：
+      // 1. 本地設定或預設 Email (imsmallnew@gmail.com 或 localAcl.ownerEmail)
+      let isSystemAdmin = this.isDanielUser(lowerEmail);
 
-      // 檢查此登入者是否已獲白名單授權（查詢 access/main 中的 viewers 或 localAcl）
+      // 2. 檢查此登入者是否已獲白名單授權（查詢 localAcl.viewerEmails）
       let isApprovedInWhitelist = false;
-      if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => e.toLowerCase().trim() === lowerEmail)) {
+      if (Array.isArray(localAcl.viewerEmails) && localAcl.viewerEmails.some(e => (e || '').toLowerCase().trim() === lowerEmail)) {
         isApprovedInWhitelist = true;
       }
-      try {
-        if (this.db) {
+
+      // 3. 雲端資料庫檢查 (access/main 與 portfolios/main)
+      let hasAccessDoc = false;
+      let hasPortfolioDoc = false;
+
+      if (this.db) {
+        try {
           const aclSnap = await this.db.collection('access').doc('main').get();
           if (aclSnap.exists) {
+            hasAccessDoc = true;
             const data = aclSnap.data() || {};
+            const remoteOwner = (data.owner || '').toLowerCase().trim();
+            if (remoteOwner && remoteOwner === lowerEmail) {
+              isSystemAdmin = true;
+            }
             const remoteViewers = (data.viewers || []).map(v => (v || '').toLowerCase().trim());
             if (remoteViewers.includes(lowerEmail)) {
               isApprovedInWhitelist = true;
             }
           }
+        } catch (e) {
+          console.warn("讀取 access/main 白名單注意:", e);
         }
-      } catch (e) {
-        console.warn("讀取 access/main 白名單注意:", e);
+
+        try {
+          const mainSnap = await this.db.collection('portfolios').doc('main').get();
+          if (mainSnap.exists) {
+            hasPortfolioDoc = true;
+            const mainData = mainSnap.data() || {};
+            const mainOwner = (mainData.owner || '').toLowerCase().trim();
+            if (mainOwner && mainOwner === lowerEmail) {
+              isSystemAdmin = true;
+            }
+          }
+        } catch (e) {
+          console.warn("讀取 portfolios/main 擁有者注意:", e);
+        }
+      }
+
+      // 4. 若為全新的 Firebase 專案（access/main 與 portfolios/main 都尚未建立）：
+      // 首次登入的使用者視為新專案的建立者 / 管理員，避免新開專案的使用者直接被鎖在登入頁！
+      if (!hasAccessDoc && !hasPortfolioDoc) {
+        isSystemAdmin = true;
       }
 
       // 1. 若為核心儀表板 'main' (包含 ?id=imsmallnew, ?id=main, ?id=daniel)
       if (pid === 'main') {
-        this.portfolioOwnerEmail = (localAcl.ownerEmail || 'imsmallnew@gmail.com').toLowerCase().trim();
+        this.portfolioOwnerEmail = (localAcl.ownerEmail || lowerEmail).toLowerCase().trim();
         if (isSystemAdmin) {
           this.userRole = 'owner';
           return;
@@ -198,8 +280,14 @@
       // 2. 若為自訂多租戶空間 (如 ?id=訪客id, ?id=alice, ?id=bob)
       try {
         if (this.db) {
-          const docSnap = await this.db.collection('portfolios').doc(pid).get();
-          if (docSnap.exists) {
+          let docSnap = null;
+          try {
+            docSnap = await this.db.collection('portfolios').doc(pid).get();
+          } catch (readErr) {
+            console.warn(`讀取 portfolio [${pid}] 失敗 (可能無此文件或權限):`, readErr);
+          }
+
+          if (docSnap && docSnap.exists) {
             const data = docSnap.data() || {};
             const docOwner = (data.owner || '').toLowerCase().trim();
             this.portfolioOwnerEmail = docOwner;
@@ -212,7 +300,6 @@
             }
             if (isSystemAdmin) {
               // 系統最高管理員切換進來看別人的空間：
-              // 可以維護/協助除錯，但 this.portfolioOwnerEmail 仍為空間真實擁有者 docOwner
               this.userRole = 'owner';
               return;
             }
@@ -243,7 +330,15 @@
           }
         }
       } catch (err) {
-        console.warn(`讀取 portfolio [${pid}] 失敗:`, err);
+        console.warn(`resolveUserRole [${pid}] 失敗:`, err);
+      }
+
+      // 預設容錯：若為使用者自己的 slug，確保其為 owner
+      const mySlug = this.getUserSlug(lowerEmail);
+      if (pid === mySlug) {
+        this.portfolioOwnerEmail = lowerEmail;
+        this.userRole = 'owner';
+        return;
       }
 
       this.userRole = 'unauthorized';
@@ -255,11 +350,11 @@
       const pid = this.currentPortfolioId || 'main';
 
       if (pid === 'main') {
-        return this.isDanielUser(userEmail);
+        return this.isDanielUser(userEmail) || this.userRole === 'owner';
       }
       const targetOwner = (this.portfolioOwnerEmail || '').toLowerCase().trim();
       if (targetOwner) {
-        return userEmail === targetOwner || this.isDanielUser(userEmail);
+        return userEmail === targetOwner || this.isDanielUser(userEmail) || this.userRole === 'owner';
       }
       const mySlug = this.getUserSlug(userEmail);
       if (pid === mySlug) {
@@ -276,7 +371,7 @@
       const pid = (this.currentPortfolioId || 'main').toLowerCase().trim();
 
       if (pid === 'main' || pid === 'daniel' || pid === 'imsmallnew') {
-        return this.isDanielUser(userEmail);
+        return this.isDanielUser(userEmail) || this.userRole === 'owner';
       }
       const targetOwner = (this.portfolioOwnerEmail || '').toLowerCase().trim();
       if (targetOwner) {
@@ -291,39 +386,59 @@
         alert("請先在 firebase-config.js 填入您的 Firebase 專案設定！");
         return null;
       }
+
+      // 檢查是否為 LINE / FB 內建瀏覽器 (Google 政策不支援 WebView 登入)
+      if (this.isInAppBrowser()) {
+        const isLine = /Line\//i.test(navigator.userAgent);
+        const curUrl = window.location.href;
+        if (isLine && !curUrl.includes('openExternalBrowser=1')) {
+          const sep = curUrl.includes('?') ? '&' : '?';
+          window.location.href = curUrl + sep + 'openExternalBrowser=1';
+          return null;
+        }
+        alert("⚠️ Google 官方政策不允許在應用程式內嵌瀏覽器 (如 LINE / FB) 中登入。\n\n請點擊右上角「...」或「分享」，選擇『在預設瀏覽器 (Safari / Chrome) 開啟』即可順暢登入！");
+        return null;
+      }
+
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
+
+      // 手機版 (iOS / Android) 一律採用跳轉登入 signInWithRedirect
+      // 避免手機瀏覽器阻擋彈出視窗、或彈出視窗停在 __/auth/handler 產生白色畫面
+      if (this.isMobileDevice()) {
+        try {
+          sessionStorage.setItem('fubon_auth_pending_redirect', '1');
+          await this.auth.signInWithRedirect(provider);
+          return null;
+        } catch (redirectErr) {
+          sessionStorage.removeItem('fubon_auth_pending_redirect');
+          this.handleAuthError(redirectErr, 'Google 跳轉登入');
+          return null;
+        }
+      }
+
+      // 桌機版優先使用彈出視窗 signInWithPopup
       try {
         const result = await this.auth.signInWithPopup(provider);
         return result.user;
       } catch (err) {
-        console.error("Google 登入失敗:", err);
         const errCode = err.code || '';
-        const errMsg = err.message || '';
-
-        if (errCode === 'auth/unauthorized-domain') {
-          const currentHost = window.location.hostname;
-          alert(`⚠️ Google 登入網域未授權：\n目前網址網域 [${currentHost}] 尚未加入 Firebase 授權名單。\n\n【解決方式】\n請至 Firebase Console (https://console.firebase.google.com/) -> 專案【my-portfolio-dashboard-daniel】-> Authentication -> Settings -> 授權網域 (Authorized domains)，新增「${currentHost}」即可！`);
-          return null;
-        }
-
-        if (errCode === 'auth/invalid-action-code' || errMsg.includes('The requested action is invalid') || errCode === 'auth/configuration-not-found') {
-          alert(`⚠️ Firebase Google 登入設定提醒：\n錯誤代碼：${errCode}\n訊息：The requested action is invalid.\n\n【解決步驟】\n這是因為 Firebase Console 中尚未啟用 Google Sign-in 提供者：\n1. 請至 Firebase Console (https://console.firebase.google.com/)\n2. 點進專案【my-portfolio-dashboard-daniel】\n3. 點選左側【Authentication】->【Sign-in method (登入方式)】\n4. 點擊【Google】-> 勾選開啟【啟用 (Enable)】\n5. 設定「專案支援電子郵件 (Project support email)」為您的信箱 (例如 imsmallnew@gmail.com)\n6. 按下【儲存 (Save)】！\n7. 確認【Settings】->【Authorized domains】包含「imsmallnew.github.io」\n\n💡 若暫時無法操作 Firebase 後台，您也可以在登入視窗下方使用管理員通關碼 (888) 直接進入管理員模式！`);
-          return null;
-        }
-
+        // 若桌機版瀏覽器阻擋彈出視窗，自動降級為跳轉登入 (Redirect)
         if (errCode === 'auth/popup-blocked') {
-          alert("⚠️ 瀏覽器攔截了 Google 登入彈出視窗，請在網址列允許彈出視窗後重新點擊登入！");
-          return null;
+          console.warn("彈出視窗被阻擋，自動切換為跳轉登入模式");
+          try {
+            sessionStorage.setItem('fubon_auth_pending_redirect', '1');
+            await this.auth.signInWithRedirect(provider);
+            return null;
+          } catch (rErr) {
+            sessionStorage.removeItem('fubon_auth_pending_redirect');
+            this.handleAuthError(rErr, 'Google 跳轉登入');
+            return null;
+          }
         }
 
-        if (errCode === 'auth/popup-closed-by-user' || errCode === 'auth/cancelled-popup-request') {
-          console.log("使用者關閉了 Google 登入彈出視窗");
-          return null;
-        }
-
-        alert("Google 登入失敗：" + (errMsg || errCode || err));
-        throw err;
+        this.handleAuthError(err, 'Google 登入');
+        return null;
       }
     },
 
@@ -354,7 +469,7 @@
         return null;
       }
       try {
-        const pid = this.currentPortfolioId || 'main';
+        const pid = this.canonicalPid(this.currentPortfolioId || 'main');
         const docSnap = await this.db.collection('portfolios').doc(pid).get();
         if (docSnap.exists) {
           const data = docSnap.data();
@@ -364,8 +479,8 @@
         }
         return null;
       } catch (err) {
-        console.error(`從 Firestore 載入 [${this.currentPortfolioId}] 失敗:`, err);
-        throw err;
+        console.warn(`從 Firestore 載入 [${this.currentPortfolioId}] 失敗 (將切換至本地展示模式):`, err);
+        return null;
       }
     },
 

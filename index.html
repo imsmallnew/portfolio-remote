@@ -2153,6 +2153,26 @@
           跨裝置資產配置、即時行情追蹤與損益分析
         </p>
 
+        <!-- In-App Browser Warning (LINE / FB Messenger) -->
+        <div id="authInAppNotice"
+          style="display:none; margin-bottom:14px; padding:10px 12px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); border-radius:var(--radius-md); font-size:0.82rem; color:#fbbf24; text-align:left; line-height:1.5;">
+          <strong>⚠️ 應用程式內建瀏覽器提示：</strong><br>
+          偵測到您使用 LINE 或社群軟體內建瀏覽器，Google 政策限制在應用程式內嵌視窗中登入。<br>
+          <div style="margin-top:8px;">
+            <a id="btnOpenExternalBrowser" href="#" class="btn btn-warning btn-xs"
+              style="text-decoration:none; display:inline-flex;">
+              🌐 點此在預設瀏覽器 (Safari / Chrome) 開啟
+            </a>
+          </div>
+        </div>
+
+        <!-- Auth Loading Spinner Box -->
+        <div id="authGateLoading"
+          style="display:none; margin-bottom:14px; padding:12px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); border-radius:var(--radius-md); font-size:0.88rem; color:#60a5fa; text-align:center;">
+          <span style="display:inline-block; animation:spin 1s linear infinite; margin-right:6px;">🔄</span>
+          <span id="authGateLoadingText">正在前往 Google 登入驗證...</span>
+        </div>
+
         <!-- Direct Action Buttons: 使用 Google 帳號登入 & 註冊（申請白名單） -->
         <div id="authMainActionGroup" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
           <!-- 1. 使用 Google 帳號登入 -->

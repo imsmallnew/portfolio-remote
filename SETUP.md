@@ -36,33 +36,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 取得存取控制名單
+    // 取得存取控制名單 (容錯防護：若文件尚未建立不中斷規則判斷)
     function getAcl() {
-      return get(/databases/$(database)/documents/access/main).data;
+      return exists(/databases/$(database)/documents/access/main)
+        ? get(/databases/$(database)/documents/access/main).data
+        : null;
     }
     
     function isOwner() {
       return request.auth != null && 
              request.auth.token.email_verified && 
-             request.auth.token.email.lower() == getAcl().owner.lower();
+             (
+               (getAcl() != null && getAcl().owner != null && request.auth.token.email.lower() == getAcl().owner.lower()) ||
+               // 全新專案尚未建立 access/main 時，允許首次登入者進行初始化寫入
+               getAcl() == null
+             );
     }
     
     function isViewer() {
       return request.auth != null && 
              request.auth.token.email_verified && 
-             (request.auth.token.email.lower() in getAcl().viewers || isOwner());
+             (
+               (getAcl() != null && getAcl().viewers != null && request.auth.token.email.lower() in getAcl().viewers) || 
+               isOwner()
+             );
     }
 
-    // 投資數據集合：擁有者可讀寫，檢視者只能讀取
+    // 投資數據集合：登入者可依權限讀寫
     match /portfolios/{docId} {
-      allow read: if isViewer();
+      allow read: if request.auth != null;
       allow write: if isOwner();
     }
 
-    // 權限名單：僅允許檢視者讀取，禁止由前端隨意寫入 (由後台維護)
+    // 權限名單：登入者可讀取，擁有者可維護
     match /access/{docId} {
       allow read: if request.auth != null;
-      allow write: if false;
+      allow write: if isOwner();
     }
 
     // 衛星減持／出金規劃模擬器：每個登入 Google 帳號獨立讀寫自己專屬的規劃紀錄

@@ -222,17 +222,45 @@
 
   function setupRemoteAuthUI() {
     const gateOverlay = document.getElementById('authGateOverlay');
+    const loadingBox = document.getElementById('authGateLoading');
+    const loadingText = document.getElementById('authGateLoadingText');
+    const btnGoogle = document.getElementById('btnGoogleSignIn');
+    const inAppNotice = document.getElementById('authInAppNotice');
+    const btnOpenExternal = document.getElementById('btnOpenExternalBrowser');
+
+    // 偵測 LINE / FB 內建瀏覽器，顯示友善提示
+    if (window.cloudStore?.isInAppBrowser && window.cloudStore.isInAppBrowser()) {
+      if (inAppNotice) inAppNotice.style.display = 'block';
+      if (btnOpenExternal) {
+        const curUrl = window.location.href;
+        const sep = curUrl.includes('?') ? '&' : '?';
+        btnOpenExternal.href = curUrl + sep + 'openExternalBrowser=1';
+      }
+    }
 
     // Google Sign-In Buttons
     const handleGoogleLogin = async () => {
+      if (btnGoogle) btnGoogle.disabled = true;
+      if (loadingBox) loadingBox.style.display = 'block';
+      if (loadingText) {
+        const isMobile = window.cloudStore?.isMobileDevice && window.cloudStore.isMobileDevice();
+        loadingText.textContent = isMobile
+          ? '🔄 正在前往 Google 登入驗證（手機跳轉模式）...'
+          : '🔄 正在開啟 Google 登入視窗...';
+      }
       try {
         await window.cloudStore?.signInWithGoogle();
       } catch (err) {
         console.error('Google 登入注意:', err);
+      } finally {
+        if (!window.cloudStore?.isMobileDevice || !window.cloudStore.isMobileDevice()) {
+          if (btnGoogle) btnGoogle.disabled = false;
+          if (loadingBox) loadingBox.style.display = 'none';
+        }
       }
     };
 
-    document.getElementById('btnGoogleSignIn')?.addEventListener('click', handleGoogleLogin);
+    btnGoogle?.addEventListener('click', handleGoogleLogin);
 
     // Header 登入 / 註冊按鈕：開啟門禁卡片
     document.getElementById('btnHeaderSignIn')?.addEventListener('click', () => {
@@ -371,165 +399,188 @@
 
     if (gateError) gateError.style.display = 'none';
 
-    const currentPid = window.cloudStore?.currentPortfolioId || 'main';
-    const canonicalCurrent = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(currentPid) : currentPid;
+    try {
+      const currentPid = window.cloudStore?.currentPortfolioId || 'main';
+      const canonicalCurrent = window.cloudStore?.canonicalPid ? window.cloudStore.canonicalPid(currentPid) : currentPid;
 
-    // 1. 未登入且未手動解鎖管理員
-    if (!user && !state.manualAdminUnlocked) {
-      state.authMode = 'view';
-      if (gateOverlay) gateOverlay.style.display = 'flex'; // 預設顯示登入/註冊畫面
-      if (userMenuWrapper) userMenuWrapper.style.display = 'none';
-      if (headerSignIn) headerSignIn.style.display = 'inline-flex';
-
-      // 檢查若造訪非 main 組合且為私人不公開組合時提示
-      if (canonicalCurrent !== 'main') {
-        const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(canonicalCurrent);
-        if (check && check.exists && check.isPrivate) {
-          showTopCenterToast('該投資組合狀態為：不公開，請登入擁有者帳號檢視', 'info', 3000);
+      // 1. 未登入且未手動解鎖管理員
+      if (!user && !state.manualAdminUnlocked) {
+        state.authMode = 'view';
+        // 若剛從手機跳轉登入返回，且驗證程序仍在背景執行中，暫緩彈出未登入提示
+        if (sessionStorage.getItem('fubon_auth_pending_redirect') !== '1') {
+          if (gateOverlay) gateOverlay.style.display = 'flex';
         }
+        if (userMenuWrapper) userMenuWrapper.style.display = 'none';
+        if (headerSignIn) headerSignIn.style.display = 'inline-flex';
+
+        // 檢查若造訪非 main 組合且為私人不公開組合時提示
+        if (canonicalCurrent !== 'main') {
+          try {
+            const check = await window.cloudStore?.checkPortfolioExistsAndPrivacy(canonicalCurrent);
+            if (check && check.exists && check.isPrivate) {
+              showTopCenterToast('該投資組合狀態為：不公開，請登入擁有者帳號檢視', 'info', 3000);
+            }
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+
+        applyAuthMode();
+        loadAndSubscribeCloudData();
+        return;
+      }
+
+      // 2. 已登入或已解鎖：立即關閉登入門禁遮罩
+      if (gateOverlay) gateOverlay.style.display = 'none';
+      if (headerSignIn) headerSignIn.style.display = 'none';
+      if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
+
+      if (user) {
+        const userEmail = (user.email || '').toLowerCase().trim();
+        const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
+        const isProjectOwner = isDaniel || role === 'owner';
+        const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : userEmail.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+        const urlParams = new URLSearchParams(window.location.search);
+        const rawUrlId = urlParams.get('id');
+        const isDefaultNoId = !rawUrlId || rawUrlId.trim() === '';
+
+        // 檢查 URL 路由規則:
+        // A. 若非專案管理員且目前進入無 id 參數的預設首頁（例如手動移除 ?id=xxx），自動引導到其專屬投資組合 ?id=andy
+        if (!isProjectOwner && isDefaultNoId) {
+          window.location.replace('?id=' + encodeURIComponent(mySlug));
+          return;
+        }
+
+        // B. 若輸入其他 id (非自己的 mySlug 且非專案擁有者)
+        if (canonicalCurrent !== mySlug && !isProjectOwner) {
+          let check = null;
+          try {
+            check = await window.cloudStore.checkPortfolioExistsAndPrivacy(canonicalCurrent);
+          } catch (e) {
+            console.warn(e);
+          }
+          if (!check || !check.exists) {
+            showTopCenterToast('找不到對應id, 將引導到您的投資組合', 'error', 3000);
+            setTimeout(() => {
+              window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
+            }, 1500);
+            return;
+          }
+          if (check.isPrivate && check.owner !== userEmail) {
+            showTopCenterToast('該投資組合狀態為：不公開，將引導到您的投資組合', 'error', 3000);
+            setTimeout(() => {
+              window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
+            }, 1500);
+            return;
+          }
+        }
+
+        if (menuEmail) {
+          menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
+        }
+        if (user.photoURL && userAvatar) {
+          userAvatar.src = user.photoURL;
+          userAvatar.style.display = 'block';
+          if (userPlaceholder) userPlaceholder.style.display = 'none';
+          userAvatar.onerror = () => {
+            userAvatar.style.display = 'none';
+            if (userPlaceholder) userPlaceholder.style.display = 'flex';
+          };
+        } else if (userPlaceholder) {
+          const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+          userPlaceholder.textContent = initial;
+          userPlaceholder.style.display = 'flex';
+          if (userAvatar) userAvatar.style.display = 'none';
+        }
+
+        // 只有最高管理員顯示「👥 授權名單」選項
+        if (menuBtnAcl) {
+          menuBtnAcl.style.display = isProjectOwner ? 'flex' : 'none';
+        }
+
+        // 訪客專屬空間捷徑與主要儀表板切換按鈕
+        const menuBtnMy = document.getElementById('menuBtnMyPortfolio');
+        const menuBtnDaniel = document.getElementById('menuBtnDanielPortfolio');
+
+        if (menuBtnMy) {
+          if (!isDaniel && mySlug && currentPid !== mySlug) {
+            menuBtnMy.style.display = 'flex';
+            const textSpan = document.getElementById('menuMyPortfolioText');
+            if (textSpan) textSpan.textContent = `前往我的專屬維護空間 (?id=${mySlug})`;
+          } else {
+            menuBtnMy.style.display = 'none';
+          }
+        }
+
+        if (menuBtnDaniel) {
+          menuBtnDaniel.style.display = (currentPid !== 'main' && isProjectOwner) ? 'flex' : 'none';
+        }
+
+        // 檢查是否為當前投資組合擁有者
+        const isOwner = (role === 'owner') || (window.cloudStore?.isCurrentPortfolioOwner && window.cloudStore.isCurrentPortfolioOwner());
+
+        // 隱私設定按鈕 (僅擁有者顯示)
+        if (menuBtnTogglePrivacy) {
+          menuBtnTogglePrivacy.style.display = isOwner ? 'flex' : 'none';
+          updatePrivacyUi();
+        }
+
+        // 更新右上角「匯入 / 匯出」選單項目狀態
+        const btnIo = document.getElementById('menuBtnImportExport');
+        if (btnIo) {
+          if (isOwner) {
+            btnIo.innerHTML = '<span>📦</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-emerald" style="margin-left:auto; font-size:0.7rem;">可維護</span>';
+            btnIo.title = '開啟資料匯入與匯出面板';
+          } else {
+            btnIo.innerHTML = '<span>🔒</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-amber" style="margin-left:auto; font-size:0.7rem;">僅檢視</span>';
+            btnIo.title = '目前非您的專屬維護介面，僅擁有者可匯入/匯出';
+          }
+        }
+      }
+
+      const pid = currentPid;
+      if (menuPid) {
+        menuPid.textContent = pid;
+      }
+
+      if (state.manualAdminUnlocked || role === 'owner') {
+        // 擁有者或管理員
+        state.authMode = 'admin';
+        if (role === 'owner' && user) {
+          showNotification(`歡迎回來，管理員 ${user.displayName || user.email}！已啟用完整維護權限`, 'success');
+        }
+      } else if (role === 'viewer') {
+        // 授權親友
+        state.authMode = 'viewer';
+        showNotification(`您已登入授權親友帳號，已為您解鎖資產配置細項！`, 'info');
+      } else {
+        // 其他已登入但未在白名單的使用者
+        state.authMode = 'view';
+        if (gateError) {
+          gateError.style.display = 'block';
+          if (gateOverlay) gateOverlay.style.display = 'flex';
+        }
+      }
+
+      if (!user) {
+        if (state.unsubUserRebalance) {
+          state.unsubUserRebalance();
+          state.unsubUserRebalance = null;
+        }
+        updateRebalCloudStatusUI();
       }
 
       applyAuthMode();
       loadAndSubscribeCloudData();
-      return;
+    } catch (err) {
+      console.error('handleRemoteAuthChange 執行處理異常:', err);
+      // 防禦性降級：確保即使遭遇非預期錯誤，手機畫面也不會白屏或卡死門禁
+      if (user && gateOverlay) gateOverlay.style.display = 'none';
+      applyAuthMode();
+      loadLocalOrEmbedded();
+      recalculatePortfolio();
+      updateUi();
     }
-
-    // 2. 已登入或已解鎖
-    if (gateOverlay) gateOverlay.style.display = 'none';
-    if (headerSignIn) headerSignIn.style.display = 'none';
-    if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
-
-    if (user) {
-      const userEmail = (user.email || '').toLowerCase().trim();
-      const isDaniel = window.cloudStore?.isDanielUser ? window.cloudStore.isDanielUser(userEmail) : (userEmail === 'imsmallnew@gmail.com');
-      const mySlug = window.cloudStore?.getUserSlug ? window.cloudStore.getUserSlug(userEmail) : userEmail.split('@')[0].toLowerCase().replace(/[^\w\u4e00-\u9fa5_-]/g, '');
-      const urlParams = new URLSearchParams(window.location.search);
-      const rawUrlId = urlParams.get('id');
-      const isDefaultNoId = !rawUrlId || rawUrlId.trim() === '';
-
-      // 檢查 URL 路由規則 (需求 1):
-      // A. 若不是 Daniel 帳號且目前進入無 id 參數的預設首頁（例如手動移除 ?id=xxx），自動引導到其專屬投資組合 ?id=andy
-      if (!isDaniel && isDefaultNoId) {
-        window.location.replace('?id=' + encodeURIComponent(mySlug));
-        return;
-      }
-
-      // B. 若輸入其他 id (非自己的 mySlug)
-      if (canonicalCurrent !== mySlug) {
-        const check = await window.cloudStore.checkPortfolioExistsAndPrivacy(canonicalCurrent);
-        if (!check || !check.exists) {
-          showTopCenterToast('找不到對應id, 將引導到您的投資組合', 'error', 3000);
-          setTimeout(() => {
-            window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
-          }, 1500);
-          return;
-        }
-        if (check.isPrivate && check.owner !== userEmail && !isDaniel) {
-          showTopCenterToast('該投資組合狀態為：不公開，將引導到您的投資組合', 'error', 3000);
-          setTimeout(() => {
-            window.location.replace(isDaniel ? window.location.pathname : '?id=' + encodeURIComponent(mySlug));
-          }, 1500);
-          return;
-        }
-      }
-
-      if (menuEmail) {
-        menuEmail.textContent = user.displayName ? `${user.displayName} (${user.email})` : user.email;
-      }
-      if (user.photoURL && userAvatar) {
-        userAvatar.src = user.photoURL;
-        userAvatar.style.display = 'block';
-        if (userPlaceholder) userPlaceholder.style.display = 'none';
-        userAvatar.onerror = () => {
-          userAvatar.style.display = 'none';
-          if (userPlaceholder) userPlaceholder.style.display = 'flex';
-        };
-      } else if (userPlaceholder) {
-        const initial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        userPlaceholder.textContent = initial;
-        userPlaceholder.style.display = 'flex';
-        if (userAvatar) userAvatar.style.display = 'none';
-      }
-
-      // 只有 Daniel 顯示「👥 授權名單」選項
-      if (menuBtnAcl) {
-        menuBtnAcl.style.display = isDaniel ? 'flex' : 'none';
-      }
-
-      // 訪客專屬空間捷徑與 Daniel 儀表板切換按鈕
-      const menuBtnMy = document.getElementById('menuBtnMyPortfolio');
-      const menuBtnDaniel = document.getElementById('menuBtnDanielPortfolio');
-
-      if (menuBtnMy) {
-        if (!isDaniel && mySlug && currentPid !== mySlug) {
-          menuBtnMy.style.display = 'flex';
-          const textSpan = document.getElementById('menuMyPortfolioText');
-          if (textSpan) textSpan.textContent = `前往我的專屬維護空間 (?id=${mySlug})`;
-        } else {
-          menuBtnMy.style.display = 'none';
-        }
-      }
-
-      if (menuBtnDaniel) {
-        menuBtnDaniel.style.display = (currentPid !== 'main' && isDaniel) ? 'flex' : 'none';
-      }
-
-      // 檢查是否為當前投資組合擁有者
-      const isOwner = (role === 'owner') || (window.cloudStore?.isCurrentPortfolioOwner && window.cloudStore.isCurrentPortfolioOwner());
-
-      // 隱私設定按鈕 (僅擁有者顯示)
-      if (menuBtnTogglePrivacy) {
-        menuBtnTogglePrivacy.style.display = isOwner ? 'flex' : 'none';
-        updatePrivacyUi();
-      }
-
-      // 更新右上角「匯入 / 匯出」選單項目狀態
-      const btnIo = document.getElementById('menuBtnImportExport');
-      if (btnIo) {
-        if (isOwner) {
-          btnIo.innerHTML = '<span>📦</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-emerald" style="margin-left:auto; font-size:0.7rem;">可維護</span>';
-          btnIo.title = '開啟資料匯入與匯出面板';
-        } else {
-          btnIo.innerHTML = '<span>🔒</span><span>匯入 / 匯出</span><span class="badge-pill badge-pill-amber" style="margin-left:auto; font-size:0.7rem;">僅檢視</span>';
-          btnIo.title = '目前非您的專屬維護介面，僅擁有者可匯入/匯出';
-        }
-      }
-    }
-
-    const pid = currentPid;
-    if (menuPid) {
-      menuPid.textContent = pid;
-    }
-
-    if (state.manualAdminUnlocked || role === 'owner') {
-      // 擁有者或管理員
-      state.authMode = 'admin';
-      if (role === 'owner' && user) {
-        showNotification(`歡迎回來，管理員 ${user.displayName || user.email}！已啟用完整維護權限`, 'success');
-      }
-    } else if (role === 'viewer') {
-      // 授權親友
-      state.authMode = 'viewer';
-      showNotification(`您已登入授權親友帳號，已為您解鎖資產配置細項！`, 'info');
-    } else {
-      // 其他已登入但未在白名單的使用者
-      state.authMode = 'view';
-      if (gateError) {
-        gateError.style.display = 'block';
-        if (gateOverlay) gateOverlay.style.display = 'flex';
-      }
-    }
-
-    if (!user) {
-      if (state.unsubUserRebalance) {
-        state.unsubUserRebalance();
-        state.unsubUserRebalance = null;
-      }
-      updateRebalCloudStatusUI();
-    }
-
-    applyAuthMode();
-    loadAndSubscribeCloudData();
   }
 
   async function loadAndSubscribeCloudData() {
