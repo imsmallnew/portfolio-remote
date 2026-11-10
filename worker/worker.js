@@ -191,7 +191,7 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           symbols: { tickers: usTickers },
-          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description", "postmarket_close", "premarket_close"]
+          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description", "postmarket_close", "premarket_close", "rtc"]
         })
       });
       if (usRes.ok) {
@@ -203,12 +203,14 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
             const close = parseFloat(cols[0]);
             const changeAbs = cols[2] !== null ? parseFloat(cols[2]) : 0.0;
             const prevClose = changeAbs ? Math.round((close - changeAbs) * 100) / 100 : close;
-            const postP = cols[9] !== null ? cols[9] : null;
-            const preP = cols[10] !== null ? cols[10] : null;
-            const nightP = parseFloat(postP || preP || close);
+            const postP = cols[8] !== null ? cols[8] : null;
+            const preP = cols[9] !== null ? cols[9] : null;
+            const rtcP = cols[10] !== null ? cols[10] : null;
+            const nightP = parseFloat(rtcP || postP || preP || close);
 
-            if (ticker === "NYSE:TSM" && (postP || preP) && close > 0) {
-              tsmNightChangePct = (parseFloat(postP || preP) - close) / close;
+            if (ticker === "NYSE:TSM" && (rtcP || postP || preP) && close > 0) {
+              const liveNight = rtcP || postP || preP;
+              tsmNightChangePct = (parseFloat(liveNight) - close) / close;
             }
 
             for (const sym of (tvMap[ticker] || [])) {

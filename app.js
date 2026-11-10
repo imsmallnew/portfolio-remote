@@ -128,23 +128,23 @@
 
   // Base Quote Metadata with TradingView Tickers (SNDK fixed to NASDAQ:SNDK)
   const DEFAULT_QUOTES = {
-    "0050": { price: 108.15, nightPrice: 108.80, prevClose: 107.25, name: "元大台灣50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "0050.TW", tvSymbol: "TWSE:0050", order: 0 },
-    "2330": { price: 2420.00, nightPrice: 2433.90, prevClose: 2405.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 1 },
-    "VOO": { price: 706.80, nightPrice: 708.42, prevClose: 704.60, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 2 },
-    "00981A": { price: 28.88, nightPrice: 29.05, prevClose: 28.73, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
-    "00403A": { price: 10.32, nightPrice: 10.38, prevClose: 10.18, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
-    "00406A": { price: 9.22, nightPrice: 9.27, prevClose: 9.15, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
+    "0050": { price: 99.70, nightPrice: 99.90, prevClose: 97.45, name: "元大台灣50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "0050.TW", tvSymbol: "TWSE:0050", order: 0 },
+    "2330": { price: 2285.00, nightPrice: 2293.40, prevClose: 2235.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 1 },
+    "VOO": { price: 691.87, nightPrice: 691.52, prevClose: 675.99, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 2 },
+    "00981A": { price: 24.27, nightPrice: 24.27, prevClose: 23.06, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
+    "00403A": { price: 8.87, nightPrice: 8.87, prevClose: 8.49, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
+    "00406A": { price: 7.65, nightPrice: 7.65, prevClose: 7.32, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
     "路博邁": { price: 92.82, nightPrice: 92.82, prevClose: 98.63, name: "路博邁NB 5G股票基金", type: "境外 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 6 },
     "瀚亞": { price: 111.452, nightPrice: 111.452, prevClose: 116.905, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 7 },
-    "台達電": { price: 1625.00, nightPrice: 1634.30, prevClose: 1605.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
-    "聯發科": { price: 4140.00, nightPrice: 4163.80, prevClose: 4150.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
-    "領袖": { price: 39.98, nightPrice: 40.21, prevClose: 39.56, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
-    "南亞科": { price: 436.50, nightPrice: 439.00, prevClose: 422.00, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 11 },
-    "MU": { price: 896.07, nightPrice: 927.33, prevClose: 904.90, name: "美光科技 Micron", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MU", tvSymbol: "NASDAQ:MU", order: 12 },
-    "NVDA": { price: 216.47, nightPrice: 220.65, prevClose: 217.09, name: "輝達 NVIDIA", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "NVDA", tvSymbol: "NASDAQ:NVDA", order: 13 },
-    "MRVL": { price: 240.42, nightPrice: 247.77, prevClose: 237.09, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 14 },
+    "台達電": { price: 1275.00, nightPrice: 1275.00, prevClose: 1160.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
+    "聯發科": { price: 3830.00, nightPrice: 3830.00, prevClose: 3725.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
+    "領袖": { price: 36.34, nightPrice: 36.34, prevClose: 35.49, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
+    "南亞科": { price: 383.00, nightPrice: 383.00, prevClose: 370.00, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 11 },
+    "MU": { price: 733.15, nightPrice: 728.53, prevClose: 690.00, name: "美光科技 Micron", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MU", tvSymbol: "NASDAQ:MU", order: 12 },
+    "NVDA": { price: 178.67, nightPrice: 180.50, prevClose: 186.64, name: "輝達 NVIDIA", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "NVDA", tvSymbol: "NASDAQ:NVDA", order: 13 },
+    "MRVL": { price: 154.60, nightPrice: 155.90, prevClose: 141.20, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 14 },
     "SpaceX": { price: 146.03, nightPrice: 146.03, prevClose: 148.62, name: "SpaceX", type: "美股 私募", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "", order: 15 },
-    "SNDK": { price: 1365.38, nightPrice: 1413.39, prevClose: 1371.12, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
+    "SNDK": { price: 886.51, nightPrice: 882.48, prevClose: 835.06, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
   };
 
   // 預設持股交易為空（登入後由 Firestore 雲端同步或由管理員匯入真實資產）
@@ -639,6 +639,9 @@
 
       // Sync user-specific rebalance planner data from/to Firebase
       await syncUserRebalanceFromCloud();
+
+      // 載入雲端資料後自動對齊一次最新即時與夜盤報價
+      refreshOnlineQuotes(false);
     } catch (err) {
       console.error('載入雲端資料失敗:', err);
       showNotification('載入雲端資料失敗，暫時顯示展示資料', 'error');
@@ -771,6 +774,7 @@
     recalculatePortfolio();
     updateUi();
     startAutoRefresh();
+    refreshOnlineQuotes(false);
   }
 
   function loadLocalOrEmbedded() {
@@ -1728,7 +1732,7 @@
   function isNightTradingHours() {
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
-    return minutes >= 870; // 14:30 後 (含)
+    return minutes >= 870 || minutes < 360; // 14:30 至隔日 06:00 為夜盤時段
   }
 
   function updateMarketPriceHighlight() {
@@ -4926,6 +4930,11 @@
       }
     }
 
+    // 必查 NYSE:TSM (台積電 ADR) 用於夜盤連動計算
+    if (!usTickers.includes('NYSE:TSM')) {
+      usTickers.push('NYSE:TSM');
+    }
+
     // 3. Try TradingView Taiwan Scan
     if (twTickers.length > 0) {
       try {
@@ -4949,9 +4958,8 @@
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
-                if (!state.quotes[sym].nightPrice) {
-                  state.quotes[sym].nightPrice = close;
-                }
+                // 台股標的夜盤價預設更新為當前收盤價，避免殘留歷史舊價格
+                state.quotes[sym].nightPrice = close;
                 updatedSymbols.add(sym);
                 updated++;
               }
@@ -4964,6 +4972,8 @@
     }
 
     // 4. Try TradingView America Scan & Direct Live Night WebSocket
+    let tsmNightChangePct = null;
+
     if (usTickers.length > 0) {
       try {
         const usRes = await fetch('https://scanner.tradingview.com/america/scan', {
@@ -4987,6 +4997,13 @@
               const pre = cols[9] !== null && cols[9] !== undefined ? Number(cols[9]) : null;
               const rtc = cols[10] !== null && cols[10] !== undefined ? Number(cols[10]) : null;
               const night = (rtc || post || pre || close);
+
+              if (ticker === 'NYSE:TSM' && close > 0) {
+                const liveNight = rtc || post || pre;
+                if (liveNight && Math.abs(liveNight - close) > 0.01) {
+                  tsmNightChangePct = (liveNight - close) / close;
+                }
+              }
 
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
@@ -5012,6 +5029,13 @@
           const rtc = v.rtc !== undefined && v.rtc !== null ? Number(v.rtc) : null;
           const night = ntc || rtc || lp;
 
+          if (ticker === 'NYSE:TSM' && lp && lp > 0) {
+            const liveNight = ntc || rtc;
+            if (liveNight && Math.abs(liveNight - lp) > 0.01) {
+              tsmNightChangePct = (liveNight - lp) / lp;
+            }
+          }
+
           for (const sym of (tvMap[ticker] || [])) {
             if (lp !== null) state.quotes[sym].price = lp;
             if (prev !== null) state.quotes[sym].prevClose = prev;
@@ -5021,6 +5045,24 @@
         }
       } catch (err) {
         console.warn('TradingView WS live quotes notice:', err);
+      }
+    }
+
+    // 5. 台積電 (2330) 與 0050 夜盤價格連動更新
+    if (state.quotes['2330']) {
+      const p = state.quotes['2330'].price;
+      if (tsmNightChangePct !== null && Math.abs(tsmNightChangePct) > 0.0005) {
+        state.quotes['2330'].nightPrice = Math.round(p * (1.0 + tsmNightChangePct) * 10) / 10;
+      } else {
+        state.quotes['2330'].nightPrice = p;
+      }
+    }
+    if (state.quotes['0050']) {
+      const p = state.quotes['0050'].price;
+      if (tsmNightChangePct !== null && Math.abs(tsmNightChangePct) > 0.0005) {
+        state.quotes['0050'].nightPrice = Math.round(p * (1.0 + tsmNightChangePct * 0.5) * 100) / 100;
+      } else {
+        state.quotes['0050'].nightPrice = p;
       }
     }
 
