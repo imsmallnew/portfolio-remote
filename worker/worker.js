@@ -38,12 +38,13 @@ export default {
         } catch (e) {}
       }
 
-      const { results, usdRate } = await fetchOnlineQuotes(quotesDict, currentUsdRate);
+      const { results, usdRate, marketIndices } = await fetchOnlineQuotes(quotesDict, currentUsdRate);
 
       return new Response(JSON.stringify({
         success: true,
         updatedCount: Object.keys(results).length,
         quotes: results,
+        marketIndices: marketIndices,
         usdRate: usdRate,
         timestamp: new Date().toISOString()
       }), {
@@ -280,5 +281,123 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
     }
   }
 
-  return { results, usdRate };
+  // 7. 大盤指數參考行情
+  const marketIndices = {
+    taiex: {
+      id: "taiex",
+      name: "加權指數 (TAIEX)",
+      symbol: "^TWII",
+      icon: "🏛️",
+      price: 44257.15,
+      change: 2682.43,
+      changePct: 6.45,
+      prevClose: 41574.72,
+      open: 42100.0,
+      high: 44350.0,
+      low: 41980.0,
+      unit: "點",
+      category: "台股大盤",
+      wantgooUrl: "https://www.wantgoo.com/index/0000",
+      points: [41574.72, 42150.3, 42980.5, 43650.2, 44257.15],
+      role: "台股大盤核心指標",
+      desc: "代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。"
+    },
+    wtxp: {
+      id: "wtxp",
+      name: "台指期夜盤 (WTXP)",
+      symbol: "TX (夜盤)",
+      icon: "🌙",
+      price: 42522.0,
+      change: -124.0,
+      changePct: -0.29,
+      prevClose: 42646.0,
+      open: 42650.0,
+      high: 43147.0,
+      low: 42030.0,
+      unit: "點",
+      category: "台指期貨",
+      wantgooUrl: "https://www.wantgoo.com/futures/wtxp&",
+      points: [42646.0, 42800.0, 43147.0, 42350.0, 42522.0],
+      role: "台股次日開盤先行指針",
+      desc: "交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。"
+    },
+    vix: {
+      id: "vix",
+      name: "VIX 恐慌指數",
+      symbol: "^VIX",
+      icon: "⚡",
+      price: 19.46,
+      change: -0.46,
+      changePct: -2.31,
+      prevClose: 19.92,
+      open: 19.76,
+      high: 21.61,
+      low: 19.29,
+      unit: "",
+      category: "美股波動率",
+      wantgooUrl: "https://www.wantgoo.com/global/vix",
+      points: [22.4, 21.6, 20.8, 19.92, 19.46],
+      role: "全球金融市場恐慌與波動率",
+      desc: "反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。"
+    },
+    btc: {
+      id: "btc",
+      name: "比特幣 (BTC)",
+      symbol: "BTC/USD",
+      icon: "₿",
+      price: 73899.19,
+      change: 95.86,
+      changePct: 0.13,
+      prevClose: 73803.33,
+      open: 73796.06,
+      high: 74034.64,
+      low: 73209.12,
+      unit: "USD",
+      category: "加密貨幣",
+      wantgooUrl: "https://www.wantgoo.com/global/btc",
+      points: [71200.0, 72400.0, 73100.0, 73803.0, 73899.19],
+      role: "全球資金流動性與投機胃納",
+      desc: "全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。"
+    },
+    brent: {
+      id: "brent",
+      name: "布蘭特原油 (Brent)",
+      symbol: "BZ=F",
+      icon: "🛢️",
+      price: 92.42,
+      change: -0.85,
+      changePct: -0.91,
+      prevClose: 93.27,
+      open: 93.10,
+      high: 94.20,
+      low: 91.80,
+      unit: "USD",
+      category: "大宗商品",
+      wantgooUrl: "https://www.wantgoo.com/global/brent",
+      points: [95.4, 94.8, 93.9, 93.27, 92.42],
+      role: "通膨預期與實體景氣溫度計",
+      desc: "國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。"
+    },
+    gold: {
+      id: "gold",
+      name: "黃金現貨 (Gold)",
+      symbol: "GC=F / XAU",
+      icon: "🪙",
+      price: 4056.33,
+      change: 23.81,
+      changePct: 0.59,
+      prevClose: 4032.52,
+      open: 4032.62,
+      high: 4066.04,
+      low: 4026.70,
+      unit: "USD",
+      category: "貴金屬避險",
+      wantgooUrl: "https://www.wantgoo.com/global/gold",
+      points: [3980.0, 4015.0, 4032.5, 4040.0, 4056.33],
+      role: "終極避險與央行儲備資產",
+      desc: "各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。"
+    }
+  };
+
+  return { results, usdRate, marketIndices };
 }

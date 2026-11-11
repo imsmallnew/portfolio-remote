@@ -451,6 +451,14 @@
             </svg>
             <span>💡 投資建議 (<span id="tabAdviceCountBadge">0</span>)</span>
           </button>
+          <button class="nav-tab" data-tab="tab-market-indices" id="tabBtnMarketIndices" title="全球與台股大盤指數參考行情與多空趨勢研判">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span>🌐 大盤指數參考</span>
+          </button>
         </div>
 
         <div class="tab-actions">
@@ -742,7 +750,16 @@
             <div class="overview-title-group">
               <div class="overview-icon">🏛️</div>
               <div>
-                <h3 class="overview-title">個人總淨資產與三大配置總覽</h3>
+                <div class="overview-title-row">
+                  <h3 class="overview-title">個人總淨資產與三大配置總覽</h3>
+                  <button type="button" class="btn btn-secondary btn-xs admin-only" id="btnEditPillarTargets" title="自訂三大資產配置規劃目標比例 (加總 100%)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>調整目標</span>
+                  </button>
+                </div>
                 <p class="overview-subtitle">資產配置即時聯動 · 即時市值 + 儲備池 + 儲蓄保單</p>
               </div>
             </div>
@@ -765,7 +782,10 @@
                 <div class="pillar-progress-bar bar-purple" id="pillarSavingsBar" style="width: 65.4%;"></div>
               </div>
               <div class="pillar-footer">
-                <span>規劃目標: 55%</span>
+                <div class="pillar-target-row">
+                  <span id="pillarSavingsTargetLabel">規劃目標: <strong id="pillarSavingsTargetVal">55%</strong></span>
+                  <span class="pillar-diff-badge neutral" id="pillarSavingsDiffBadge">差額: +0.0% (+NT$ 0)</span>
+                </div>
                 <span class="text-tertiary-xs">含台幣保單+美保+月配本金</span>
               </div>
             </div>
@@ -781,7 +801,10 @@
                 <div class="pillar-progress-bar bar-cyan" id="pillarInvestBar" style="width: 29.0%;"></div>
               </div>
               <div class="pillar-footer">
-                <span>規劃目標: 30%</span>
+                <div class="pillar-target-row">
+                  <span id="pillarInvestTargetLabel">規劃目標: <strong id="pillarInvestTargetVal">30%</strong></span>
+                  <span class="pillar-diff-badge neutral" id="pillarInvestDiffBadge">差額: -0.0% (-NT$ 0)</span>
+                </div>
                 <span class="text-tertiary-xs">依目前台美股現價與夜盤</span>
               </div>
             </div>
@@ -797,7 +820,10 @@
                 <div class="pillar-progress-bar bar-emerald" id="pillarCashBar" style="width: 5.6%;"></div>
               </div>
               <div class="pillar-footer">
-                <span>規劃目標: 15%</span>
+                <div class="pillar-target-row">
+                  <span id="pillarCashTargetLabel">規劃目標: <strong id="pillarCashTargetVal">15%</strong></span>
+                  <span class="pillar-diff-badge neutral" id="pillarCashDiffBadge">差額: -0.0% (-NT$ 0)</span>
+                </div>
                 <span class="text-tertiary-xs">生活預備金+投資池+美金活存</span>
               </div>
             </div>
@@ -1187,6 +1213,70 @@
               <button class="btn btn-secondary btn-xs" id="btnAdvicePageNext">下一頁 &raquo;</button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: Market Indices Reference (大盤指數參考與多空趨勢研判) -->
+      <section id="tab-market-indices" class="tab-pane">
+        <!-- 頂部多空走勢綜合評估卡片 -->
+        <div class="market-macro-overview-card" id="marketMacroOverview">
+          <div class="macro-header">
+            <div class="macro-title-group">
+              <div class="macro-icon">🧭</div>
+              <div>
+                <h3 class="macro-title">全球大盤多空走勢綜合評估</h3>
+                <p class="macro-subtitle">加權指數 · 台指期夜盤 · VIX波動率 · 比特幣 · 布蘭特原油 · 黃金</p>
+              </div>
+            </div>
+            <div class="macro-actions">
+              <span class="macro-updated-at mono text-tertiary-xs" id="macroUpdatedAt">最新行情：--</span>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshMarketIndices" title="重新整理大盤指數即時數據">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6"></path>
+                  <path d="M1 20v-6h6"></path>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span id="marketRefreshBtnText">更新指數</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 多空評估方向與量化儀表 -->
+          <div class="macro-verdict-grid">
+            <div class="macro-verdict-card" id="macroVerdictCard">
+              <div class="macro-verdict-header">
+                <span class="macro-verdict-title">市場多空趨勢判定</span>
+                <span class="macro-verdict-badge" id="macroVerdictBadge">評估中...</span>
+              </div>
+              <div class="macro-verdict-meter-box">
+                <div class="macro-meter-bar-track">
+                  <div class="macro-meter-bar-fill" id="macroMeterFill" style="width: 50%;"></div>
+                  <div class="macro-meter-pointer" id="macroMeterPointer" style="left: 50%;"></div>
+                </div>
+                <div class="macro-meter-scale">
+                  <span>🔴 空頭承壓 (-100)</span>
+                  <span>🟡 中性震盪 (0)</span>
+                  <span>🟢 多頭向上 (+100)</span>
+                </div>
+              </div>
+              <div class="macro-score-text mono" id="macroScoreText">綜合評分：0 分</div>
+            </div>
+
+            <div class="macro-summary-card">
+              <div class="macro-summary-header">
+                <span class="macro-summary-title">💡 綜合指數趨勢深度解讀</span>
+                <span class="macro-risk-mode-badge" id="macroRiskModeBadge">風險偏好中性</span>
+              </div>
+              <div class="macro-summary-body" id="macroSummaryBody">
+                正在彙整台股加權、期指夜盤、美股波動率及國際原物料走勢...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 大指數卡片網格 -->
+        <div class="market-indices-grid" id="marketIndicesGrid">
+          <!-- 6 Cards rendered dynamically by renderMarketIndices() -->
         </div>
       </section>
 
@@ -2263,6 +2353,78 @@
             <button class="btn btn-danger btn-xs" id="btnGateSignOut" type="button">登出</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal: 調整三大資產配置規劃目標比例 -->
+    <div class="modal-backdrop" id="pillarTargetsModalBackdrop">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">🎯 調整三大配置規劃目標比例</h3>
+          <button class="modal-close-btn" id="btnPillarTargetsModalClose">&times;</button>
+        </div>
+        <form id="pillarTargetsForm">
+          <div class="modal-body">
+            <p class="modal-desc-text">設定儲蓄保單、證券投資與現金儲備池的目標比例，<strong class="text-cyan">三項總和必須等於 100%</strong>：</p>
+            
+            <div class="form-group mb-3">
+              <label for="inputTargetSavings" class="form-label flex-between">
+                <span>🛡️ 儲蓄保單與本金目標</span>
+                <span class="mono text-purple font-bold"><span id="lblTargetSavings">55</span>%</span>
+              </label>
+              <div class="input-with-slider">
+                <input type="range" class="form-range" id="rangeTargetSavings" min="0" max="100" step="1" value="55">
+                <input type="number" class="form-input mono target-num-input" id="inputTargetSavings" min="0" max="100" step="1" value="55" required>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="inputTargetInvestment" class="form-label flex-between">
+                <span>📈 證券投資總市值目標</span>
+                <span class="mono text-cyan font-bold"><span id="lblTargetInvestment">30</span>%</span>
+              </label>
+              <div class="input-with-slider">
+                <input type="range" class="form-range" id="rangeTargetInvestment" min="0" max="100" step="1" value="30">
+                <input type="number" class="form-input mono target-num-input" id="inputTargetInvestment" min="0" max="100" step="1" value="30" required>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="inputTargetCash" class="form-label flex-between">
+                <span>💧 現金水位儲備池目標</span>
+                <span class="mono text-emerald font-bold"><span id="lblTargetCash">15</span>%</span>
+              </label>
+              <div class="input-with-slider">
+                <input type="range" class="form-range" id="rangeTargetCash" min="0" max="100" step="1" value="15">
+                <input type="number" class="form-input mono target-num-input" id="inputTargetCash" min="0" max="100" step="1" value="15" required>
+              </div>
+            </div>
+
+            <!-- Sum validation badge -->
+            <div class="target-sum-panel" id="targetSumPanel">
+              <div class="target-sum-row">
+                <span>目標比例總和：</span>
+                <span class="mono font-bold" id="pillarTargetsSumVal">100%</span>
+              </div>
+              <div class="target-sum-msg" id="pillarTargetsSumMsg">✔ 總和 100% 符合標準配置</div>
+            </div>
+
+            <!-- Quick presets -->
+            <div class="target-presets-group mt-3">
+              <span class="preset-label">快速配置範本：</span>
+              <div class="preset-chips">
+                <button type="button" class="preset-chip" data-sav="55" data-inv="30" data-csh="15">55 / 30 / 15 (穩健基準)</button>
+                <button type="button" class="preset-chip" data-sav="50" data-inv="35" data-csh="15">50 / 35 / 15 (平衡成長)</button>
+                <button type="button" class="preset-chip" data-sav="40" data-inv="45" data-csh="15">40 / 45 / 15 (積極進攻)</button>
+                <button type="button" class="preset-chip" data-sav="60" data-inv="30" data-csh="10">60 / 30 / 10 (保守防守)</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnPillarTargetsCancel">取消</button>
+            <button type="submit" class="btn btn-primary" id="btnPillarTargetsSave">儲存配置目標</button>
+          </div>
+        </form>
       </div>
     </div>
 

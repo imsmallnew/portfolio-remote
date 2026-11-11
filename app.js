@@ -114,6 +114,16 @@
     editingDivId: null,
     deleteTarget: null, // { type: 'tx'|'div'|'real', id: ... }
 
+    // 三大資產配置規劃目標比例 (預設 55% / 30% / 15%，總和 100%)
+    pillarTargets: JSON.parse(localStorage.getItem('fubon_pillar_targets') || 'null') || {
+      savings: 55,
+      investment: 30,
+      cash: 15
+    },
+
+    // 大盤指數行情與走勢資料
+    marketIndices: JSON.parse(localStorage.getItem('fubon_market_indices') || 'null'),
+
     theme: localStorage.getItem('fubon_theme') || 'dark',
     colorMode: localStorage.getItem('fubon_color_mode') || 'tw', // 'tw': Red=Up, 'us': Green=Up
   };
@@ -678,6 +688,13 @@
       state.quotes['瀚亞'].nightPrice = 104.652;
       state.quotes['瀚亞'].prevClose = 103.232;
       state.quotes['瀚亞'].source = 'MoneyDJ';
+    }
+
+    if (src.pillarTargets && typeof src.pillarTargets === 'object') {
+      const { savings, investment, cash } = src.pillarTargets;
+      if (!isNaN(savings) && !isNaN(investment) && !isNaN(cash) && (Number(savings) + Number(investment) + Number(cash) === 100)) {
+        state.pillarTargets = { savings: Number(savings), investment: Number(investment), cash: Number(cash) };
+      }
     }
 
     state.transactions = Array.isArray(src.transactions) ? src.transactions : [];
@@ -1603,19 +1620,60 @@
     const pillarCashBar = document.getElementById('pillarCashBar');
     if (pillarCashVal) pillarCashVal.textContent = `NT$ ${formatMoney(totalCashReserves)}`;
 
+    const tSav = state.pillarTargets?.savings ?? 55;
+    const tInv = state.pillarTargets?.investment ?? 30;
+    const tCsh = state.pillarTargets?.cash ?? 15;
+
+    const lblSav = document.getElementById('pillarSavingsTargetVal');
+    if (lblSav) lblSav.textContent = `${tSav}%`;
+    const lblInv = document.getElementById('pillarInvestTargetVal');
+    if (lblInv) lblInv.textContent = `${tInv}%`;
+    const lblCsh = document.getElementById('pillarCashTargetVal');
+    if (lblCsh) lblCsh.textContent = `${tCsh}%`;
+
     if (totalNetWorth > 0) {
-      const savPct = ((totalInsuranceAssets / totalNetWorth) * 100).toFixed(1);
-      const invPct = ((investMarketVal / totalNetWorth) * 100).toFixed(1);
-      const cshPct = ((totalCashReserves / totalNetWorth) * 100).toFixed(1);
+      const savPctNum = (totalInsuranceAssets / totalNetWorth) * 100;
+      const invPctNum = (investMarketVal / totalNetWorth) * 100;
+      const cshPctNum = (totalCashReserves / totalNetWorth) * 100;
+
+      const savPct = savPctNum.toFixed(1);
+      const invPct = invPctNum.toFixed(1);
+      const cshPct = cshPctNum.toFixed(1);
 
       if (pillarSavingsPct) pillarSavingsPct.textContent = `${savPct}%`;
-      if (pillarSavingsBar) pillarSavingsBar.style.width = `${savPct}%`;
+      if (pillarSavingsBar) pillarSavingsBar.style.width = `${Math.min(100, savPctNum)}%`;
 
       if (pillarInvestPct) pillarInvestPct.textContent = `${invPct}%`;
-      if (pillarInvestBar) pillarInvestBar.style.width = `${invPct}%`;
+      if (pillarInvestBar) pillarInvestBar.style.width = `${Math.min(100, invPctNum)}%`;
 
       if (pillarCashPct) pillarCashPct.textContent = `${cshPct}%`;
-      if (pillarCashBar) pillarCashBar.style.width = `${cshPct}%`;
+      if (pillarCashBar) pillarCashBar.style.width = `${Math.min(100, cshPctNum)}%`;
+
+      // 差額更新 (比例差額與金額差額)
+      updatePillarDiff('pillarSavingsDiffBadge', savPctNum, tSav, totalInsuranceAssets, totalNetWorth);
+      updatePillarDiff('pillarInvestDiffBadge', invPctNum, tInv, investMarketVal, totalNetWorth);
+      updatePillarDiff('pillarCashDiffBadge', cshPctNum, tCsh, totalCashReserves, totalNetWorth);
+    }
+  }
+
+  function updatePillarDiff(badgeId, actualPct, targetPct, actualAmt, netWorth) {
+    const el = document.getElementById(badgeId);
+    if (!el) return;
+    const diffPct = actualPct - targetPct;
+    const targetAmt = netWorth * (targetPct / 100);
+    const diffAmt = actualAmt - targetAmt;
+    const absDiffAmt = Math.round(Math.abs(diffAmt));
+
+    el.classList.remove('surplus', 'deficit', 'neutral');
+    if (Math.abs(diffPct) < 0.05 && Math.abs(diffAmt) < 500) {
+      el.classList.add('neutral');
+      el.textContent = `差額: 0.0% (符合目標)`;
+    } else if (diffPct > 0) {
+      el.classList.add('surplus');
+      el.textContent = `差額: +${diffPct.toFixed(1)}% (+NT$ ${formatMoney(absDiffAmt)})`;
+    } else {
+      el.classList.add('deficit');
+      el.textContent = `差額: ${diffPct.toFixed(1)}% (-NT$ ${formatMoney(absDiffAmt)})`;
     }
   }
 
@@ -4732,7 +4790,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes);
+                mergeServerQuotes(json.quotes, json.marketIndices);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -4752,7 +4810,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes);
+                mergeServerQuotes(json.quotes, json.marketIndices);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -4807,13 +4865,18 @@
     }
   }
 
-  function mergeServerQuotes(newQuotes) {
-    for (const [sym, q] of Object.entries(newQuotes)) {
+  function mergeServerQuotes(newQuotes, serverIndices) {
+    for (const [sym, q] of Object.entries(newQuotes || {})) {
       if (state.quotes[sym] && q.price) {
         state.quotes[sym].price = q.price;
         if (q.prevClose) state.quotes[sym].prevClose = q.prevClose;
         if (q.nightPrice !== undefined) state.quotes[sym].nightPrice = q.nightPrice;
       }
+    }
+    if (serverIndices && typeof serverIndices === 'object') {
+      state.marketIndices = { ...(state.marketIndices || DEFAULT_MARKET_INDICES), ...serverIndices };
+      localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
+      if (state.activeTab === 'tab-market-indices') renderMarketIndices();
     }
   }
 
@@ -5150,6 +5213,9 @@
         }
       }
     }
+
+    // 7. 同步更新大盤指數參考行情與趨勢圖
+    fetchMarketIndicesDirect().catch(() => {});
 
     return updated;
   }
@@ -6095,6 +6161,644 @@
     showNotification(`${symbol} 最新白盤與夜盤現價已更新`, 'success');
   }
 
+  // =========================================================================
+  // 三大配置目標比例調整 (Pillar Allocation Target Settings)
+  // =========================================================================
+
+  function openPillarTargetsModal() {
+    if (!checkAdminOrPrompt('調整配置目標')) return;
+    const modal = document.getElementById('pillarTargetsModalBackdrop');
+    if (!modal) return;
+
+    const t = state.pillarTargets || { savings: 55, investment: 30, cash: 15 };
+    const inpSav = document.getElementById('inputTargetSavings');
+    const rngSav = document.getElementById('rangeTargetSavings');
+    const lblSav = document.getElementById('lblTargetSavings');
+
+    const inpInv = document.getElementById('inputTargetInvestment');
+    const rngInv = document.getElementById('rangeTargetInvestment');
+    const lblInv = document.getElementById('lblTargetInvestment');
+
+    const inpCsh = document.getElementById('inputTargetCash');
+    const rngCsh = document.getElementById('rangeTargetCash');
+    const lblCsh = document.getElementById('lblTargetCash');
+
+    if (inpSav) inpSav.value = t.savings;
+    if (rngSav) rngSav.value = t.savings;
+    if (lblSav) lblSav.textContent = t.savings;
+
+    if (inpInv) inpInv.value = t.investment;
+    if (rngInv) rngInv.value = t.investment;
+    if (lblInv) lblInv.textContent = t.investment;
+
+    if (inpCsh) inpCsh.value = t.cash;
+    if (rngCsh) rngCsh.value = t.cash;
+    if (lblCsh) lblCsh.textContent = t.cash;
+
+    validatePillarTargetsSum();
+    modal.classList.add('show');
+  }
+
+  function closePillarTargetsModal() {
+    const modal = document.getElementById('pillarTargetsModalBackdrop');
+    if (modal) modal.classList.remove('show');
+  }
+
+  function validatePillarTargetsSum() {
+    const s = parseInt(document.getElementById('inputTargetSavings')?.value || '0', 10);
+    const i = parseInt(document.getElementById('inputTargetInvestment')?.value || '0', 10);
+    const c = parseInt(document.getElementById('inputTargetCash')?.value || '0', 10);
+    const sum = s + i + c;
+
+    const sumValEl = document.getElementById('pillarTargetsSumVal');
+    const sumMsgEl = document.getElementById('pillarTargetsSumMsg');
+    const sumPanel = document.getElementById('targetSumPanel');
+    const btnSave = document.getElementById('btnPillarTargetsSave');
+
+    if (sumValEl) sumValEl.textContent = `${sum}%`;
+
+    if (sum === 100) {
+      if (sumPanel) {
+        sumPanel.classList.remove('invalid');
+        sumPanel.classList.add('valid');
+      }
+      if (sumMsgEl) sumMsgEl.textContent = '✔ 總和 100% 符合標準配置';
+      if (btnSave) btnSave.disabled = false;
+    } else {
+      const diff = 100 - sum;
+      if (sumPanel) {
+        sumPanel.classList.remove('valid');
+        sumPanel.classList.add('invalid');
+      }
+      if (sumMsgEl) {
+        sumMsgEl.textContent = diff > 0 
+          ? `⚠️ 目前總和為 ${sum}%，尚缺 ${diff}%（加總必須剛好等於 100%）`
+          : `⚠️ 目前總和為 ${sum}%，超過 ${Math.abs(diff)}%（加總必須剛好等於 100%）`;
+      }
+      if (btnSave) btnSave.disabled = true;
+    }
+  }
+
+  async function handlePillarTargetsSubmit(e) {
+    e.preventDefault();
+    if (!checkAdminOrPrompt('儲存配置目標')) return;
+
+    const s = parseInt(document.getElementById('inputTargetSavings')?.value || '0', 10);
+    const i = parseInt(document.getElementById('inputTargetInvestment')?.value || '0', 10);
+    const c = parseInt(document.getElementById('inputTargetCash')?.value || '0', 10);
+
+    if (s + i + c !== 100) {
+      showNotification('三大配置目標總和必須剛好等於 100%！', 'error');
+      return;
+    }
+
+    state.pillarTargets = { savings: s, investment: i, cash: c };
+    localStorage.setItem('fubon_pillar_targets', JSON.stringify(state.pillarTargets));
+
+    closePillarTargetsModal();
+    recalculatePortfolio();
+    updateUi();
+
+    if (window.cloudStore?.userRole === 'owner') {
+      await persistState(['pillarTargets']);
+    }
+    showNotification(`三大配置目標已更新為：儲蓄 ${s}% / 證券 ${i}% / 現金 ${c}%`, 'success');
+  }
+
+  // =========================================================================
+  // 大盤指數參考與多空趨勢研判 (Market Indices & Macro Trend Reference)
+  // =========================================================================
+
+  const DEFAULT_MARKET_INDICES = {
+    taiex: {
+      id: 'taiex',
+      name: '加權指數 (TAIEX)',
+      symbol: '^TWII',
+      icon: '🏛️',
+      price: 44257.15,
+      change: 2682.43,
+      changePct: 6.45,
+      prevClose: 41574.72,
+      open: 42100.0,
+      high: 44350.0,
+      low: 41980.0,
+      unit: '點',
+      category: '台股大盤',
+      wantgooUrl: 'https://www.wantgoo.com/index/0000',
+      points: [41574.72, 42150.3, 42980.5, 43650.2, 44257.15],
+      role: '台股大盤核心指標',
+      desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
+    },
+    wtxp: {
+      id: 'wtxp',
+      name: '台指期夜盤 (WTXP)',
+      symbol: 'TX (夜盤)',
+      icon: '🌙',
+      price: 42522.0,
+      change: -124.0,
+      changePct: -0.29,
+      prevClose: 42646.0,
+      open: 42650.0,
+      high: 43147.0,
+      low: 42030.0,
+      unit: '點',
+      category: '台指期貨',
+      wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
+      points: [42646.0, 42800.0, 43147.0, 42350.0, 42522.0],
+      role: '台股次日開盤先行指針',
+      desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
+    },
+    vix: {
+      id: 'vix',
+      name: 'VIX 恐慌指數',
+      symbol: '^VIX',
+      icon: '⚡',
+      price: 19.46,
+      change: -0.46,
+      changePct: -2.31,
+      prevClose: 19.92,
+      open: 19.76,
+      high: 21.61,
+      low: 19.29,
+      unit: '',
+      category: '美股波動率',
+      wantgooUrl: 'https://www.wantgoo.com/global/vix',
+      points: [22.4, 21.6, 20.8, 19.92, 19.46],
+      role: '全球金融市場恐慌與波動率',
+      desc: '反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。'
+    },
+    btc: {
+      id: 'btc',
+      name: '比特幣 (BTC)',
+      symbol: 'BTC/USD',
+      icon: '₿',
+      price: 73899.19,
+      change: 95.86,
+      changePct: 0.13,
+      prevClose: 73803.33,
+      open: 73796.06,
+      high: 74034.64,
+      low: 73209.12,
+      unit: 'USD',
+      category: '加密貨幣',
+      wantgooUrl: 'https://www.wantgoo.com/global/btc',
+      points: [71200.0, 72400.0, 73100.0, 73803.0, 73899.19],
+      role: '全球資金流動性與投機胃納',
+      desc: '全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。'
+    },
+    brent: {
+      id: 'brent',
+      name: '布蘭特原油 (Brent)',
+      symbol: 'BZ=F',
+      icon: '🛢️',
+      price: 92.42,
+      change: -0.85,
+      changePct: -0.91,
+      prevClose: 93.27,
+      open: 93.10,
+      high: 94.20,
+      low: 91.80,
+      unit: 'USD',
+      category: '大宗商品',
+      wantgooUrl: 'https://www.wantgoo.com/global/brent',
+      points: [95.4, 94.8, 93.9, 93.27, 92.42],
+      role: '通膨預期與實體景氣溫度計',
+      desc: '國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。'
+    },
+    gold: {
+      id: 'gold',
+      name: '黃金現貨 (Gold)',
+      symbol: 'GC=F / XAU',
+      icon: '🪙',
+      price: 4056.33,
+      change: 23.81,
+      changePct: 0.59,
+      prevClose: 4032.52,
+      open: 4032.62,
+      high: 4066.04,
+      low: 4026.70,
+      unit: 'USD',
+      category: '貴金屬避險',
+      wantgooUrl: 'https://www.wantgoo.com/global/gold',
+      points: [3980.0, 4015.0, 4032.5, 4040.0, 4056.33],
+      role: '終極避險與央行儲備資產',
+      desc: '各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。'
+    }
+  };
+
+  function formatNumberVal(n) {
+    if (n === null || n === undefined || isNaN(n)) return '--';
+    const num = Number(n);
+    if (Math.abs(num) >= 1000) {
+      return num.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    }
+    return num.toFixed(2);
+  }
+
+  function generateSparklineSvg(points, isUp, colorMode) {
+    if (!points || points.length < 2) return '';
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = (max - min) || 1;
+    const w = 260;
+    const h = 60;
+    const padding = 6;
+
+    const coords = points.map((p, idx) => {
+      const x = padding + (idx / (points.length - 1)) * (w - padding * 2);
+      const y = h - padding - ((p - min) / range) * (h - padding * 2);
+      return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+    });
+
+    const pathD = coords.reduce((acc, c, idx) => {
+      return idx === 0 ? `M ${c.x} ${c.y}` : `${acc} L ${c.x} ${c.y}`;
+    }, '');
+
+    const areaD = `${pathD} L ${coords[coords.length - 1].x} ${h} L ${coords[0].x} ${h} Z`;
+
+    let strokeColor = '#3b82f6';
+    let fillColor = 'rgba(59, 130, 246, 0.2)';
+    if (colorMode === 'tw') {
+      strokeColor = isUp ? '#ef4444' : '#10b981';
+      fillColor = isUp ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+    } else {
+      strokeColor = isUp ? '#10b981' : '#ef4444';
+      fillColor = isUp ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+    }
+
+    const lastCoord = coords[coords.length - 1];
+
+    return `
+      <svg class="index-sparkline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <path d="${areaD}" fill="${fillColor}" />
+        <path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="${lastCoord.x}" cy="${lastCoord.y}" r="3.5" fill="${strokeColor}" stroke="#ffffff" stroke-width="1.5" />
+      </svg>
+    `;
+  }
+
+  function evaluateMarketMacroTrend(indices) {
+    let score = 0;
+    const insights = [];
+
+    // 1. 加權指數 (權重 25%)
+    const tw = indices.taiex;
+    if (tw) {
+      if (tw.changePct >= 0.8) {
+        score += 25;
+        insights.push(`📈 <strong>加權指數強勢大漲 (+${tw.changePct.toFixed(2)}%)</strong>：多頭發動攻勢，權值股動能充沛，中長期均線多頭排列。`);
+      } else if (tw.changePct > 0) {
+        score += 15;
+        insights.push(`📈 <strong>加權指數溫和收紅 (+${tw.changePct.toFixed(2)}%)</strong>：現貨盤面穩步墊高，多方維持控盤優勢。`);
+      } else if (tw.changePct > -0.8) {
+        score -= 15;
+        insights.push(`📉 <strong>加權指數回檔整理 (${tw.changePct.toFixed(2)}%)</strong>：短線獲利了結賣壓湧現，測試下方均線支撐。`);
+      } else {
+        score -= 25;
+        insights.push(`📉 <strong>加權指數顯著下挫 (${tw.changePct.toFixed(2)}%)</strong>：空方力道增強，權值股遭遇調節壓力。`);
+      }
+    }
+
+    // 2. 台指期夜盤 (權重 25%)
+    const tx = indices.wtxp;
+    if (tx) {
+      if (tx.changePct >= 0.4) {
+        score += 25;
+        insights.push(`🌙 <strong>台指期夜盤大幅走揚 (+${tx.changePct.toFixed(2)}%)</strong>：強烈反應美股與台積電ADR盤後買盤，預告次日台股開高機率高。`);
+      } else if (tx.changePct >= 0) {
+        score += 15;
+        insights.push(`🌙 <strong>台指期夜盤平穩偏多 (+${tx.changePct.toFixed(2)}%)</strong>：夜盤維持紅盤，為台股次日開盤提供下檔緩衝與偏多預期。`);
+      } else if (tx.changePct > -0.4) {
+        score -= 15;
+        insights.push(`🌙 <strong>台指期夜盤小幅收黑 (${tx.changePct.toFixed(2)}%)</strong>：美股盤中震盪壓抑夜盤表現，次日開盤恐面臨觀望或微幅回測。`);
+      } else {
+        score -= 25;
+        insights.push(`🌙 <strong>台指期夜盤顯著回落 (${tx.changePct.toFixed(2)}%)</strong>：外圍市場出現逆風，台指期短線避險空單增加。`);
+      }
+    }
+
+    // 3. VIX 恐慌指數 (權重 20%)
+    const vix = indices.vix;
+    if (vix) {
+      if (vix.price < 18) {
+        score += 20;
+        insights.push(`⚡ <strong>VIX 恐慌指數處於低水位 (${vix.price.toFixed(2)})</strong>：美股市場恐慌極低，資金風險胃納良好，有利權益資產走多。`);
+      } else if (vix.price <= 24) {
+        score += 5;
+        insights.push(`⚡ <strong>VIX 指數處於常態波動區間 (${vix.price.toFixed(2)})</strong>：市場預期常規震盪，尚無系統性流動性恐慌威脅。`);
+      } else {
+        score -= 20;
+        insights.push(`⚠️ <strong>VIX 恐慌指數升溫警戒 (${vix.price.toFixed(2)})</strong>：避險選擇權需求激增，國際股市短期面臨較大波動風險。`);
+      }
+    }
+
+    // 4. 比特幣 BTC (權重 10%)
+    const btc = indices.btc;
+    if (btc) {
+      if (btc.changePct > 0) {
+        score += 10;
+        insights.push(`₿ <strong>比特幣走強 (+${btc.changePct.toFixed(2)}%)</strong>：全球高風險偏好 (Risk-On) 指標正面，科技創新資產流動性充沛。`);
+      } else {
+        score -= 5;
+        insights.push(`₿ <strong>比特幣震盪整理 (${btc.changePct.toFixed(2)}%)</strong>：投機資金短期轉向觀望，資金流向趨於審慎。`);
+      }
+    }
+
+    // 5. 布蘭特原油 (權重 10%)
+    const brent = indices.brent;
+    if (brent) {
+      if (brent.changePct < 1.0) {
+        score += 10;
+        insights.push(`🛢️ <strong>原油走勢平穩 (${brent.price.toFixed(2)} 美元)</strong>：二次通膨風險降低，各國央行利率政策有進一步寬鬆或降息空間。`);
+      } else {
+        score -= 10;
+        insights.push(`🛢️ <strong>原油價格上揚 (${brent.price.toFixed(2)} 美元)</strong>：需關注大宗商品成本對通膨降溫進程與利率政策之潛在擾動。`);
+      }
+    }
+
+    // 6. 黃金 (權重 10%)
+    const gold = indices.gold;
+    if (gold) {
+      insights.push(`🪙 <strong>黃金最新報價 (${gold.price.toFixed(2)} 美元)</strong>：全球央行去美元化儲備配置與穩健實質需求為金價帶來長線托底。`);
+    }
+
+    score = Math.max(-100, Math.min(100, score));
+
+    let verdictClass = 'neutral';
+    let verdictTitle = '🟡 震盪整理 · 多空拉鋸';
+    let riskMode = '風險偏好平衡';
+
+    if (score >= 30) {
+      verdictClass = 'bullish';
+      verdictTitle = '🟢 走勢偏多向上 (Bullish Trend)';
+      riskMode = '市場積極進攻 (Risk-On)';
+    } else if (score <= -30) {
+      verdictClass = 'bearish';
+      verdictTitle = '🔴 走勢偏空向下 (Bearish Pressure)';
+      riskMode = '市場保守防禦 (Risk-Off)';
+    }
+
+    return { score, verdictClass, verdictTitle, riskMode, insights };
+  }
+
+  function renderMarketIndices() {
+    const grid = document.getElementById('marketIndicesGrid');
+    if (!grid) return;
+
+    if (!state.marketIndices) {
+      state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+    }
+
+    const indices = state.marketIndices;
+    const verdict = evaluateMarketMacroTrend(indices);
+
+    const meterFill = document.getElementById('macroMeterFill');
+    const meterPointer = document.getElementById('macroMeterPointer');
+    const scoreText = document.getElementById('macroScoreText');
+    const verdictBadge = document.getElementById('macroVerdictBadge');
+    const riskBadge = document.getElementById('macroRiskModeBadge');
+    const summaryBody = document.getElementById('macroSummaryBody');
+    const updatedAtEl = document.getElementById('macroUpdatedAt');
+
+    if (verdictBadge) {
+      verdictBadge.className = `macro-verdict-badge ${verdict.verdictClass}`;
+      verdictBadge.textContent = verdict.verdictTitle;
+    }
+
+    if (riskBadge) {
+      riskBadge.textContent = verdict.riskMode;
+    }
+
+    const pctPos = Math.min(100, Math.max(0, ((verdict.score + 100) / 200) * 100));
+    if (meterFill) meterFill.style.width = `${pctPos}%`;
+    if (meterPointer) meterPointer.style.left = `${pctPos}%`;
+
+    if (scoreText) {
+      const sign = verdict.score > 0 ? '+' : '';
+      scoreText.textContent = `多空量化評分：${sign}${verdict.score} 分`;
+    }
+
+    if (summaryBody) {
+      summaryBody.innerHTML = verdict.insights.map(s => `<p class="mb-1">${s}</p>`).join('');
+    }
+
+    if (updatedAtEl) {
+      updatedAtEl.textContent = `最新行情：${state.lastUpdated || new Date().toLocaleTimeString('zh-TW', { hour12: false })}`;
+    }
+
+    // Render 6 index cards
+    const order = ['taiex', 'wtxp', 'vix', 'btc', 'brent', 'gold'];
+    grid.innerHTML = order.map(k => {
+      const it = indices[k];
+      if (!it) return '';
+
+      const isUp = it.change >= 0;
+      const isTwMode = state.colorMode === 'tw';
+      const upClass = isTwMode ? (isUp ? 'text-up' : 'text-down') : (isUp ? 'text-down' : 'text-up');
+      const badgeClass = isTwMode ? (isUp ? 'badge-up' : 'badge-down') : (isUp ? 'badge-down' : 'badge-up');
+      const sign = it.change > 0 ? '+' : '';
+      const sparklineHtml = generateSparklineSvg(it.points, isUp, state.colorMode);
+
+      const minVal = it.points ? Math.min(...it.points) : it.prevClose;
+      const maxVal = it.points ? Math.max(...it.points) : it.price;
+
+      return `
+        <div class="market-index-card" id="card-index-${it.id}">
+          <div class="index-card-header">
+            <div class="index-meta-group">
+              <span class="index-icon">${it.icon}</span>
+              <div>
+                <h4 class="index-name-title">${it.name}</h4>
+                <span class="index-symbol-tag">${it.symbol} · ${it.category}</span>
+              </div>
+            </div>
+            <a href="${it.wantgooUrl}" target="_blank" rel="noopener noreferrer" class="index-wantgoo-link" title="前往玩股網查看即時走勢與明細">
+              <span>玩股網</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+            </a>
+          </div>
+
+          <div class="index-price-row">
+            <div class="index-price-val mono ${upClass}">${formatNumberVal(it.price)} <small style="font-size:0.75rem; font-weight:normal; color:var(--text-tertiary);">${it.unit}</small></div>
+            <div class="index-change-group ${upClass}">
+              <span>${sign}${formatNumberVal(it.change)}</span>
+              <span class="badge ${badgeClass}" style="padding:2px 6px; font-size:0.75rem;">${sign}${it.changePct.toFixed(2)}%</span>
+            </div>
+          </div>
+
+          <!-- Sparkline 趨勢走勢圖 -->
+          <div class="index-sparkline-box">
+            ${sparklineHtml}
+            <div class="sparkline-range-labels">
+              <span>H: ${formatNumberVal(maxVal)}</span>
+              <span>L: ${formatNumberVal(minVal)}</span>
+            </div>
+          </div>
+
+          <!-- 關鍵行情指標 (前收 / 高 / 低) -->
+          <div class="index-stats-row">
+            <div class="index-stat-item">
+              <span class="index-stat-label">昨收</span>
+              <span class="index-stat-val mono">${formatNumberVal(it.prevClose)}</span>
+            </div>
+            <div class="index-stat-item">
+              <span class="index-stat-label">最高</span>
+              <span class="index-stat-val mono">${formatNumberVal(it.high || maxVal)}</span>
+            </div>
+            <div class="index-stat-item">
+              <span class="index-stat-label">最低</span>
+              <span class="index-stat-val mono">${formatNumberVal(it.low || minVal)}</span>
+            </div>
+          </div>
+
+          <!-- 文字數字專業解析 -->
+          <div class="index-desc-box">
+            <span class="index-desc-highlight">📌 指標定位：</span>${it.role}<br>
+            <span style="display:block; margin-top:3px;">${it.desc}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function fetchMarketIndicesDirect() {
+    if (!state.marketIndices) {
+      state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+    }
+
+    try {
+      // 1. TradingView Scanners for VIX, BTC, Gold, Brent
+      try {
+        const cryptoRes = await fetch('https://scanner.tradingview.com/crypto/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({
+            symbols: { tickers: ['BINANCE:BTCUSDT'] },
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
+          })
+        });
+        if (cryptoRes.ok) {
+          const cData = await cryptoRes.json();
+          const item = cData?.data?.[0];
+          if (item?.d && item.d[0]) {
+            const close = Number(item.d[0]);
+            const chgPct = Number(item.d[1] || 0);
+            const chgAbs = Number(item.d[2] || 0);
+            state.marketIndices.btc.price = close;
+            state.marketIndices.btc.change = chgAbs;
+            state.marketIndices.btc.changePct = chgPct;
+            state.marketIndices.btc.prevClose = close - chgAbs;
+            if (item.d[3]) state.marketIndices.btc.open = Number(item.d[3]);
+            if (item.d[4]) state.marketIndices.btc.high = Number(item.d[4]);
+            if (item.d[5]) state.marketIndices.btc.low = Number(item.d[5]);
+            if (state.marketIndices.btc.points) {
+              state.marketIndices.btc.points[state.marketIndices.btc.points.length - 1] = close;
+            }
+          }
+        }
+      } catch (err) {}
+
+      // CFD: TVC:GOLD, TVC:VIX, TVC:UKOIL
+      try {
+        const cfdRes = await fetch('https://scanner.tradingview.com/cfd/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TVC:GOLD', 'TVC:VIX', 'TVC:UKOIL', 'CBOE:VIX'] },
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
+          })
+        });
+        if (cfdRes.ok) {
+          const cfdData = await cfdRes.json();
+          for (const it of (cfdData?.data || [])) {
+            const ticker = it.s;
+            const cols = it.d || [];
+            if (cols[0]) {
+              const close = Number(cols[0]);
+              const chgPct = Number(cols[1] || 0);
+              const chgAbs = Number(cols[2] || 0);
+              if (ticker === 'TVC:GOLD') {
+                state.marketIndices.gold.price = close;
+                state.marketIndices.gold.change = chgAbs;
+                state.marketIndices.gold.changePct = chgPct;
+                state.marketIndices.gold.prevClose = close - chgAbs;
+                if (cols[4]) state.marketIndices.gold.high = Number(cols[4]);
+                if (cols[5]) state.marketIndices.gold.low = Number(cols[5]);
+                if (state.marketIndices.gold.points) {
+                  state.marketIndices.gold.points[state.marketIndices.gold.points.length - 1] = close;
+                }
+              } else if (ticker === 'TVC:VIX' || ticker === 'CBOE:VIX') {
+                state.marketIndices.vix.price = close;
+                state.marketIndices.vix.change = chgAbs;
+                state.marketIndices.vix.changePct = chgPct;
+                state.marketIndices.vix.prevClose = close - chgAbs;
+                if (cols[4]) state.marketIndices.vix.high = Number(cols[4]);
+                if (cols[5]) state.marketIndices.vix.low = Number(cols[5]);
+                if (state.marketIndices.vix.points) {
+                  state.marketIndices.vix.points[state.marketIndices.vix.points.length - 1] = close;
+                }
+              } else if (ticker === 'TVC:UKOIL') {
+                state.marketIndices.brent.price = close;
+                state.marketIndices.brent.change = chgAbs;
+                state.marketIndices.brent.changePct = chgPct;
+                state.marketIndices.brent.prevClose = close - chgAbs;
+                if (cols[4]) state.marketIndices.brent.high = Number(cols[4]);
+                if (cols[5]) state.marketIndices.brent.low = Number(cols[5]);
+                if (state.marketIndices.brent.points) {
+                  state.marketIndices.brent.points[state.marketIndices.brent.points.length - 1] = close;
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {}
+
+      // Taifex TX night quote
+      try {
+        const tfRes = await fetch('https://mis.taifex.com.tw/futures/api/getQuoteList', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ MarketType: '1', SymbolType: 'F' })
+        });
+        if (tfRes.ok) {
+          const tfData = await tfRes.json();
+          const list = tfData?.RtData?.QuoteList || [];
+          for (const it of list) {
+            if ((it.SymbolID || '').includes('TX') && it.CLastPrice && it.CRefPrice) {
+              const lastP = parseFloat(it.CLastPrice);
+              const refP = parseFloat(it.CRefPrice);
+              if (refP > 0 && lastP > 0) {
+                const diff = lastP - refP;
+                const diffPct = (diff / refP) * 100;
+                state.marketIndices.wtxp.price = lastP;
+                state.marketIndices.wtxp.change = diff;
+                state.marketIndices.wtxp.changePct = diffPct;
+                state.marketIndices.wtxp.prevClose = refP;
+                if (it.CHighPrice) state.marketIndices.wtxp.high = parseFloat(it.CHighPrice);
+                if (it.CLowPrice) state.marketIndices.wtxp.low = parseFloat(it.CLowPrice);
+                if (state.marketIndices.wtxp.points) {
+                  state.marketIndices.wtxp.points[state.marketIndices.wtxp.points.length - 1] = lastP;
+                }
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {}
+
+      localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
+      if (state.activeTab === 'tab-market-indices') {
+        renderMarketIndices();
+      }
+    } catch (e) {
+      console.warn('fetchMarketIndicesDirect notice:', e);
+    }
+  }
+
   // 17. Settings Modal
   function openRateModal() {
     const modal = document.getElementById('rateModalBackdrop');
@@ -6443,7 +7147,59 @@
         if (targetId === 'tab-realized') renderRealizedTable();
         if (targetId === 'tab-dividends') renderDividendTable();
         if (targetId === 'tab-advice') renderAdviceTable();
+        if (targetId === 'tab-market-indices') renderMarketIndices();
       });
+    });
+
+    // Pillar Targets Modal Events
+    document.getElementById('btnEditPillarTargets')?.addEventListener('click', openPillarTargetsModal);
+    document.getElementById('btnPillarTargetsModalClose')?.addEventListener('click', closePillarTargetsModal);
+    document.getElementById('btnPillarTargetsCancel')?.addEventListener('click', closePillarTargetsModal);
+    document.getElementById('pillarTargetsForm')?.addEventListener('submit', handlePillarTargetsSubmit);
+
+    ['Savings', 'Investment', 'Cash'].forEach(pillar => {
+      const rng = document.getElementById(`rangeTarget${pillar}`);
+      const inp = document.getElementById(`inputTarget${pillar}`);
+      const lbl = document.getElementById(`lblTarget${pillar}`);
+      if (rng && inp) {
+        rng.addEventListener('input', () => {
+          inp.value = rng.value;
+          if (lbl) lbl.textContent = rng.value;
+          validatePillarTargetsSum();
+        });
+        inp.addEventListener('input', () => {
+          rng.value = inp.value;
+          if (lbl) lbl.textContent = inp.value;
+          validatePillarTargetsSum();
+        });
+      }
+    });
+
+    document.querySelectorAll('.preset-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sav = btn.dataset.sav;
+        const inv = btn.dataset.inv;
+        const csh = btn.dataset.csh;
+        const inpSav = document.getElementById('inputTargetSavings');
+        const rngSav = document.getElementById('rangeTargetSavings');
+        const lblSav = document.getElementById('lblTargetSavings');
+        const inpInv = document.getElementById('inputTargetInvestment');
+        const rngInv = document.getElementById('rangeTargetInvestment');
+        const lblInv = document.getElementById('lblTargetInvestment');
+        const inpCsh = document.getElementById('inputTargetCash');
+        const rngCsh = document.getElementById('rangeTargetCash');
+        const lblCsh = document.getElementById('lblTargetCash');
+
+        if (inpSav) { inpSav.value = sav; rngSav.value = sav; lblSav.textContent = sav; }
+        if (inpInv) { inpInv.value = inv; rngInv.value = inv; lblInv.textContent = inv; }
+        if (inpCsh) { inpCsh.value = csh; rngCsh.value = csh; lblCsh.textContent = csh; }
+        validatePillarTargetsSum();
+      });
+    });
+
+    // Market Indices Refresh Button
+    document.getElementById('btnRefreshMarketIndices')?.addEventListener('click', () => {
+      refreshOnlineQuotes(true);
     });
 
     // Interactive KPI Cards linking to tabs
