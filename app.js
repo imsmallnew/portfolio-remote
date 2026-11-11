@@ -13,6 +13,181 @@
   // Default Admin Password Hash (SHA-256)
   const DEFAULT_ADMIN_HASH = '2bb3ecae7bcfd81b4998db4c5ad96d59404ce322749969eb2a3ebf68e98bc011';
 
+  // 9 大大盤與總經指標預設基準資料
+  const DEFAULT_MARKET_INDICES = {
+    taiex: {
+      id: 'taiex',
+      name: '加權指數 (TAIEX)',
+      symbol: '^TWII',
+      icon: '🏛️',
+      price: 44257.15,
+      change: 2682.43,
+      changePct: 6.45,
+      prevClose: 41574.72,
+      open: 42100.0,
+      high: 44350.0,
+      low: 41980.0,
+      unit: '點',
+      category: '台股大盤',
+      wantgooUrl: 'https://www.wantgoo.com/index/0000',
+      points: [41574.72, 41850.0, 42150.3, 42680.0, 42980.5, 43450.0, 43650.2, 44100.0, 44257.15],
+      role: '台股大盤核心指標',
+      desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
+    },
+    wtxp: {
+      id: 'wtxp',
+      name: '台指期夜盤 (WTXP)',
+      symbol: 'TX (夜盤)',
+      icon: '🌙',
+      price: 42522.0,
+      change: -124.0,
+      changePct: -0.29,
+      prevClose: 42646.0,
+      open: 42650.0,
+      high: 43147.0,
+      low: 42030.0,
+      unit: '點',
+      category: '台指期貨',
+      wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
+      points: [42646.0, 42800.0, 43147.0, 42890.0, 42500.0, 42200.0, 42030.0, 42350.0, 42522.0],
+      role: '台股次日開盤先行指針',
+      desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
+    },
+    us10y: {
+      id: 'us10y',
+      name: '美債10年期殖利率',
+      symbol: 'TVC:US10Y',
+      icon: '📜',
+      price: 4.43,
+      change: -0.04,
+      changePct: -0.90,
+      prevClose: 4.47,
+      open: 4.47,
+      high: 4.49,
+      low: 4.41,
+      unit: '%',
+      category: '美債利率',
+      wantgooUrl: 'https://www.wantgoo.com/global/us10-yr',
+      points: [4.47, 4.48, 4.49, 4.46, 4.44, 4.42, 4.41, 4.42, 4.43],
+      role: '全球資產定價之錨 (無風險利率)',
+      desc: '10年期美債殖利率是全球金融資產折現率的核心基準。殖利率自高檔回落有利股票本益比擴張與科技成長股評價；若飆升突破 4.5%~4.6% 則會引發市場資金緊縮。'
+    },
+    cpi: {
+      id: 'cpi',
+      name: '美國 CPI 通膨指數 (YoY)',
+      symbol: 'ECONOMICS:USCPI',
+      icon: '🛒',
+      price: 2.40,
+      change: -0.10,
+      changePct: -4.00,
+      prevClose: 2.50,
+      open: 2.50,
+      high: 2.50,
+      low: 2.40,
+      unit: '%',
+      category: '通膨數據',
+      wantgooUrl: 'https://www.wantgoo.com/global/cpi',
+      points: [3.4, 3.2, 3.1, 2.9, 2.8, 2.6, 2.5, 2.4],
+      role: '聯準會貨幣政策降息關鍵指針',
+      desc: '美國最新消費者物價指數年增率持續回落至 2.4%，大幅遠離歷史高點 (9.1%) 並接近 Fed 的 2% 目標，奠定降息循環總體經濟底色，利好各類風險資產。'
+    },
+    usdtwd: {
+      id: 'usdtwd',
+      name: '美元兌台幣 (USD/TWD)',
+      symbol: 'FX_IDC:USDTWD',
+      icon: '💵',
+      price: 32.84,
+      change: -0.09,
+      changePct: -0.28,
+      prevClose: 32.93,
+      open: 32.93,
+      high: 32.96,
+      low: 32.82,
+      unit: 'TWD',
+      category: '外匯匯率',
+      wantgooUrl: 'https://www.wantgoo.com/global/usdtwd',
+      points: [32.93, 32.94, 32.96, 32.91, 32.88, 32.85, 32.82, 32.83, 32.84],
+      role: '外資熱錢進出台股風向球',
+      desc: '台幣匯率與外資進出台股高度正相關。台幣升值（匯率走低）通常伴隨外資大幅匯入買超權值股；台幣走貶則引發外資調節提款匯出壓力。'
+    },
+    vix: {
+      id: 'vix',
+      name: 'VIX 恐慌指數',
+      symbol: '^VIX',
+      icon: '⚡',
+      price: 19.46,
+      change: -0.46,
+      changePct: -2.31,
+      prevClose: 19.92,
+      open: 19.76,
+      high: 21.61,
+      low: 19.29,
+      unit: '',
+      category: '美股波動率',
+      wantgooUrl: 'https://www.wantgoo.com/global/vix',
+      points: [22.4, 21.8, 21.6, 20.8, 20.2, 19.92, 19.5, 19.29, 19.46],
+      role: '全球金融市場恐慌與波動率',
+      desc: '反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。'
+    },
+    btc: {
+      id: 'btc',
+      name: '比特幣 (BTC)',
+      symbol: 'BTC/USD',
+      icon: '₿',
+      price: 73899.19,
+      change: 95.86,
+      changePct: 0.13,
+      prevClose: 73803.33,
+      open: 73796.06,
+      high: 74034.64,
+      low: 73209.12,
+      unit: 'USD',
+      category: '加密貨幣',
+      wantgooUrl: 'https://www.wantgoo.com/global/btc',
+      points: [71200.0, 72100.0, 72400.0, 73100.0, 73500.0, 74034.64, 73600.0, 73803.0, 73899.19],
+      role: '全球資金流動性與投機胃納',
+      desc: '全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。'
+    },
+    brent: {
+      id: 'brent',
+      name: '布蘭特原油 (Brent)',
+      symbol: 'BZ=F',
+      icon: '🛢️',
+      price: 92.42,
+      change: -0.85,
+      changePct: -0.91,
+      prevClose: 93.27,
+      open: 93.10,
+      high: 94.20,
+      low: 91.80,
+      unit: 'USD',
+      category: '大宗商品',
+      wantgooUrl: 'https://www.wantgoo.com/global/brent',
+      points: [95.4, 94.8, 94.2, 93.9, 93.5, 93.27, 92.8, 91.8, 92.42],
+      role: '通膨預期與實體景氣溫度計',
+      desc: '國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。'
+    },
+    gold: {
+      id: 'gold',
+      name: '黃金現貨 (Gold)',
+      symbol: 'GC=F / XAU',
+      icon: '🪙',
+      price: 4056.33,
+      change: 23.81,
+      changePct: 0.59,
+      prevClose: 4032.52,
+      open: 4032.62,
+      high: 4066.04,
+      low: 4026.70,
+      unit: 'USD',
+      category: '貴金屬避險',
+      wantgooUrl: 'https://www.wantgoo.com/global/gold',
+      points: [3980.0, 4005.0, 4015.0, 4028.0, 4032.5, 4045.0, 4066.04, 4050.0, 4056.33],
+      role: '終極避險與央行儲備資產',
+      desc: '各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。'
+    }
+  };
+
   // State
   const state = {
     dashboardTitle: localStorage.getItem('fubon_dashboard_title') || '投資儀表板 PRO',
@@ -121,8 +296,21 @@
       cash: 15
     },
 
-    // 大盤指數行情與走勢資料
-    marketIndices: JSON.parse(localStorage.getItem('fubon_market_indices') || 'null'),
+    // 大盤指數行情與走勢資料 (始終確保 9 大指數完整，並融合快取數據)
+    marketIndices: (() => {
+      try {
+        const cached = JSON.parse(localStorage.getItem('fubon_market_indices') || 'null');
+        const res = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+        if (cached && typeof cached === 'object') {
+          for (const [k, v] of Object.entries(cached)) {
+            if (res[k]) res[k] = Object.assign(res[k], v);
+          }
+        }
+        return res;
+      } catch (e) {
+        return JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+      }
+    })(),
 
     theme: localStorage.getItem('fubon_theme') || 'dark',
     colorMode: localStorage.getItem('fubon_color_mode') || 'tw', // 'tw': Red=Up, 'us': Green=Up
@@ -4874,7 +5062,14 @@
       }
     }
     if (serverIndices && typeof serverIndices === 'object') {
-      state.marketIndices = { ...(state.marketIndices || DEFAULT_MARKET_INDICES), ...serverIndices };
+      state.marketIndices = {
+        ...JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES)),
+        ...(state.marketIndices || {}),
+        ...serverIndices
+      };
+      for (const [k, defVal] of Object.entries(DEFAULT_MARKET_INDICES)) {
+        if (!state.marketIndices[k]) state.marketIndices[k] = JSON.parse(JSON.stringify(defVal));
+      }
       localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
       if (state.activeTab === 'tab-market-indices') renderMarketIndices();
     }
@@ -6269,180 +6464,6 @@
   // 16. Market Indices & Macro Analysis Reference (大盤指數參考與個股決策分析)
   // =========================================================================
 
-  const DEFAULT_MARKET_INDICES = {
-    taiex: {
-      id: 'taiex',
-      name: '加權指數 (TAIEX)',
-      symbol: '^TWII',
-      icon: '🏛️',
-      price: 44257.15,
-      change: 2682.43,
-      changePct: 6.45,
-      prevClose: 41574.72,
-      open: 42100.0,
-      high: 44350.0,
-      low: 41980.0,
-      unit: '點',
-      category: '台股大盤',
-      wantgooUrl: 'https://www.wantgoo.com/index/0000',
-      points: [41574.72, 41850.0, 42150.3, 42680.0, 42980.5, 43450.0, 43650.2, 44100.0, 44257.15],
-      role: '台股大盤核心指標',
-      desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
-    },
-    wtxp: {
-      id: 'wtxp',
-      name: '台指期夜盤 (WTXP)',
-      symbol: 'TX (夜盤)',
-      icon: '🌙',
-      price: 42522.0,
-      change: -124.0,
-      changePct: -0.29,
-      prevClose: 42646.0,
-      open: 42650.0,
-      high: 43147.0,
-      low: 42030.0,
-      unit: '點',
-      category: '台指期貨',
-      wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
-      points: [42646.0, 42800.0, 43147.0, 42890.0, 42500.0, 42200.0, 42030.0, 42350.0, 42522.0],
-      role: '台股次日開盤先行指針',
-      desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
-    },
-    us10y: {
-      id: 'us10y',
-      name: '美債10年期殖利率',
-      symbol: 'TVC:US10Y',
-      icon: '📜',
-      price: 4.43,
-      change: -0.04,
-      changePct: -0.90,
-      prevClose: 4.47,
-      open: 4.47,
-      high: 4.49,
-      low: 4.41,
-      unit: '%',
-      category: '美債利率',
-      wantgooUrl: 'https://www.wantgoo.com/global/us10-yr',
-      points: [4.47, 4.48, 4.49, 4.46, 4.44, 4.42, 4.41, 4.42, 4.43],
-      role: '全球資產定價之錨 (無風險利率)',
-      desc: '10年期美債殖利率是全球金融資產折現率的核心基準。殖利率自高檔回落有利股票本益比擴張與科技成長股評價；若飆升突破 4.5%~4.6% 則會引發市場資金緊縮。'
-    },
-    cpi: {
-      id: 'cpi',
-      name: '美國 CPI 通膨指數 (YoY)',
-      symbol: 'ECONOMICS:USCPI',
-      icon: '🛒',
-      price: 2.40,
-      change: -0.10,
-      changePct: -4.00,
-      prevClose: 2.50,
-      open: 2.50,
-      high: 2.50,
-      low: 2.40,
-      unit: '%',
-      category: '通膨數據',
-      wantgooUrl: 'https://www.wantgoo.com/global/cpi',
-      points: [3.4, 3.2, 3.1, 2.9, 2.8, 2.6, 2.5, 2.4],
-      role: '聯準會貨幣政策降息關鍵指針',
-      desc: '美國最新消費者物價指數年增率持續回落至 2.4%，大幅遠離歷史高點 (9.1%) 並接近 Fed 的 2% 目標，奠定降息循環總體經濟底色，利好各類風險資產。'
-    },
-    usdtwd: {
-      id: 'usdtwd',
-      name: '美元兌台幣 (USD/TWD)',
-      symbol: 'FX_IDC:USDTWD',
-      icon: '💵',
-      price: 32.84,
-      change: -0.09,
-      changePct: -0.28,
-      prevClose: 32.93,
-      open: 32.93,
-      high: 32.96,
-      low: 32.82,
-      unit: 'TWD',
-      category: '外匯匯率',
-      wantgooUrl: 'https://www.wantgoo.com/global/usdtwd',
-      points: [32.93, 32.94, 32.96, 32.91, 32.88, 32.85, 32.82, 32.83, 32.84],
-      role: '外資熱錢進出台股風向球',
-      desc: '台幣匯率與外資進出台股高度正相關。台幣升值（匯率走低）通常伴隨外資大幅匯入買超權值股；台幣走貶則引發外資調節提款匯出壓力。'
-    },
-    vix: {
-      id: 'vix',
-      name: 'VIX 恐慌指數',
-      symbol: '^VIX',
-      icon: '⚡',
-      price: 19.46,
-      change: -0.46,
-      changePct: -2.31,
-      prevClose: 19.92,
-      open: 19.76,
-      high: 21.61,
-      low: 19.29,
-      unit: '',
-      category: '美股波動率',
-      wantgooUrl: 'https://www.wantgoo.com/global/vix',
-      points: [22.4, 21.8, 21.6, 20.8, 20.2, 19.92, 19.5, 19.29, 19.46],
-      role: '全球金融市場恐慌與波動率',
-      desc: '反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。'
-    },
-    btc: {
-      id: 'btc',
-      name: '比特幣 (BTC)',
-      symbol: 'BTC/USD',
-      icon: '₿',
-      price: 73899.19,
-      change: 95.86,
-      changePct: 0.13,
-      prevClose: 73803.33,
-      open: 73796.06,
-      high: 74034.64,
-      low: 73209.12,
-      unit: 'USD',
-      category: '加密貨幣',
-      wantgooUrl: 'https://www.wantgoo.com/global/btc',
-      points: [71200.0, 72100.0, 72400.0, 73100.0, 73500.0, 74034.64, 73600.0, 73803.0, 73899.19],
-      role: '全球資金流動性與投機胃納',
-      desc: '全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。'
-    },
-    brent: {
-      id: 'brent',
-      name: '布蘭特原油 (Brent)',
-      symbol: 'BZ=F',
-      icon: '🛢️',
-      price: 92.42,
-      change: -0.85,
-      changePct: -0.91,
-      prevClose: 93.27,
-      open: 93.10,
-      high: 94.20,
-      low: 91.80,
-      unit: 'USD',
-      category: '大宗商品',
-      wantgooUrl: 'https://www.wantgoo.com/global/brent',
-      points: [95.4, 94.8, 94.2, 93.9, 93.5, 93.27, 92.8, 91.8, 92.42],
-      role: '通膨預期與實體景氣溫度計',
-      desc: '國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。'
-    },
-    gold: {
-      id: 'gold',
-      name: '黃金現貨 (Gold)',
-      symbol: 'GC=F / XAU',
-      icon: '🪙',
-      price: 4056.33,
-      change: 23.81,
-      changePct: 0.59,
-      prevClose: 4032.52,
-      open: 4032.62,
-      high: 4066.04,
-      low: 4026.70,
-      unit: 'USD',
-      category: '貴金屬避險',
-      wantgooUrl: 'https://www.wantgoo.com/global/gold',
-      points: [3980.0, 4005.0, 4015.0, 4028.0, 4032.5, 4045.0, 4066.04, 4050.0, 4056.33],
-      role: '終極避險與央行儲備資產',
-      desc: '各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。'
-    }
-  };
-
   function formatNumberVal(n) {
     if (n === null || n === undefined || isNaN(n)) return '--';
     const num = Number(n);
@@ -6701,14 +6722,21 @@
     const grid = document.getElementById('marketIndicesGrid');
     if (!grid) return;
 
-    if (!state.marketIndices) {
+    if (!state.marketIndices || typeof state.marketIndices !== 'object') {
       state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+    }
+    // 確保 9 大指數都存在，補齊快取中缺失的新增指數 (如 us10y, cpi, usdtwd)
+    for (const [k, defVal] of Object.entries(DEFAULT_MARKET_INDICES)) {
+      if (!state.marketIndices[k]) {
+        state.marketIndices[k] = JSON.parse(JSON.stringify(defVal));
+      }
     }
 
     // Sync USD/TWD price with state.usdRate if available
     if (state.usdRate && state.marketIndices.usdtwd) {
       state.marketIndices.usdtwd.price = Number(state.usdRate);
     }
+    localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
 
     const indices = state.marketIndices;
     const verdict = evaluateMarketMacroTrend(indices);
@@ -7278,8 +7306,13 @@
   }
 
   async function fetchMarketIndicesDirect() {
-    if (!state.marketIndices) {
+    if (!state.marketIndices || typeof state.marketIndices !== 'object') {
       state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+    }
+    for (const [k, defVal] of Object.entries(DEFAULT_MARKET_INDICES)) {
+      if (!state.marketIndices[k]) {
+        state.marketIndices[k] = JSON.parse(JSON.stringify(defVal));
+      }
     }
 
     try {
