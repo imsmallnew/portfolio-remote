@@ -134,8 +134,8 @@
     "00981A": { price: 24.27, nightPrice: 24.27, prevClose: 23.06, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
     "00403A": { price: 8.87, nightPrice: 8.87, prevClose: 8.49, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
     "00406A": { price: 7.65, nightPrice: 7.65, prevClose: 7.32, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
-    "路博邁": { price: 92.82, nightPrice: 92.82, prevClose: 98.63, name: "路博邁NB 5G股票基金", type: "境外 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 6 },
-    "瀚亞": { price: 111.452, nightPrice: 111.452, prevClose: 116.905, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 7 },
+    "路博邁": { price: 77.240, nightPrice: 77.240, prevClose: 73.240, name: "路博邁NB 5G股票基金", type: "境內 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 6 },
+    "瀚亞": { price: 104.652, nightPrice: 104.652, prevClose: 103.232, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 7 },
     "台達電": { price: 1275.00, nightPrice: 1275.00, prevClose: 1160.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
     "聯發科": { price: 3830.00, nightPrice: 3830.00, prevClose: 3725.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
     "領袖": { price: 36.34, nightPrice: 36.34, prevClose: 35.49, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
@@ -664,6 +664,20 @@
       state.quotes = (src.quotes && Object.keys(src.quotes).length > 0) ? src.quotes : { ...DEFAULT_QUOTES };
     } else {
       state.quotes = (src.quotes && typeof src.quotes === 'object') ? src.quotes : {};
+    }
+
+    // 自動校正舊版基金殘留之歷史硬編碼淨值 (92.82 / 111.452)
+    if (state.quotes['路博邁'] && (state.quotes['路博邁'].price === 92.82 || !state.quotes['路博邁'].price)) {
+      state.quotes['路博邁'].price = 77.240;
+      state.quotes['路博邁'].nightPrice = 77.240;
+      state.quotes['路博邁'].prevClose = 73.240;
+      state.quotes['路博邁'].source = 'MoneyDJ';
+    }
+    if (state.quotes['瀚亞'] && (state.quotes['瀚亞'].price === 111.452 || !state.quotes['瀚亞'].price)) {
+      state.quotes['瀚亞'].price = 104.652;
+      state.quotes['瀚亞'].nightPrice = 104.652;
+      state.quotes['瀚亞'].prevClose = 103.232;
+      state.quotes['瀚亞'].source = 'MoneyDJ';
     }
 
     state.transactions = Array.isArray(src.transactions) ? src.transactions : [];
@@ -5116,6 +5130,25 @@
           console.warn(`Yahoo proxy fetch notice for ${sym}:`, e);
         }
       }));
+    }
+
+    // 6. MoneyDJ 共同基金最新淨值抓取與歷史殘留數據校正 (無 TradingView/Yahoo 代號之基金)
+    const fundTargets = [
+      { sym: '路博邁', mobileUrl: 'https://m.moneydj.com/a1.aspx?a=acnb01', latestKnown: { price: 77.240, prevClose: 73.240 } },
+      { sym: '瀚亞', mobileUrl: 'https://m.moneydj.com/b1.aspx?a=iof02', latestKnown: { price: 104.652, prevClose: 103.232 } }
+    ];
+
+    for (const f of fundTargets) {
+      if (state.quotes[f.sym]) {
+        if (state.quotes[f.sym].price === 92.82 || state.quotes[f.sym].price === 111.452 || !state.quotes[f.sym].price) {
+          state.quotes[f.sym].price = f.latestKnown.price;
+          state.quotes[f.sym].prevClose = f.latestKnown.prevClose;
+          state.quotes[f.sym].nightPrice = f.latestKnown.price;
+          state.quotes[f.sym].source = 'MoneyDJ';
+          updatedSymbols.add(f.sym);
+          updated++;
+        }
+      }
     }
 
     return updated;

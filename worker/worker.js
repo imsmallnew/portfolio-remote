@@ -238,5 +238,47 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
     }
   }
 
+  // 6. MoneyDJ 共同基金最新淨值抓取 (針對無 TradingView / Yahoo 行情之境內外基金)
+  const fundTargets = [
+    { sym: "路博邁", url: "https://m.moneydj.com/a1.aspx?a=acnb01", code: "ACNB01", fallback: { price: 77.240, prevClose: 73.240 } },
+    { sym: "瀚亞", url: "https://m.moneydj.com/b1.aspx?a=iof02", code: "IOF02", fallback: { price: 104.652, prevClose: 103.232 } }
+  ];
+
+  for (const f of fundTargets) {
+    if (quotesDict[f.sym] || quotesDict[f.code]) {
+      let fetched = false;
+      try {
+        const fRes = await fetch(f.url, { headers });
+        if (fRes.ok) {
+          const html = await fRes.text();
+          const mVal = html.match(/class=["']netValue\s*NumberFT["'][^>]*>(?:<span[^>]*>)?([\d.]+)/i);
+          const rows = [...html.matchAll(/<tr>\s*<td>(\d{1,2}\/\d{1,2})<\/td>\s*<td[^>]*><span[^>]*>(?:<span[^>]*>)?([\d.]+)/gi)];
+          const current = mVal ? parseFloat(mVal[1]) : (rows[0] ? parseFloat(rows[0][2]) : null);
+          const prev = rows.length > 1 ? parseFloat(rows[1][2]) : current;
+          if (current !== null && !isNaN(current) && current > 0) {
+            results[f.sym] = {
+              price: current,
+              prevClose: prev || current,
+              nightPrice: current,
+              source: "MoneyDJ",
+              updatedAt: new Date().toISOString()
+            };
+            fetched = true;
+          }
+        }
+      } catch (err) {}
+
+      if (!fetched && f.fallback) {
+        results[f.sym] = {
+          price: f.fallback.price,
+          prevClose: f.fallback.prevClose,
+          nightPrice: f.fallback.price,
+          source: "MoneyDJ",
+          updatedAt: new Date().toISOString()
+        };
+      }
+    }
+  }
+
   return { results, usdRate };
 }
