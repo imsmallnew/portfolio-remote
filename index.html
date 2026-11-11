@@ -451,13 +451,13 @@
             </svg>
             <span>💡 投資建議 (<span id="tabAdviceCountBadge">0</span>)</span>
           </button>
-          <button class="nav-tab" data-tab="tab-market-indices" id="tabBtnMarketIndices" title="全球與台股大盤指數參考行情與多空趨勢研判">
+          <button class="nav-tab" data-tab="tab-market-indices" id="tabBtnMarketIndices" title="全球與台股大盤指數參考行情、個股技術均線與三大法人籌碼決策分析">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            <span>🌐 大盤指數參考</span>
+            <span>🌐 大盤與個股決策</span>
           </button>
         </div>
 
@@ -1225,7 +1225,7 @@
               <div class="macro-icon">🧭</div>
               <div>
                 <h3 class="macro-title">全球大盤多空走勢綜合評估</h3>
-                <p class="macro-subtitle">加權指數 · 台指期夜盤 · VIX波動率 · 比特幣 · 布蘭特原油 · 黃金</p>
+                <p class="macro-subtitle">加權指數 · 台指期夜盤 · 美債殖利率 · CPI通膨 · 台幣匯率 · VIX恐慌 · 比特幣 · 布蘭特原油 · 黃金</p>
               </div>
             </div>
             <div class="macro-actions">
@@ -1274,9 +1274,41 @@
           </div>
         </div>
 
-        <!-- 6 大指數卡片網格 -->
+        <!-- 9 大大盤與總經指標卡片網格 -->
         <div class="market-indices-grid" id="marketIndicesGrid">
-          <!-- 6 Cards rendered dynamically by renderMarketIndices() -->
+          <!-- 9 Cards rendered dynamically by renderMarketIndices() -->
+        </div>
+
+        <!-- 個股個別技術與籌碼決策分析專區 (Stock Technical & Chip Decision Section) -->
+        <div class="stock-analysis-section" id="stockAnalysisSection">
+          <div class="stock-analysis-header">
+            <div class="analysis-title-group">
+              <div class="analysis-icon">📊</div>
+              <div>
+                <h3 class="analysis-title">持有個股技術均線與三大法人籌碼決策分析</h3>
+                <p class="analysis-subtitle">5日 / 10日 / 20日均線排列 · 外資 / 投信 / 自營商籌碼動向 · 成交量能解析 · 買進 / 賣出 / 續抱量化建議</p>
+              </div>
+            </div>
+            
+            <div class="analysis-filter-bar">
+              <div class="filter-pill-group" id="stockAnalysisFilters">
+                <button type="button" class="filter-pill active" data-filter="all">全部標的 (<span id="countFilterAll">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="buy">🟢 建議買進/加碼 (<span id="countFilterBuy">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="hold">🟡 建議續抱 (<span id="countFilterHold">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="trim">🟠 逢高調節/警戒 (<span id="countFilterTrim">0</span>)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 個股分析量化統計摘要條 -->
+          <div class="stock-analysis-summary-ribbon" id="stockAnalysisSummaryRibbon">
+            <!-- Rendered by renderStockTechnicalAnalysis() -->
+          </div>
+
+          <!-- 個股分析卡片網格清單 -->
+          <div class="stock-analysis-card-grid" id="stockAnalysisCardGrid">
+            <!-- Individual Stock Cards rendered dynamically -->
+          </div>
         </div>
       </section>
 
