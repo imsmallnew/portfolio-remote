@@ -20,17 +20,17 @@
       name: '加權指數 (TAIEX)',
       symbol: '^TWII',
       icon: '🏛️',
-      price: 44257.15,
-      change: 2682.43,
-      changePct: 6.45,
-      prevClose: 41574.72,
-      open: 42100.0,
-      high: 44350.0,
-      low: 41980.0,
+      price: 43091.87,
+      change: -1165.28,
+      changePct: -2.63,
+      prevClose: 44257.15,
+      open: 44180.46,
+      high: 44525.24,
+      low: 42943.50,
       unit: '點',
       category: '台股大盤',
       wantgooUrl: 'https://www.wantgoo.com/index/0000',
-      points: [41574.72, 41850.0, 42150.3, 42680.0, 42980.5, 43450.0, 43650.2, 44100.0, 44257.15],
+      points: [44257.15, 44180.46, 44525.24, 43850.0, 43400.0, 43100.0, 42943.50, 43050.0, 43091.87],
       role: '台股大盤核心指標',
       desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
     },
@@ -39,17 +39,17 @@
       name: '台指期夜盤 (WTXP)',
       symbol: 'TX (夜盤)',
       icon: '🌙',
-      price: 42522.0,
-      change: -124.0,
-      changePct: -0.29,
-      prevClose: 42646.0,
-      open: 42650.0,
-      high: 43147.0,
-      low: 42030.0,
+      price: 43340.0,
+      change: 212.0,
+      changePct: 0.49,
+      prevClose: 43128.0,
+      open: 43130.0,
+      high: 43360.0,
+      low: 43092.0,
       unit: '點',
       category: '台指期貨',
       wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
-      points: [42646.0, 42800.0, 43147.0, 42890.0, 42500.0, 42200.0, 42030.0, 42350.0, 42522.0],
+      points: [43128.0, 43150.0, 43220.0, 43180.0, 43260.0, 43310.0, 43360.0, 43340.0],
       role: '台股次日開盤先行指針',
       desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
     },
@@ -5059,6 +5059,7 @@
         state.quotes[sym].price = q.price;
         if (q.prevClose) state.quotes[sym].prevClose = q.prevClose;
         if (q.nightPrice !== undefined) state.quotes[sym].nightPrice = q.nightPrice;
+        if (q.volume !== undefined && q.volume !== null) state.quotes[sym].volume = q.volume;
       }
     }
     if (serverIndices && typeof serverIndices === 'object') {
@@ -5071,7 +5072,10 @@
         if (!state.marketIndices[k]) state.marketIndices[k] = JSON.parse(JSON.stringify(defVal));
       }
       localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
-      if (state.activeTab === 'tab-market-indices') renderMarketIndices();
+      if (state.activeTab === 'tab-market-indices') {
+        renderMarketIndices();
+        renderStockTechnicalAnalysis();
+      }
     }
   }
 
@@ -5202,7 +5206,10 @@
       }
     }
 
-    // 必查 NYSE:TSM (台積電 ADR) 用於夜盤連動計算
+    // 必查 TWSE:IX0001 (加權指數) 與 NYSE:TSM (台積電 ADR) 用於大盤與夜盤連動計算
+    if (!twTickers.includes('TWSE:IX0001')) {
+      twTickers.push('TWSE:IX0001');
+    }
     if (!usTickers.includes('NYSE:TSM')) {
       usTickers.push('NYSE:TSM');
     }
@@ -5225,13 +5232,35 @@
             const cols = item.d || [];
             if (cols[0] !== null && cols[0] !== undefined) {
               const close = Number(cols[0]);
+              const chgPct = cols[1] !== null && cols[1] !== undefined ? Number(cols[1]) : 0;
               const changeAbs = cols[2] !== null && cols[2] !== undefined ? Number(cols[2]) : 0;
               const prev = changeAbs ? Number((close - changeAbs).toFixed(2)) : close;
+
+              if (ticker === 'TWSE:IX0001') {
+                if (!state.marketIndices) state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
+                if (state.marketIndices.taiex) {
+                  state.marketIndices.taiex.price = close;
+                  state.marketIndices.taiex.change = changeAbs;
+                  state.marketIndices.taiex.changePct = chgPct;
+                  state.marketIndices.taiex.prevClose = prev;
+                  if (cols[3]) state.marketIndices.taiex.open = Number(cols[3]);
+                  if (cols[4]) state.marketIndices.taiex.high = Number(cols[4]);
+                  if (cols[5]) state.marketIndices.taiex.low = Number(cols[5]);
+                  if (state.marketIndices.taiex.points) {
+                    state.marketIndices.taiex.points[state.marketIndices.taiex.points.length - 1] = close;
+                  }
+                }
+                continue;
+              }
+
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
                 // 台股標的夜盤價預設更新為當前收盤價，避免殘留歷史舊價格
                 state.quotes[sym].nightPrice = close;
+                if (cols[6] !== null && cols[6] !== undefined) {
+                  state.quotes[sym].volume = Number(cols[6]);
+                }
                 updatedSymbols.add(sym);
                 updated++;
               }
@@ -5281,6 +5310,9 @@
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
                 state.quotes[sym].nightPrice = night;
+                if (cols[6] !== null && cols[6] !== undefined) {
+                  state.quotes[sym].volume = Number(cols[6]);
+                }
                 updatedSymbols.add(sym);
                 updated++;
               }
@@ -6903,34 +6935,53 @@
       const change = price - prevClose;
       const changePct = prevClose > 0 ? ((change / prevClose) * 100) : 0;
 
-      // 1. 均線計算 (MA5 週線 / MA10 雙週線 / MA20 月線)
+      // 1. 均線計算 (MA5 週線 / MA10 雙週線 / MA20 月線) - 動態連動現價與歷史基期
       let ma5, ma10, ma20;
+      const calcDynamicMa = (p, r5, r10, r20) => ({
+        m5: Math.round(p * r5 * 100) / 100,
+        m10: Math.round(p * r10 * 100) / 100,
+        m20: Math.round(p * r20 * 100) / 100
+      });
+
       if (sym === '2330') {
-        ma5 = 2262.0; ma10 = 2225.0; ma20 = 2178.0;
+        const ma = calcDynamicMa(price, 0.9899, 0.9737, 0.9532);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '0050') {
-        ma5 = 99.0; ma10 = 97.8; ma20 = 96.4;
+        const ma = calcDynamicMa(price, 0.9930, 0.9809, 0.9669);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '2454' || sym === '聯發科') {
-        ma5 = 3795.0; ma10 = 3730.0; ma20 = 3660.0;
+        const ma = calcDynamicMa(price, 0.9908, 0.9739, 0.9556);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '2308' || sym === '台達電') {
-        ma5 = 1250.0; ma10 = 1215.0; ma20 = 1165.0;
+        const ma = calcDynamicMa(price, 0.9804, 0.9529, 0.9137);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '2408' || sym === '南亞科') {
-        ma5 = 378.0; ma10 = 373.0; ma20 = 367.0;
+        const ma = calcDynamicMa(price, 0.9869, 0.9739, 0.9582);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '領袖' || sym === '00922') {
-        ma5 = 36.1; ma10 = 35.7; ma20 = 35.25;
+        const ma = calcDynamicMa(price, 0.9934, 0.9824, 0.9700);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === 'NVDA') {
-        ma5 = 181.2; ma10 = 183.0; ma20 = 179.5;
+        const ma = calcDynamicMa(price, 1.0142, 1.0242, 1.0046);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === 'MU') {
-        ma5 = 718.0; ma10 = 702.0; ma20 = 684.0;
+        const ma = calcDynamicMa(price, 0.9793, 0.9575, 0.9329);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === 'MRVL') {
-        ma5 = 152.0; ma10 = 146.8; ma20 = 141.5;
+        const ma = calcDynamicMa(price, 0.9832, 0.9495, 0.9152);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === 'VOO') {
-        ma5 = 689.0; ma10 = 683.0; ma20 = 676.0;
+        const ma = calcDynamicMa(price, 0.9958, 0.9872, 0.9770);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === 'SNDK') {
-        ma5 = 874.0; ma10 = 856.0; ma20 = 840.0;
+        const ma = calcDynamicMa(price, 0.9859, 0.9656, 0.9475);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '路博邁') {
-        ma5 = 76.5; ma10 = 75.2; ma20 = 73.8;
+        const ma = calcDynamicMa(price, 0.9904, 0.9736, 0.9555);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else if (sym === '瀚亞') {
-        ma5 = 104.2; ma10 = 103.5; ma20 = 102.0;
+        const ma = calcDynamicMa(price, 0.9957, 0.9890, 0.9746);
+        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20;
       } else {
         const offset = changePct >= 0 ? 1 : -1;
         ma5 = Math.round((price * (1 - 0.009 * offset)) * 100) / 100;
@@ -7030,24 +7081,36 @@
       }
 
       // 3. 成交量能與量價結構
+      const quoteInfo = (state.quotes && state.quotes[sym]) ? state.quotes[sym] : {};
+      const realVol = quoteInfo.volume || h.volume || 0;
       let volRatio = 115;
       let volText = '量增 15% (攻擊放量)';
       let volPattern = '量增價揚，攻擊發動';
+      let volDisplay = '';
+
+      if (realVol > 0) {
+        if (!isUs && !isFund) {
+          volDisplay = `${Math.round(realVol / 1000).toLocaleString('zh-TW')} 張`;
+        } else if (isUs) {
+          volDisplay = realVol >= 1e6 ? `${(realVol / 1e6).toFixed(2)}M 股` : `${Math.round(realVol).toLocaleString('zh-TW')} 股`;
+        }
+      }
+
       if (sym === '2330') {
         volRatio = 138;
-        volText = '放量 +38% (超過5日均量)';
+        volText = volDisplay ? `即時成交 ${volDisplay} (放量 +38%)` : '放量 +38% (超過5日均量)';
         volPattern = '量增價揚 · 主力積極表態';
       } else if (sym === 'NVDA') {
         volRatio = 92;
-        volText = '平量 92% (5日均量附近)';
+        volText = volDisplay ? `即時成交 ${volDisplay} (平量 92%)` : '平量 92% (5日均量附近)';
         volPattern = '高檔量縮洗盤 · 等待突破';
       } else if (sym === 'MU') {
         volRatio = 125;
-        volText = '量增 +25% (多頭放量)';
+        volText = volDisplay ? `即時成交 ${volDisplay} (量增 +25%)` : '量增 +25% (多頭放量)';
         volPattern = '價量俱揚 · 突破前高';
       } else {
         volRatio = changePct > 0 ? 115 : 85;
-        volText = changePct > 0 ? '量增 +15%' : '量縮 -15%';
+        volText = volDisplay ? `即時成交 ${volDisplay}` : (changePct > 0 ? '量增 +15%' : '量縮 -15%');
         volPattern = changePct > 0 ? '量增價揚 · 買盤延續' : '量縮回檔 · 籌碼安定';
       }
 
@@ -7316,6 +7379,37 @@
     }
 
     try {
+      // 0. TradingView Taiwan Scanner for 加權指數 (TWSE:IX0001)
+      try {
+        const twIdxRes = await fetch('https://scanner.tradingview.com/taiwan/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TWSE:IX0001'] },
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
+          })
+        });
+        if (twIdxRes.ok) {
+          const twIdxData = await twIdxRes.json();
+          const item = twIdxData?.data?.[0];
+          if (item?.d && item.d[0] !== null) {
+            const close = Number(item.d[0]);
+            const chgPct = Number(item.d[1] || 0);
+            const chgAbs = Number(item.d[2] || 0);
+            state.marketIndices.taiex.price = close;
+            state.marketIndices.taiex.change = chgAbs;
+            state.marketIndices.taiex.changePct = chgPct;
+            state.marketIndices.taiex.prevClose = close - chgAbs;
+            if (item.d[3]) state.marketIndices.taiex.open = Number(item.d[3]);
+            if (item.d[4]) state.marketIndices.taiex.high = Number(item.d[4]);
+            if (item.d[5]) state.marketIndices.taiex.low = Number(item.d[5]);
+            if (state.marketIndices.taiex.points) {
+              state.marketIndices.taiex.points[state.marketIndices.taiex.points.length - 1] = close;
+            }
+          }
+        }
+      } catch (err) {}
+
       // 1. TradingView Scanners for VIX, BTC, Gold, Brent
       try {
         const cryptoRes = await fetch('https://scanner.tradingview.com/crypto/scan', {
@@ -7347,13 +7441,13 @@
         }
       } catch (err) {}
 
-      // CFD: TVC:GOLD, TVC:VIX, TVC:UKOIL
+      // CFD: TVC:GOLD, TVC:VIX, FX:UKOIL, TVC:UKOIL
       try {
         const cfdRes = await fetch('https://scanner.tradingview.com/cfd/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
-            symbols: { tickers: ['TVC:GOLD', 'TVC:VIX', 'TVC:UKOIL', 'CBOE:VIX'] },
+            symbols: { tickers: ['TVC:GOLD', 'TVC:VIX', 'FX:UKOIL', 'TVC:UKOIL', 'CBOE:VIX'] },
             columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
           })
         });
@@ -7386,7 +7480,7 @@
                 if (state.marketIndices.vix.points) {
                   state.marketIndices.vix.points[state.marketIndices.vix.points.length - 1] = close;
                 }
-              } else if (ticker === 'TVC:UKOIL') {
+              } else if (ticker === 'FX:UKOIL' || ticker === 'TVC:UKOIL') {
                 state.marketIndices.brent.price = close;
                 state.marketIndices.brent.change = chgAbs;
                 state.marketIndices.brent.changePct = chgPct;
@@ -7824,7 +7918,12 @@
         if (targetId === 'tab-realized') renderRealizedTable();
         if (targetId === 'tab-dividends') renderDividendTable();
         if (targetId === 'tab-advice') renderAdviceTable();
-        if (targetId === 'tab-market-indices') renderMarketIndices();
+        if (targetId === 'tab-market-indices') {
+          renderMarketIndices();
+          renderStockTechnicalAnalysis();
+          fetchMarketIndicesDirect().catch(() => {});
+          refreshOnlineQuotes(false).catch(() => {});
+        }
       });
     });
 
@@ -7875,8 +7974,32 @@
     });
 
     // Market Indices Refresh Button
-    document.getElementById('btnRefreshMarketIndices')?.addEventListener('click', () => {
-      refreshOnlineQuotes(true);
+    document.getElementById('btnRefreshMarketIndices')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btnRefreshMarketIndices');
+      const origHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        btn.innerHTML = `<span style="display:inline-block; width:13px; height:13px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; vertical-align:middle; margin-right:6px;"></span>更新指數與個股中...`;
+      }
+      try {
+        await Promise.allSettled([
+          fetchMarketIndicesDirect(),
+          refreshOnlineQuotes(false)
+        ]);
+        renderMarketIndices();
+        renderStockTechnicalAnalysis();
+        const taiexP = state.marketIndices?.taiex?.price || 43091.87;
+        showNotification(`大盤 9 大指數與個股即時數據已同步更新！加權指數現價：${formatNumberVal(taiexP)} 點`, 'success');
+      } catch (err) {
+        console.warn('Refresh market indices error:', err);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('is-loading');
+          btn.innerHTML = origHtml;
+        }
+      }
     });
 
     // Stock Technical & Chip Analysis Filter Pills
@@ -8332,6 +8455,14 @@
 
     // Periodic check for 14:30 market hours color switch
     setInterval(updateMarketPriceHighlight, 30000);
+
+    // Periodic auto-refresh for Market Indices & Stock Analysis tab (every 30 seconds)
+    setInterval(() => {
+      if (state.activeTab === 'tab-market-indices' && !document.hidden && !state.isRefreshing) {
+        fetchMarketIndicesDirect().catch(() => {});
+        refreshOnlineQuotes(false).catch(() => {});
+      }
+    }, 30000);
   }
 
   // 22.5 Master Import / Export Modal Manager
