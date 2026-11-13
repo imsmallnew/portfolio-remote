@@ -20,17 +20,17 @@
       name: '加權指數 (TAIEX)',
       symbol: '^TWII',
       icon: '🏛️',
-      price: 43091.87,
-      change: -1165.28,
-      changePct: -2.63,
-      prevClose: 44257.15,
-      open: 44180.46,
-      high: 44525.24,
-      low: 42943.50,
+      price: 43675.12,
+      change: 583.25,
+      changePct: 1.35,
+      prevClose: 43091.87,
+      open: 43719.75,
+      high: 44489.48,
+      low: 43534.12,
       unit: '點',
       category: '台股大盤',
       wantgooUrl: 'https://www.wantgoo.com/index/0000',
-      points: [44257.15, 44180.46, 44525.24, 43850.0, 43400.0, 43100.0, 42943.50, 43050.0, 43091.87],
+      points: [43091.87, 43719.75, 43534.12, 43980.0, 44260.0, 44489.48, 44100.0, 43850.0, 43675.12],
       role: '台股大盤核心指標',
       desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
     },
@@ -39,17 +39,17 @@
       name: '台指期夜盤 (WTXP)',
       symbol: 'TX (夜盤)',
       icon: '🌙',
-      price: 43340.0,
-      change: 212.0,
-      changePct: 0.49,
-      prevClose: 43128.0,
-      open: 43130.0,
-      high: 43360.0,
-      low: 43092.0,
+      price: 44143.0,
+      change: 304.0,
+      changePct: 0.69,
+      prevClose: 43839.0,
+      open: 43921.0,
+      high: 44231.0,
+      low: 43857.0,
       unit: '點',
       category: '台指期貨',
       wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
-      points: [43128.0, 43150.0, 43220.0, 43180.0, 43260.0, 43310.0, 43360.0, 43340.0],
+      points: [43839.0, 43921.0, 43857.0, 43980.0, 44090.0, 44231.0, 44180.0, 44143.0],
       role: '台股次日開盤先行指針',
       desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
     },
@@ -58,17 +58,17 @@
       name: '美債10年期殖利率',
       symbol: 'TVC:US10Y',
       icon: '📜',
-      price: 4.43,
-      change: -0.04,
-      changePct: -0.90,
-      prevClose: 4.47,
-      open: 4.47,
-      high: 4.49,
-      low: 4.41,
+      price: 5.12,
+      change: -0.02,
+      changePct: -0.31,
+      prevClose: 5.14,
+      open: 5.13,
+      high: 5.14,
+      low: 5.12,
       unit: '%',
       category: '美債利率',
       wantgooUrl: 'https://www.wantgoo.com/global/us10-yr',
-      points: [4.47, 4.48, 4.49, 4.46, 4.44, 4.42, 4.41, 4.42, 4.43],
+      points: [5.14, 5.13, 5.14, 5.13, 5.12, 5.12, 5.12],
       role: '全球資產定價之錨 (無風險利率)',
       desc: '10年期美債殖利率是全球金融資產折現率的核心基準。殖利率自高檔回落有利股票本益比擴張與科技成長股評價；若飆升突破 4.5%~4.6% 則會引發市場資金緊縮。'
     },
@@ -96,17 +96,17 @@
       name: '美元兌台幣 (USD/TWD)',
       symbol: 'FX_IDC:USDTWD',
       icon: '💵',
-      price: 32.84,
-      change: -0.09,
-      changePct: -0.28,
-      prevClose: 32.93,
-      open: 32.93,
-      high: 32.96,
-      low: 32.82,
+      price: 32.86,
+      change: -0.12,
+      changePct: -0.36,
+      prevClose: 32.98,
+      open: 32.98,
+      high: 32.98,
+      low: 32.83,
       unit: 'TWD',
       category: '外匯匯率',
       wantgooUrl: 'https://www.wantgoo.com/global/usdtwd',
-      points: [32.93, 32.94, 32.96, 32.91, 32.88, 32.85, 32.82, 32.83, 32.84],
+      points: [32.98, 32.98, 32.95, 32.91, 32.88, 32.85, 32.83, 32.86],
       role: '外資熱錢進出台股風向球',
       desc: '台幣匯率與外資進出台股高度正相關。台幣升值（匯率走低）通常伴隨外資大幅匯入買超權值股；台幣走貶則引發外資調節提款匯出壓力。'
     },
@@ -115,17 +115,17 @@
       name: 'VIX 恐慌指數',
       symbol: '^VIX',
       icon: '⚡',
-      price: 19.46,
-      change: -0.46,
-      changePct: -2.31,
-      prevClose: 19.92,
-      open: 19.76,
-      high: 21.61,
-      low: 19.29,
+      price: 18.69,
+      change: 1.21,
+      changePct: 6.92,
+      prevClose: 17.48,
+      open: 18.36,
+      high: 19.34,
+      low: 17.38,
       unit: '',
       category: '美股波動率',
       wantgooUrl: 'https://www.wantgoo.com/global/vix',
-      points: [22.4, 21.8, 21.6, 20.8, 20.2, 19.92, 19.5, 19.29, 19.46],
+      points: [17.48, 18.36, 17.38, 17.95, 18.50, 19.34, 18.85, 18.69],
       role: '全球金融市場恐慌與波動率',
       desc: '反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。'
     },
@@ -134,17 +134,17 @@
       name: '比特幣 (BTC)',
       symbol: 'BTC/USD',
       icon: '₿',
-      price: 73899.19,
-      change: 95.86,
-      changePct: 0.13,
-      prevClose: 73803.33,
-      open: 73796.06,
-      high: 74034.64,
-      low: 73209.12,
+      price: 68808.0,
+      change: -2651.0,
+      changePct: -3.71,
+      prevClose: 71459.0,
+      open: 71460.0,
+      high: 71514.0,
+      low: 67568.0,
       unit: 'USD',
       category: '加密貨幣',
       wantgooUrl: 'https://www.wantgoo.com/global/btc',
-      points: [71200.0, 72100.0, 72400.0, 73100.0, 73500.0, 74034.64, 73600.0, 73803.0, 73899.19],
+      points: [71459.0, 71460.0, 71514.0, 69800.0, 68200.0, 67568.0, 68400.0, 68808.0],
       role: '全球資金流動性與投機胃納',
       desc: '全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。'
     },
@@ -153,17 +153,17 @@
       name: '布蘭特原油 (Brent)',
       symbol: 'BZ=F',
       icon: '🛢️',
-      price: 92.42,
-      change: -0.85,
-      changePct: -0.91,
-      prevClose: 93.27,
-      open: 93.10,
-      high: 94.20,
-      low: 91.80,
+      price: 95.91,
+      change: 0.17,
+      changePct: 0.18,
+      prevClose: 95.74,
+      open: 95.73,
+      high: 96.75,
+      low: 95.05,
       unit: 'USD',
       category: '大宗商品',
       wantgooUrl: 'https://www.wantgoo.com/global/brent',
-      points: [95.4, 94.8, 94.2, 93.9, 93.5, 93.27, 92.8, 91.8, 92.42],
+      points: [95.74, 95.73, 95.05, 95.80, 96.40, 96.75, 96.10, 95.91],
       role: '通膨預期與實體景氣溫度計',
       desc: '國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。'
     },
@@ -172,17 +172,17 @@
       name: '黃金現貨 (Gold)',
       symbol: 'GC=F / XAU',
       icon: '🪙',
-      price: 4056.33,
-      change: 23.81,
-      changePct: 0.59,
-      prevClose: 4032.52,
-      open: 4032.62,
-      high: 4066.04,
-      low: 4026.70,
+      price: 3897.99,
+      change: 20.84,
+      changePct: 0.54,
+      prevClose: 3877.15,
+      open: 3876.40,
+      high: 3923.14,
+      low: 3875.20,
       unit: 'USD',
       category: '貴金屬避險',
       wantgooUrl: 'https://www.wantgoo.com/global/gold',
-      points: [3980.0, 4005.0, 4015.0, 4028.0, 4032.5, 4045.0, 4066.04, 4050.0, 4056.33],
+      points: [3877.15, 3876.40, 3875.20, 3895.0, 3915.0, 3923.14, 3905.0, 3897.99],
       role: '終極避險與央行儲備資產',
       desc: '各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。'
     }
@@ -303,6 +303,9 @@
         const res = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
         if (cached && typeof cached === 'object') {
           for (const [k, v] of Object.entries(cached)) {
+            // 剔除歷史版本殘留之過期舊價（如台指期 42522 或加權指數舊值）
+            if (k === 'wtxp' && v && v.price && v.price < 43500) continue;
+            if (k === 'taiex' && v && v.price && v.price < 42500) continue;
             if (res[k]) res[k] = Object.assign(res[k], v);
           }
         }
@@ -3357,7 +3360,7 @@
             <span class="symbol-name">${escapeHtml(d.name || '')}</span>
           </td>
           <td><span class="tag-badge tag-tw_etf">${escapeHtml(d.type || '現金股利')}</span></td>
-          <td class="text-right mono">${formatMoney(d.dps, 2)}</td>
+          <td class="text-right mono">${formatMoney(d.dps, 3)}</td>
           <td class="text-right mono">${formatShares(d.shares)}</td>
           <td class="text-right mono font-semibold val-up">${formatMoney(d.amount, 2)}</td>
           <td class="text-center"><span class="tag-badge">${d.currency || 'TWD'}</span></td>
@@ -5451,26 +5454,31 @@
     if (state.autoTimer) clearInterval(state.autoTimer);
 
     const sel = document.getElementById('autoRefreshSelect');
+    const marketSel = document.getElementById('marketAutoRefreshSelect');
     if (sel) sel.value = String(state.autoRefreshSec);
+    if (marketSel) marketSel.value = String(state.autoRefreshSec);
 
     state.nextRefreshAt = state.autoRefreshSec > 0 ? Date.now() + (state.autoRefreshSec * 1000) : 0;
 
     state.autoTimer = setInterval(() => {
       const countdownEl = document.getElementById('autoRefreshCountdown');
+      const marketCountdownEl = document.getElementById('marketAutoRefreshCountdown');
+
       if (!state.autoRefreshSec || state.autoRefreshSec <= 0) {
         if (countdownEl) countdownEl.textContent = '';
+        if (marketCountdownEl) marketCountdownEl.textContent = '';
         return;
       }
 
       const remaining = Math.max(0, Math.ceil((state.nextRefreshAt - Date.now()) / 1000));
-      if (countdownEl) {
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        countdownEl.textContent = m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
-      }
+      const text = remaining > 0 ? (remaining >= 60 ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}` : `${remaining}s`) : '0s';
+      if (countdownEl) countdownEl.textContent = text;
+      if (marketCountdownEl) marketCountdownEl.textContent = text;
 
       if (remaining <= 0 && !state.isRefreshing && !document.hidden) {
+        state.nextRefreshAt = Date.now() + (state.autoRefreshSec * 1000);
         refreshOnlineQuotes(false);
+        fetchMarketIndicesDirect().catch(() => {});
       }
     }, 1000);
   }
@@ -7368,6 +7376,56 @@
     }).join('');
   }
 
+  function updateIntradayPoints(item, currentPrice, openP, highP, lowP, prevCloseP) {
+    if (!item) return;
+    const p = Number(currentPrice);
+    if (!p || isNaN(p) || p <= 0) return;
+    const op = Number(openP || p);
+    const hi = Number(highP || Math.max(p, op));
+    const lo = Number(lowP || Math.min(p, op));
+    const prev = Number(prevCloseP || op);
+
+    const isOutOfRange = !item.points || !Array.isArray(item.points) || item.points.length < 5 ||
+      Math.max(...item.points) < lo * 0.96 || Math.min(...item.points) > hi * 1.04;
+
+    if (isOutOfRange) {
+      const isBull = p >= op;
+      if (isBull) {
+        item.points = [
+          prev,
+          op,
+          lo,
+          Number((lo + (op - lo) * 0.7).toFixed(2)),
+          Number((op + (hi - op) * 0.35).toFixed(2)),
+          Number((op + (hi - op) * 0.65).toFixed(2)),
+          hi,
+          Number((hi - (hi - p) * 0.4).toFixed(2)),
+          p
+        ];
+      } else {
+        item.points = [
+          prev,
+          op,
+          hi,
+          Number((hi - (hi - op) * 0.7).toFixed(2)),
+          Number((op - (op - lo) * 0.35).toFixed(2)),
+          Number((op - (op - lo) * 0.65).toFixed(2)),
+          lo,
+          Number((lo + (p - lo) * 0.4).toFixed(2)),
+          p
+        ];
+      }
+    } else {
+      const lastP = item.points[item.points.length - 1];
+      if (Math.abs(lastP - p) > 0.0001) {
+        item.points.push(p);
+        if (item.points.length > 32) item.points.shift();
+      } else {
+        item.points[item.points.length - 1] = p;
+      }
+    }
+  }
+
   async function fetchMarketIndicesDirect() {
     if (!state.marketIndices || typeof state.marketIndices !== 'object') {
       state.marketIndices = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
@@ -7396,21 +7454,92 @@
             const close = Number(item.d[0]);
             const chgPct = Number(item.d[1] || 0);
             const chgAbs = Number(item.d[2] || 0);
+            const openP = item.d[3] ? Number(item.d[3]) : close;
+            const highP = item.d[4] ? Number(item.d[4]) : close;
+            const lowP = item.d[5] ? Number(item.d[5]) : close;
+            const prevP = close - chgAbs;
+
             state.marketIndices.taiex.price = close;
             state.marketIndices.taiex.change = chgAbs;
             state.marketIndices.taiex.changePct = chgPct;
-            state.marketIndices.taiex.prevClose = close - chgAbs;
-            if (item.d[3]) state.marketIndices.taiex.open = Number(item.d[3]);
-            if (item.d[4]) state.marketIndices.taiex.high = Number(item.d[4]);
-            if (item.d[5]) state.marketIndices.taiex.low = Number(item.d[5]);
-            if (state.marketIndices.taiex.points) {
-              state.marketIndices.taiex.points[state.marketIndices.taiex.points.length - 1] = close;
-            }
+            state.marketIndices.taiex.prevClose = prevP;
+            state.marketIndices.taiex.open = openP;
+            state.marketIndices.taiex.high = highP;
+            state.marketIndices.taiex.low = lowP;
+            updateIntradayPoints(state.marketIndices.taiex, close, openP, highP, lowP, prevP);
           }
         }
       } catch (err) {}
 
-      // 1. TradingView Scanners for VIX, BTC, Gold, Brent
+      // 1. TradingView Futures Scanner for 台指期夜盤 (TAIFEX:TXF1! / TAIFEX:MXF1!)
+      try {
+        const tfRes = await fetch('https://scanner.tradingview.com/futures/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TAIFEX:TXF1!', 'TAIFEX:MXF1!'] },
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
+          })
+        });
+        if (tfRes.ok) {
+          const tfData = await tfRes.json();
+          const item = tfData?.data?.[0];
+          if (item?.d && item.d[0] !== null) {
+            const close = Number(item.d[0]);
+            const chgPct = Number(item.d[1] || 0);
+            const chgAbs = Number(item.d[2] || 0);
+            const openP = item.d[3] ? Number(item.d[3]) : close;
+            const highP = item.d[4] ? Number(item.d[4]) : close;
+            const lowP = item.d[5] ? Number(item.d[5]) : close;
+            const prevP = close - chgAbs;
+
+            state.marketIndices.wtxp.price = close;
+            state.marketIndices.wtxp.change = chgAbs;
+            state.marketIndices.wtxp.changePct = chgPct;
+            state.marketIndices.wtxp.prevClose = prevP;
+            state.marketIndices.wtxp.open = openP;
+            state.marketIndices.wtxp.high = highP;
+            state.marketIndices.wtxp.low = lowP;
+            updateIntradayPoints(state.marketIndices.wtxp, close, openP, highP, lowP, prevP);
+          }
+        }
+      } catch (err) {}
+
+      // 2. TradingView Bonds Scanner for 美債10年期殖利率 (TVC:US10Y)
+      try {
+        const bondRes = await fetch('https://scanner.tradingview.com/bonds/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({
+            symbols: { tickers: ['TVC:US10Y'] },
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low']
+          })
+        });
+        if (bondRes.ok) {
+          const bData = await bondRes.json();
+          const item = bData?.data?.[0];
+          if (item?.d && item.d[0] !== null) {
+            const close = Number(item.d[0]);
+            const chgPct = Number(item.d[1] || 0);
+            const chgAbs = Number(item.d[2] || 0);
+            const openP = item.d[3] ? Number(item.d[3]) : close;
+            const highP = item.d[4] ? Number(item.d[4]) : close;
+            const lowP = item.d[5] ? Number(item.d[5]) : close;
+            const prevP = Number((close - chgAbs).toFixed(3));
+
+            state.marketIndices.us10y.price = close;
+            state.marketIndices.us10y.change = chgAbs;
+            state.marketIndices.us10y.changePct = chgPct;
+            state.marketIndices.us10y.prevClose = prevP;
+            state.marketIndices.us10y.open = openP;
+            state.marketIndices.us10y.high = highP;
+            state.marketIndices.us10y.low = lowP;
+            updateIntradayPoints(state.marketIndices.us10y, close, openP, highP, lowP, prevP);
+          }
+        }
+      } catch (err) {}
+
+      // 3. TradingView Scanners for VIX, BTC, Gold, Brent
       try {
         const cryptoRes = await fetch('https://scanner.tradingview.com/crypto/scan', {
           method: 'POST',
@@ -7427,16 +7556,19 @@
             const close = Number(item.d[0]);
             const chgPct = Number(item.d[1] || 0);
             const chgAbs = Number(item.d[2] || 0);
+            const openP = item.d[3] ? Number(item.d[3]) : close;
+            const highP = item.d[4] ? Number(item.d[4]) : close;
+            const lowP = item.d[5] ? Number(item.d[5]) : close;
+            const prevP = close - chgAbs;
+
             state.marketIndices.btc.price = close;
             state.marketIndices.btc.change = chgAbs;
             state.marketIndices.btc.changePct = chgPct;
-            state.marketIndices.btc.prevClose = close - chgAbs;
-            if (item.d[3]) state.marketIndices.btc.open = Number(item.d[3]);
-            if (item.d[4]) state.marketIndices.btc.high = Number(item.d[4]);
-            if (item.d[5]) state.marketIndices.btc.low = Number(item.d[5]);
-            if (state.marketIndices.btc.points) {
-              state.marketIndices.btc.points[state.marketIndices.btc.points.length - 1] = close;
-            }
+            state.marketIndices.btc.prevClose = prevP;
+            state.marketIndices.btc.open = openP;
+            state.marketIndices.btc.high = highP;
+            state.marketIndices.btc.low = lowP;
+            updateIntradayPoints(state.marketIndices.btc, close, openP, highP, lowP, prevP);
           }
         }
       } catch (err) {}
@@ -7460,69 +7592,38 @@
               const close = Number(cols[0]);
               const chgPct = Number(cols[1] || 0);
               const chgAbs = Number(cols[2] || 0);
+              const openP = cols[3] ? Number(cols[3]) : close;
+              const highP = cols[4] ? Number(cols[4]) : close;
+              const lowP = cols[5] ? Number(cols[5]) : close;
+              const prevP = close - chgAbs;
+
               if (ticker === 'TVC:GOLD') {
                 state.marketIndices.gold.price = close;
                 state.marketIndices.gold.change = chgAbs;
                 state.marketIndices.gold.changePct = chgPct;
-                state.marketIndices.gold.prevClose = close - chgAbs;
-                if (cols[4]) state.marketIndices.gold.high = Number(cols[4]);
-                if (cols[5]) state.marketIndices.gold.low = Number(cols[5]);
-                if (state.marketIndices.gold.points) {
-                  state.marketIndices.gold.points[state.marketIndices.gold.points.length - 1] = close;
-                }
+                state.marketIndices.gold.prevClose = prevP;
+                state.marketIndices.gold.open = openP;
+                state.marketIndices.gold.high = highP;
+                state.marketIndices.gold.low = lowP;
+                updateIntradayPoints(state.marketIndices.gold, close, openP, highP, lowP, prevP);
               } else if (ticker === 'TVC:VIX' || ticker === 'CBOE:VIX') {
                 state.marketIndices.vix.price = close;
                 state.marketIndices.vix.change = chgAbs;
                 state.marketIndices.vix.changePct = chgPct;
-                state.marketIndices.vix.prevClose = close - chgAbs;
-                if (cols[4]) state.marketIndices.vix.high = Number(cols[4]);
-                if (cols[5]) state.marketIndices.vix.low = Number(cols[5]);
-                if (state.marketIndices.vix.points) {
-                  state.marketIndices.vix.points[state.marketIndices.vix.points.length - 1] = close;
-                }
+                state.marketIndices.vix.prevClose = prevP;
+                state.marketIndices.vix.open = openP;
+                state.marketIndices.vix.high = highP;
+                state.marketIndices.vix.low = lowP;
+                updateIntradayPoints(state.marketIndices.vix, close, openP, highP, lowP, prevP);
               } else if (ticker === 'FX:UKOIL' || ticker === 'TVC:UKOIL') {
                 state.marketIndices.brent.price = close;
                 state.marketIndices.brent.change = chgAbs;
                 state.marketIndices.brent.changePct = chgPct;
-                state.marketIndices.brent.prevClose = close - chgAbs;
-                if (cols[4]) state.marketIndices.brent.high = Number(cols[4]);
-                if (cols[5]) state.marketIndices.brent.low = Number(cols[5]);
-                if (state.marketIndices.brent.points) {
-                  state.marketIndices.brent.points[state.marketIndices.brent.points.length - 1] = close;
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {}
-
-      // Taifex TX night quote
-      try {
-        const tfRes = await fetch('https://mis.taifex.com.tw/futures/api/getQuoteList', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ MarketType: '1', SymbolType: 'F' })
-        });
-        if (tfRes.ok) {
-          const tfData = await tfRes.json();
-          const list = tfData?.RtData?.QuoteList || [];
-          for (const it of list) {
-            if ((it.SymbolID || '').includes('TX') && it.CLastPrice && it.CRefPrice) {
-              const lastP = parseFloat(it.CLastPrice);
-              const refP = parseFloat(it.CRefPrice);
-              if (refP > 0 && lastP > 0) {
-                const diff = lastP - refP;
-                const diffPct = (diff / refP) * 100;
-                state.marketIndices.wtxp.price = lastP;
-                state.marketIndices.wtxp.change = diff;
-                state.marketIndices.wtxp.changePct = diffPct;
-                state.marketIndices.wtxp.prevClose = refP;
-                if (it.CHighPrice) state.marketIndices.wtxp.high = parseFloat(it.CHighPrice);
-                if (it.CLowPrice) state.marketIndices.wtxp.low = parseFloat(it.CLowPrice);
-                if (state.marketIndices.wtxp.points) {
-                  state.marketIndices.wtxp.points[state.marketIndices.wtxp.points.length - 1] = lastP;
-                }
-                break;
+                state.marketIndices.brent.prevClose = prevP;
+                state.marketIndices.brent.open = openP;
+                state.marketIndices.brent.high = highP;
+                state.marketIndices.brent.low = lowP;
+                updateIntradayPoints(state.marketIndices.brent, close, openP, highP, lowP, prevP);
               }
             }
           }
@@ -7546,17 +7647,20 @@
             const close = Number(it.d[0]);
             const chgPct = Number(it.d[1] || 0);
             const chgAbs = Number(it.d[2] || 0);
+            const openP = it.d[3] ? Number(it.d[3]) : close;
+            const highP = it.d[4] ? Number(it.d[4]) : close;
+            const lowP = it.d[5] ? Number(it.d[5]) : close;
+            const prevP = close - chgAbs;
+
             state.marketIndices.usdtwd.price = close;
             state.marketIndices.usdtwd.change = chgAbs;
             state.marketIndices.usdtwd.changePct = chgPct;
-            state.marketIndices.usdtwd.prevClose = close - chgAbs;
-            if (it.d[3]) state.marketIndices.usdtwd.open = Number(it.d[3]);
-            if (it.d[4]) state.marketIndices.usdtwd.high = Number(it.d[4]);
-            if (it.d[5]) state.marketIndices.usdtwd.low = Number(it.d[5]);
-            if (state.marketIndices.usdtwd.points) {
-              state.marketIndices.usdtwd.points[state.marketIndices.usdtwd.points.length - 1] = close;
-            }
-            state.usdRate = close;
+            state.marketIndices.usdtwd.prevClose = prevP;
+            state.marketIndices.usdtwd.open = openP;
+            state.marketIndices.usdtwd.high = highP;
+            state.marketIndices.usdtwd.low = lowP;
+            updateIntradayPoints(state.marketIndices.usdtwd, close, openP, highP, lowP, prevP);
+            state.usdRate = Number(close.toFixed(2));
           }
         }
       } catch (err) {}
@@ -7564,6 +7668,7 @@
       localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
       if (state.activeTab === 'tab-market-indices') {
         renderMarketIndices();
+        renderStockTechnicalAnalysis();
       }
     } catch (e) {
       console.warn('fetchMarketIndicesDirect notice:', e);
@@ -8045,13 +8150,19 @@
     // Refresh Quotes
     document.getElementById('btnRefreshQuotes')?.addEventListener('click', () => refreshOnlineQuotes(true));
 
-    // Auto Refresh Select
-    document.getElementById('autoRefreshSelect')?.addEventListener('change', (e) => {
-      state.autoRefreshSec = parseInt(e.target.value, 10) || 0;
+    // Auto Refresh Select (同步支援 5/10/15/20/25/30秒與分頁即時聯動)
+    function handleAutoRefreshChange(val) {
+      state.autoRefreshSec = parseInt(val, 10) || 0;
       localStorage.setItem('fubon_auto_refresh', String(state.autoRefreshSec));
+      const sel1 = document.getElementById('autoRefreshSelect');
+      const sel2 = document.getElementById('marketAutoRefreshSelect');
+      if (sel1) sel1.value = String(state.autoRefreshSec);
+      if (sel2) sel2.value = String(state.autoRefreshSec);
       startAutoRefresh();
-      showNotification(state.autoRefreshSec > 0 ? `已設定每 ${state.autoRefreshSec} 秒自動更新行情` : '已關閉自動更新', 'info');
-    });
+      showNotification(state.autoRefreshSec > 0 ? `已設定每 ${state.autoRefreshSec} 秒自動更新即時行情與大盤數據` : '已關閉自動更新', 'info');
+    }
+    document.getElementById('autoRefreshSelect')?.addEventListener('change', (e) => handleAutoRefreshChange(e.target.value));
+    document.getElementById('marketAutoRefreshSelect')?.addEventListener('change', (e) => handleAutoRefreshChange(e.target.value));
 
     // Editable Title
     document.getElementById('btnEditTitle')?.addEventListener('click', startEditTitle);

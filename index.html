@@ -61,10 +61,14 @@
           <span class="auto-refresh-icon">⏱️</span>
           <select id="autoRefreshSelect" class="select-inline">
             <option value="0">手動更新</option>
+            <option value="5">每 5 秒</option>
+            <option value="10">每 10 秒</option>
+            <option value="15">每 15 秒</option>
+            <option value="20">每 20 秒</option>
+            <option value="25">每 25 秒</option>
             <option value="30">每 30 秒</option>
             <option value="60">每 1 分鐘</option>
             <option value="300">每 5 分鐘</option>
-            <option value="600">每 10 分鐘</option>
           </select>
           <span class="auto-refresh-countdown" id="autoRefreshCountdown"></span>
         </div>
@@ -1230,6 +1234,21 @@
             </div>
             <div class="macro-actions">
               <span class="macro-updated-at mono text-tertiary-xs" id="macroUpdatedAt">最新行情：--</span>
+              <div class="auto-refresh-pill" title="設定定時自動更新即時行情與大盤數據">
+                <span class="auto-refresh-icon">⏱️</span>
+                <select id="marketAutoRefreshSelect" class="select-inline">
+                  <option value="0">手動更新</option>
+                  <option value="5">每 5 秒</option>
+                  <option value="10">每 10 秒</option>
+                  <option value="15">每 15 秒</option>
+                  <option value="20">每 20 秒</option>
+                  <option value="25">每 25 秒</option>
+                  <option value="30">每 30 秒</option>
+                  <option value="60">每 1 分鐘</option>
+                  <option value="300">每 5 分鐘</option>
+                </select>
+                <span class="auto-refresh-countdown" id="marketAutoRefreshCountdown"></span>
+              </div>
               <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshMarketIndices" title="重新整理大盤指數即時數據">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M23 4v6h-6"></path>
