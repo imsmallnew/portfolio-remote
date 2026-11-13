@@ -1312,6 +1312,53 @@ body {
   border: 1px solid rgba(6, 182, 212, 0.35);
 }
 
+/* Sold-out FIFO Transactions */
+.tx-row-sold-out {
+  opacity: 0.62;
+  color: var(--text-tertiary) !important;
+  background: rgba(148, 163, 184, 0.02);
+}
+.tx-row-sold-out td {
+  color: var(--text-tertiary) !important;
+}
+.tx-row-sold-out .symbol-badge {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: var(--text-tertiary) !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+.tx-row-sold-out .text-cyan,
+.tx-row-sold-out .font-semibold,
+.tx-row-sold-out .col-tx-shares {
+  color: var(--text-tertiary) !important;
+}
+.tx-row-sold-out:hover {
+  opacity: 0.95;
+}
+.tx-badge-muted {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+.tx-fifo-status-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.tx-fifo-status-tag.tag-sold {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+.tx-fifo-status-tag.tag-partial {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 .tx-linkage-tag {
   display: inline-flex;
   align-items: center;

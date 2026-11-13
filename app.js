@@ -330,22 +330,22 @@
   // Base Quote Metadata with TradingView Tickers (SNDK fixed to NASDAQ:SNDK)
   const DEFAULT_QUOTES = {
     "0050": { price: 99.70, nightPrice: 99.90, prevClose: 97.45, name: "元大台灣50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "0050.TW", tvSymbol: "TWSE:0050", order: 0 },
-    "2330": { price: 2285.00, nightPrice: 2293.40, prevClose: 2235.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 1 },
-    "VOO": { price: 691.87, nightPrice: 691.52, prevClose: 675.99, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 2 },
-    "00981A": { price: 24.27, nightPrice: 24.27, prevClose: 23.06, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 3 },
-    "00403A": { price: 8.87, nightPrice: 8.87, prevClose: 8.49, name: "瀚亞/00403A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 4 },
-    "00406A": { price: 7.65, nightPrice: 7.65, prevClose: 7.32, name: "00406A", type: "台股 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 5 },
-    "路博邁": { price: 77.240, nightPrice: 77.240, prevClose: 73.240, name: "路博邁NB 5G股票基金", type: "境內 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 6 },
-    "瀚亞": { price: 104.652, nightPrice: 104.652, prevClose: 103.232, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 7 },
-    "台達電": { price: 1275.00, nightPrice: 1275.00, prevClose: 1160.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 8 },
-    "聯發科": { price: 3830.00, nightPrice: 3830.00, prevClose: 3725.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 9 },
-    "領袖": { price: 36.34, nightPrice: 36.34, prevClose: 35.49, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 10 },
-    "南亞科": { price: 383.00, nightPrice: 383.00, prevClose: 370.00, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 11 },
+    "00403A": { price: 8.87, nightPrice: 8.87, prevClose: 8.49, name: "瀚亞/00403A", type: "台股 基金", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00403A", order: 1 },
+    "00406A": { price: 7.65, nightPrice: 7.65, prevClose: 7.32, name: "00406A", type: "台股 基金", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00406A", order: 2 },
+    "領袖": { price: 36.34, nightPrice: 36.34, prevClose: 35.49, name: "國泰台灣領袖50", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "00922.TW", tvSymbol: "TWSE:00922", order: 3 },
+    "00981A": { price: 24.27, nightPrice: 24.27, prevClose: 23.06, name: "主動統一台股增長", type: "台股 ETF", category: "tw_etf", currency: "TWD", symbolYahoo: "", tvSymbol: "TWSE:00981A", order: 4 },
+    "台達電": { price: 1275.00, nightPrice: 1275.00, prevClose: 1160.00, name: "台達電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2308.TW", tvSymbol: "TWSE:2308", order: 5 },
+    "2330": { price: 2285.00, nightPrice: 2293.40, prevClose: 2235.00, name: "台積電", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2330.TW", tvSymbol: "TWSE:2330", order: 6 },
+    "南亞科": { price: 383.00, nightPrice: 383.00, prevClose: 370.00, name: "南亞科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2408.TW", tvSymbol: "TWSE:2408", order: 7 },
+    "聯發科": { price: 3830.00, nightPrice: 3830.00, prevClose: 3725.00, name: "聯發科", type: "台股 個股", category: "tw_stock", currency: "TWD", symbolYahoo: "2454.TW", tvSymbol: "TWSE:2454", order: 8 },
+    "路博邁": { price: 77.240, nightPrice: 77.240, prevClose: 73.240, name: "路博邁NB 5G股票基金", type: "境內 基金", category: "fund", currency: "TWD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010000.djhtm?a=ACNB01", order: 9 },
+    "瀚亞": { price: 104.652, nightPrice: 104.652, prevClose: 103.232, name: "瀚亞科技基金", type: "境外 基金", category: "fund", currency: "USD", symbolYahoo: "", tvSymbol: "", infoUrl: "https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02", order: 10 },
+    "MRVL": { price: 154.60, nightPrice: 155.90, prevClose: 141.20, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 11 },
     "MU": { price: 733.15, nightPrice: 728.53, prevClose: 690.00, name: "美光科技 Micron", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MU", tvSymbol: "NASDAQ:MU", order: 12 },
     "NVDA": { price: 178.67, nightPrice: 180.50, prevClose: 186.64, name: "輝達 NVIDIA", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "NVDA", tvSymbol: "NASDAQ:NVDA", order: 13 },
-    "MRVL": { price: 154.60, nightPrice: 155.90, prevClose: 141.20, name: "邁威爾 Marvell", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "MRVL", tvSymbol: "NASDAQ:MRVL", order: 14 },
+    "SNDK": { price: 886.51, nightPrice: 882.48, prevClose: 835.06, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 14 },
     "SpaceX": { price: 146.03, nightPrice: 146.03, prevClose: 148.62, name: "SpaceX", type: "美股 私募", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "", order: 15 },
-    "SNDK": { price: 886.51, nightPrice: 882.48, prevClose: 835.06, name: "SNDK", type: "美股 個股", category: "us", currency: "USD", symbolYahoo: "", tvSymbol: "NASDAQ:SNDK", order: 16 }
+    "VOO": { price: 691.87, nightPrice: 691.52, prevClose: 675.99, name: "Vanguard 標普500 ETF", type: "美股 ETF", category: "us", currency: "USD", symbolYahoo: "VOO", tvSymbol: "AMEX:VOO", order: 16 }
   };
 
   // 預設持股交易為空（登入後由 Firestore 雲端同步或由管理員匯入真實資產）
@@ -391,6 +391,110 @@
     const buf = new TextEncoder().encode(str);
     const hash = await crypto.subtle.digest('SHA-256', buf);
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // 標的分類與排序輔助函式 (台股 / 基金 / 美股)
+  function getAssetCategoryGroup(sym, qObj = null) {
+    const q = (qObj && qObj[sym]) || (state.quotes && state.quotes[sym]) || (state.holdings && state.holdings[sym]) || DEFAULT_QUOTES[sym];
+    const cat = q?.category || '';
+    const curr = q?.currency || '';
+    // 1. 美股
+    if (cat === 'us' || (curr === 'USD' && cat !== 'fund' && sym !== '瀚亞')) return 'us';
+    // 2. 基金 (境內/境外非上市基金，如 路博邁, 瀚亞科技)
+    if (sym === '瀚亞' || sym === '路博邁' || (cat === 'fund' && !/^\d/.test(sym))) return 'fund';
+    // 3. 台股 (0050, 00403A, 00406A, 00981A, 2330, 台達電, 聯發科, 南亞科, 領袖 等)
+    return 'tw';
+  }
+
+  function getTwStockCode(sym, qObj = null) {
+    const q = (qObj && qObj[sym]) || (state.quotes && state.quotes[sym]) || (state.holdings && state.holdings[sym]) || DEFAULT_QUOTES[sym];
+    if (/^\d/.test(sym)) return sym;
+    if (q?.tvSymbol) {
+      const m = q.tvSymbol.match(/(?:TWSE|TPEX):([0-9A-Z]+)/i);
+      if (m) return m[1];
+    }
+    if (q?.symbolYahoo) {
+      const m = q.symbolYahoo.match(/^([0-9A-Z]+)\./i);
+      if (m) return m[1];
+    }
+    if (sym === '領袖') return '00922';
+    if (sym === '台達電') return '2308';
+    if (sym === '台積電') return '2330';
+    if (sym === '南亞科') return '2408';
+    if (sym === '聯發科') return '2454';
+    return sym;
+  }
+
+  function parseTwCodeNum(code) {
+    const m = String(code).match(/^0*(\d+)([A-Z]*)/i);
+    if (m) {
+      return { num: parseInt(m[1], 10), suffix: (m[2] || '').toUpperCase(), raw: code };
+    }
+    return { num: 999999, suffix: '', raw: code };
+  }
+
+  function sortSymbolsByCategory(symList, qObj = null) {
+    const q = qObj || state.quotes || DEFAULT_QUOTES;
+    const gOrder = { tw: 1, fund: 2, us: 3, other: 4 };
+
+    return [...symList].sort((a, b) => {
+      const gA = getAssetCategoryGroup(a, q);
+      const gB = getAssetCategoryGroup(b, q);
+      if (gOrder[gA] !== gOrder[gB]) return gOrder[gA] - gOrder[gB];
+
+      if (gA === 'tw') {
+        const codeA = getTwStockCode(a, q);
+        const codeB = getTwStockCode(b, q);
+        const pA = parseTwCodeNum(codeA);
+        const pB = parseTwCodeNum(codeB);
+        if (pA.num !== pB.num) return pA.num - pB.num;
+        if (pA.suffix !== pB.suffix) return pA.suffix.localeCompare(pB.suffix);
+        return a.localeCompare(b);
+      } else if (gA === 'fund') {
+        return a.localeCompare(b, 'zh-TW');
+      } else {
+        return a.localeCompare(b, 'en', { sensitivity: 'base' });
+      }
+    });
+  }
+
+  function buildCategorizedSelectOptions(symbols, options = {}) {
+    const {
+      quotesObj = state.quotes,
+      selectedVal = null,
+      firstOption = '',
+      formatLabel = null
+    } = options;
+
+    const q = quotesObj || state.quotes || DEFAULT_QUOTES;
+    const sorted = sortSymbolsByCategory(symbols, q);
+    const groups = {
+      tw: { label: '台股', items: [] },
+      fund: { label: '基金', items: [] },
+      us: { label: '美股', items: [] },
+      other: { label: '其他', items: [] }
+    };
+
+    for (const sym of sorted) {
+      const g = getAssetCategoryGroup(sym, q);
+      if (!groups[g]) groups[g] = { label: '其他', items: [] };
+      groups[g].items.push(sym);
+    }
+
+    let html = firstOption || '';
+    for (const key of ['tw', 'fund', 'us', 'other']) {
+      const grp = groups[key];
+      if (!grp || grp.items.length === 0) continue;
+      html += `<optgroup label="${grp.label}">`;
+      for (const sym of grp.items) {
+        const itemQ = (q && q[sym]) || (state.holdings && state.holdings[sym]) || DEFAULT_QUOTES[sym];
+        const isSelected = (selectedVal !== null && sym === selectedVal) ? 'selected' : '';
+        const labelText = formatLabel ? formatLabel(sym, itemQ) : `${escapeHtml(sym)} - ${escapeHtml(itemQ?.name || '')}`;
+        html += `<option value="${escapeHtml(sym)}" ${isSelected}>${labelText}</option>`;
+      }
+      html += `</optgroup>`;
+    }
+    return html;
   }
 
   // 1. Data Initialization & Remote Cloud Store
@@ -1355,6 +1459,15 @@
       return (a.id || '').localeCompare(b.id || '');
     });
     const fifoLots = {};
+    const buyLotsTracker = [];
+
+    // 重設每筆交易的 FIFO 結算狀態
+    for (const tx of sortedTx) {
+      tx.isFifoSold = false;
+      tx.isFifoPartial = false;
+      tx.fifoRemainingShares = 0;
+      tx.fifoOriginalShares = Math.abs(parseFloat(tx.shares) || 0);
+    }
 
     for (const tx of sortedTx) {
       const sym = tx.symbol;
@@ -1404,6 +1517,7 @@
         if (ratio > 0 && fifoLots[sym]) {
           for (const lot of fifoLots[sym]) {
             lot.shares = lot.shares * ratio;
+            lot.originalShares = (lot.originalShares || lot.shares) * ratio;
             lot.unitCost = lot.unitCost / ratio;
             lot.amount = lot.shares * lot.unitCost;
           }
@@ -1412,11 +1526,15 @@
         h.totalBoughtShares += shares;
         h.totalBoughtCost += amount;
         const unitCost = shares > 0 ? (amount / shares) : (parseFloat(tx.price) || 0);
-        fifoLots[sym].push({
+        const lot = {
+          tx: tx,
+          originalShares: shares,
           shares: shares,
           unitCost: unitCost,
           amount: amount
-        });
+        };
+        fifoLots[sym].push(lot);
+        buyLotsTracker.push(lot);
       } else {
         h.totalSoldShares += shares;
         h.totalSoldRevenue += amount;
@@ -1425,6 +1543,7 @@
           const lot = fifoLots[sym][0];
           if (lot.shares <= sellQty + 0.000001) {
             sellQty -= lot.shares;
+            lot.shares = 0;
             fifoLots[sym].shift();
           } else {
             lot.shares -= sellQty;
@@ -1432,6 +1551,25 @@
             sellQty = 0;
             break;
           }
+        }
+      }
+    }
+
+    // 依 FIFO 結算後同步標記每筆買進交易是否已全數賣出或部分賣出
+    for (const lot of buyLotsTracker) {
+      if (lot.tx) {
+        const orig = lot.originalShares || Math.abs(parseFloat(lot.tx.shares) || 0);
+        const rem = Math.max(0, lot.shares);
+        lot.tx.fifoRemainingShares = rem;
+        if (rem <= 0.000001) {
+          lot.tx.isFifoSold = true;
+          lot.tx.isFifoPartial = false;
+        } else if (rem < orig - 0.000001) {
+          lot.tx.isFifoSold = false;
+          lot.tx.isFifoPartial = true;
+        } else {
+          lot.tx.isFifoSold = false;
+          lot.tx.isFifoPartial = false;
         }
       }
     }
@@ -2859,7 +2997,13 @@
       list = list.filter(t => t.symbol === state.txFilterSymbol);
     }
     if (state.txFilterAction !== 'all') {
-      list = list.filter(t => t.action === state.txFilterAction);
+      if (state.txFilterAction === 'fifo_sold') {
+        list = list.filter(t => !t.action.includes('賣') && !t.action.includes('分割') && t.isFifoSold);
+      } else if (state.txFilterAction === 'fifo_holding') {
+        list = list.filter(t => !t.action.includes('賣') && !t.action.includes('分割') && !t.isFifoSold);
+      } else {
+        list = list.filter(t => t.action === state.txFilterAction);
+      }
     }
     if (state.txSearch) {
       const q = state.txSearch.toLowerCase().trim();
@@ -3009,18 +3153,38 @@
       } else {
         // Buy / Regular DCA transaction
         const twdAmount = isUsd ? Math.round(tx.total_amount * rate) : tx.total_amount;
+        const isSold = !!tx.isFifoSold;
+        const isPartial = !!tx.isFifoPartial;
+        const rowClass = isSold ? 'tx-row-sold-out' : '';
+
+        let fifoBadge = '';
+        if (isSold) {
+          fifoBadge = `<span class="tx-fifo-status-tag tag-sold" title="此筆買進之股數已全部依先進先出法 (FIFO) 賣出結清">已賣出 (FIFO)</span>`;
+        } else if (isPartial) {
+          fifoBadge = `<span class="tx-fifo-status-tag tag-partial" title="此筆買進之股數部分已售出，在庫尚餘 ${formatShares(tx.fifoRemainingShares)} 股">部分賣出</span>`;
+        }
+
+        let sharesNote = '';
+        if (isSold) {
+          sharesNote = `<div class="tx-fifo-subnote mono text-muted-xs" style="color: var(--text-tertiary); font-size: 0.72rem; margin-top: 2px;">(已全數售出)</div>`;
+        } else if (isPartial) {
+          sharesNote = `<div class="tx-fifo-subnote mono text-warning-xs" style="color: #f59e0b; font-size: 0.72rem; margin-top: 2px;">(庫存剩 ${formatShares(tx.fifoRemainingShares)})</div>`;
+        }
+
         rowsHtml += `
-          <tr data-txid="${tx.id}">
+          <tr data-txid="${tx.id}" class="${rowClass}">
             <td class="col-tx-date mono">${tx.date}</td>
             <td class="col-tx-symbol">
               <span class="symbol-badge">${escapeHtml(tx.symbol)}</span>
               <span class="symbol-name">${escapeHtml(tx.name || '')}</span>
             </td>
             <td class="col-tx-action">
-              <span class="tx-badge ${badgeClass}">${escapeHtml(tx.action)}</span>
+              <span class="tx-badge ${badgeClass} ${isSold ? 'tx-badge-muted' : ''}">${escapeHtml(tx.action)}</span>
+              ${fifoBadge}
             </td>
-            <td class="col-tx-shares text-right mono font-semibold text-cyan">
+            <td class="col-tx-shares text-right mono font-semibold ${isSold ? 'text-muted' : 'text-cyan'}">
               +${formatShares(tx.shares)}
+              ${sharesNote}
             </td>
             <td class="col-tx-fifo text-right mono font-semibold">
               ${isUsd 
@@ -3154,15 +3318,16 @@
       }
     }
 
-    const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
-    let opts = `<option value="all">所有標的 (${state.realizedRecords?.length || 0} 筆結算)</option>`;
-    for (const sym of symbols) {
-      const name = symNames[sym];
-      const count = counts[sym];
-      const selected = sym === currentVal ? 'selected' : '';
-      opts += `<option value="${escapeHtml(sym)}" ${selected}>${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)</option>`;
-    }
-    select.innerHTML = opts;
+    const symbols = Object.keys(counts);
+    select.innerHTML = buildCategorizedSelectOptions(symbols, {
+      selectedVal: currentVal,
+      firstOption: `<option value="all">所有標的 (${state.realizedRecords?.length || 0} 筆結算)</option>`,
+      formatLabel: (sym, q) => {
+        const name = symNames[sym] || q?.name || sym;
+        const count = counts[sym] || 0;
+        return `${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)`;
+      }
+    });
     select.value = symbols.includes(currentVal) ? currentVal : 'all';
   }
 
@@ -3291,15 +3456,16 @@
       }
     }
 
-    const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
-    let opts = `<option value="all">所有標的 (${state.dividendRecords?.length || 0} 筆發放)</option>`;
-    for (const sym of symbols) {
-      const name = symNames[sym];
-      const count = counts[sym];
-      const selected = sym === currentVal ? 'selected' : '';
-      opts += `<option value="${escapeHtml(sym)}" ${selected}>${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)</option>`;
-    }
-    select.innerHTML = opts;
+    const symbols = Object.keys(counts);
+    select.innerHTML = buildCategorizedSelectOptions(symbols, {
+      selectedVal: currentVal,
+      firstOption: `<option value="all">所有標的 (${state.dividendRecords?.length || 0} 筆發放)</option>`,
+      formatLabel: (sym, q) => {
+        const name = symNames[sym] || q?.name || sym;
+        const count = counts[sym] || 0;
+        return `${escapeHtml(sym)}${name && name !== sym ? ' - ' + escapeHtml(name) : ''} (${count} 筆)`;
+      }
+    });
     select.value = symbols.includes(currentVal) ? currentVal : 'all';
   }
 
@@ -4834,13 +5000,16 @@
     const symbolSelect = document.getElementById('adviceFilterSymbol');
     if (symbolSelect) {
       const currentVal = settings.filterSymbol;
-      const symbols = Array.from(holdingSymbolsSet).sort();
-      let optionsHtml = '<option value="all">所有標的</option>';
-      for (const sym of symbols) {
-        const name = state.holdings[sym]?.name || sym;
-        optionsHtml += `<option value="${escapeHtml(sym)}" ${sym === currentVal ? 'selected' : ''}>${escapeHtml(sym)} ${escapeHtml(name)}</option>`;
-      }
-      symbolSelect.innerHTML = optionsHtml;
+      const symbols = Array.from(holdingSymbolsSet);
+      symbolSelect.innerHTML = buildCategorizedSelectOptions(symbols, {
+        selectedVal: currentVal,
+        firstOption: '<option value="all">所有標的</option>',
+        formatLabel: (sym, q) => {
+          const name = state.holdings[sym]?.name || q?.name || sym;
+          return `${escapeHtml(sym)} ${escapeHtml(name)}`;
+        }
+      });
+      symbolSelect.value = symbols.includes(currentVal) ? currentVal : 'all';
     }
 
     // Filtering
@@ -5788,44 +5957,40 @@
     const filterSelect = document.getElementById('txFilterSymbol');
     const formSelect = document.getElementById('txFormSymbol');
     const divSelect = document.getElementById('divFormSymbol');
+    const realSelect = document.getElementById('realFormSymbol');
 
-    const symbols = Object.keys(state.quotes);
+    const symbols = Object.keys(state.quotes || {});
 
     if (filterSelect) {
-      let filterOpts = '<option value="all">所有標的</option>';
-      for (const sym of symbols) {
-        const q = state.quotes[sym];
-        filterOpts += `<option value="${sym}">${sym} - ${q.name}</option>`;
+      filterSelect.innerHTML = buildCategorizedSelectOptions(symbols, {
+        selectedVal: state.txFilterSymbol || 'all',
+        firstOption: '<option value="all">所有標的</option>',
+        formatLabel: (sym, q) => `${escapeHtml(sym)} - ${escapeHtml(q?.name || '')}`
+      });
+      if (state.txFilterSymbol && symbols.includes(state.txFilterSymbol)) {
+        filterSelect.value = state.txFilterSymbol;
       }
-      filterSelect.innerHTML = filterOpts;
     }
 
     if (formSelect) {
-      let formOpts = '<option value="" disabled selected>請選擇標的...</option>';
-      for (const sym of symbols) {
-        const q = state.quotes[sym];
-        formOpts += `<option value="${sym}">${sym} (${q.name}) - ${q.currency}</option>`;
-      }
-      formSelect.innerHTML = formOpts;
+      formSelect.innerHTML = buildCategorizedSelectOptions(symbols, {
+        firstOption: '<option value="" disabled selected>請選擇標的...</option>',
+        formatLabel: (sym, q) => `${escapeHtml(sym)} (${escapeHtml(q?.name || '')}) - ${q?.currency || 'TWD'}`
+      });
     }
 
     if (divSelect) {
-      let divOpts = '<option value="" disabled selected>請選擇標的...</option>';
-      for (const sym of symbols) {
-        const q = state.quotes[sym];
-        divOpts += `<option value="${sym}">${sym} (${q.name}) - ${q.currency}</option>`;
-      }
-      divSelect.innerHTML = divOpts;
+      divSelect.innerHTML = buildCategorizedSelectOptions(symbols, {
+        firstOption: '<option value="" disabled selected>請選擇標的...</option>',
+        formatLabel: (sym, q) => `${escapeHtml(sym)} (${escapeHtml(q?.name || '')}) - ${q?.currency || 'TWD'}`
+      });
     }
 
-    const realSelect = document.getElementById('realFormSymbol');
     if (realSelect) {
-      let realOpts = '<option value="" disabled selected>請選擇標的...</option>';
-      for (const sym of symbols) {
-        const q = state.quotes[sym];
-        realOpts += `<option value="${sym}">${sym} (${q.name}) - ${q.currency}</option>`;
-      }
-      realSelect.innerHTML = realOpts;
+      realSelect.innerHTML = buildCategorizedSelectOptions(symbols, {
+        firstOption: '<option value="" disabled selected>請選擇標的...</option>',
+        formatLabel: (sym, q) => `${escapeHtml(sym)} (${escapeHtml(q?.name || '')}) - ${q?.currency || 'TWD'}`
+      });
     }
 
     populateRealizedSymbolFilter();
