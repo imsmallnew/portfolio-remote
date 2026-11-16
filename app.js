@@ -13,24 +13,24 @@
   // Default Admin Password Hash (SHA-256)
   const DEFAULT_ADMIN_HASH = '2bb3ecae7bcfd81b4998db4c5ad96d59404ce322749969eb2a3ebf68e98bc011';
 
-  // 9 大大盤與總經指標預設基準資料
+  // 9 大大盤與總經指標預設基準資料 (以最新市場行情為基準)
   const DEFAULT_MARKET_INDICES = {
     taiex: {
       id: 'taiex',
       name: '加權指數 (TAIEX)',
       symbol: '^TWII',
       icon: '🏛️',
-      price: 43675.12,
-      change: 583.25,
-      changePct: 1.35,
-      prevClose: 43091.87,
-      open: 43719.75,
-      high: 44489.48,
-      low: 43534.12,
+      price: 42482.49,
+      change: -1192.63,
+      changePct: -2.73,
+      prevClose: 43675.12,
+      open: 43512.42,
+      high: 43512.42,
+      low: 42375.97,
       unit: '點',
       category: '台股大盤',
       wantgooUrl: 'https://www.wantgoo.com/index/0000',
-      points: [43091.87, 43719.75, 43534.12, 43980.0, 44260.0, 44489.48, 44100.0, 43850.0, 43675.12],
+      points: [43675.12, 43512.42, 43100.0, 42850.0, 42595.92, 42375.97, 42482.49],
       role: '台股大盤核心指標',
       desc: '代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。'
     },
@@ -39,17 +39,17 @@
       name: '台指期夜盤 (WTXP)',
       symbol: 'TX (夜盤)',
       icon: '🌙',
-      price: 44143.0,
-      change: 304.0,
-      changePct: 0.69,
+      price: 43246.0,
+      change: -593.0,
+      changePct: -1.35,
       prevClose: 43839.0,
       open: 43921.0,
-      high: 44231.0,
-      low: 43857.0,
+      high: 44423.0,
+      low: 42956.0,
       unit: '點',
       category: '台指期貨',
       wantgooUrl: 'https://www.wantgoo.com/futures/wtxp&',
-      points: [43839.0, 43921.0, 43857.0, 43980.0, 44090.0, 44231.0, 44180.0, 44143.0],
+      points: [43839.0, 43921.0, 44423.0, 43850.0, 43400.0, 42956.0, 43246.0],
       role: '台股次日開盤先行指針',
       desc: '交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。'
     },
@@ -58,17 +58,17 @@
       name: '美債10年期殖利率',
       symbol: 'TVC:US10Y',
       icon: '📜',
-      price: 5.12,
-      change: -0.02,
-      changePct: -0.31,
+      price: 5.15,
+      change: 0.01,
+      changePct: 0.12,
       prevClose: 5.14,
-      open: 5.13,
-      high: 5.14,
-      low: 5.12,
+      open: 5.14,
+      high: 5.16,
+      low: 5.13,
       unit: '%',
       category: '美債利率',
       wantgooUrl: 'https://www.wantgoo.com/global/us10-yr',
-      points: [5.14, 5.13, 5.14, 5.13, 5.12, 5.12, 5.12],
+      points: [5.14, 5.14, 5.13, 5.15, 5.14, 5.16, 5.15],
       role: '全球資產定價之錨 (無風險利率)',
       desc: '10年期美債殖利率是全球金融資產折現率的核心基準。殖利率自高檔回落有利股票本益比擴張與科技成長股評價；若飆升突破 4.5%~4.6% 則會引發市場資金緊縮。'
     },
@@ -96,17 +96,17 @@
       name: '美元兌台幣 (USD/TWD)',
       symbol: 'FX_IDC:USDTWD',
       icon: '💵',
-      price: 32.86,
-      change: -0.12,
-      changePct: -0.36,
-      prevClose: 32.98,
-      open: 32.98,
-      high: 32.98,
-      low: 32.83,
+      price: 32.90,
+      change: 0.02,
+      changePct: 0.06,
+      prevClose: 32.88,
+      open: 32.88,
+      high: 32.94,
+      low: 32.86,
       unit: 'TWD',
       category: '外匯匯率',
       wantgooUrl: 'https://www.wantgoo.com/global/usdtwd',
-      points: [32.98, 32.98, 32.95, 32.91, 32.88, 32.85, 32.83, 32.86],
+      points: [32.88, 32.88, 32.89, 32.91, 32.93, 32.87, 32.90],
       role: '外資熱錢進出台股風向球',
       desc: '台幣匯率與外資進出台股高度正相關。台幣升值（匯率走低）通常伴隨外資大幅匯入買超權值股；台幣走貶則引發外資調節提款匯出壓力。'
     },
@@ -115,17 +115,17 @@
       name: 'VIX 恐慌指數',
       symbol: '^VIX',
       icon: '⚡',
-      price: 18.69,
-      change: 1.21,
-      changePct: 6.92,
-      prevClose: 17.48,
-      open: 18.36,
-      high: 19.34,
-      low: 17.38,
+      price: 19.29,
+      change: 0.60,
+      changePct: 3.21,
+      prevClose: 18.69,
+      open: 18.78,
+      high: 20.92,
+      low: 17.64,
       unit: '',
       category: '美股波動率',
       wantgooUrl: 'https://www.wantgoo.com/global/vix',
-      points: [17.48, 18.36, 17.38, 17.95, 18.50, 19.34, 18.85, 18.69],
+      points: [18.69, 18.78, 17.64, 18.50, 19.34, 20.92, 19.29],
       role: '全球金融市場恐慌與波動率',
       desc: '反應標普500期權隱含波動率。指數常態低於20代表市場情緒平穩，資金風險偏好充沛，有利各類權益資產走多。'
     },
@@ -133,18 +133,18 @@
       id: 'btc',
       name: '比特幣 (BTC)',
       symbol: 'BTC/USD',
-      icon: '₿',
-      price: 68808.0,
-      change: -2651.0,
-      changePct: -3.71,
-      prevClose: 71459.0,
-      open: 71460.0,
-      high: 71514.0,
-      low: 67568.0,
+      icon: '🪙',
+      price: 64720.0,
+      change: -640.0,
+      changePct: -0.98,
+      prevClose: 65360.0,
+      open: 65351.05,
+      high: 65392.01,
+      low: 64660.0,
       unit: 'USD',
       category: '加密貨幣',
       wantgooUrl: 'https://www.wantgoo.com/global/btc',
-      points: [71459.0, 71460.0, 71514.0, 69800.0, 68200.0, 67568.0, 68400.0, 68808.0],
+      points: [65360.0, 65351.05, 65392.01, 65100.0, 64850.0, 64660.0, 64720.0],
       role: '全球資金流動性與投機胃納',
       desc: '全球 24 小時無休之風險資產指標。維持高檔強勢顯示全球市場資金寬鬆充沛、投資者冒險意願（Risk-On）高昂。'
     },
@@ -153,17 +153,17 @@
       name: '布蘭特原油 (Brent)',
       symbol: 'BZ=F',
       icon: '🛢️',
-      price: 95.91,
-      change: 0.17,
-      changePct: 0.18,
-      prevClose: 95.74,
-      open: 95.73,
-      high: 96.75,
-      low: 95.05,
+      price: 95.30,
+      change: -1.03,
+      changePct: -1.07,
+      prevClose: 96.33,
+      open: 96.33,
+      high: 96.33,
+      low: 95.17,
       unit: 'USD',
       category: '大宗商品',
       wantgooUrl: 'https://www.wantgoo.com/global/brent',
-      points: [95.74, 95.73, 95.05, 95.80, 96.40, 96.75, 96.10, 95.91],
+      points: [96.33, 96.33, 96.10, 95.80, 95.50, 95.17, 95.30],
       role: '通膨預期與實體景氣溫度計',
       desc: '國際原油平緩震盪有助於壓抑全球二次通膨壓力，為各國央行維持利率政策或啟動降息循環創造有利的總體環境。'
     },
@@ -171,18 +171,18 @@
       id: 'gold',
       name: '黃金現貨 (Gold)',
       symbol: 'GC=F / XAU',
-      icon: '🪙',
-      price: 3897.99,
-      change: 20.84,
-      changePct: 0.54,
-      prevClose: 3877.15,
-      open: 3876.40,
-      high: 3923.14,
-      low: 3875.20,
+      icon: '🥇',
+      price: 3870.88,
+      change: -12.55,
+      changePct: -0.32,
+      prevClose: 3883.43,
+      open: 3883.89,
+      high: 3901.23,
+      low: 3860.43,
       unit: 'USD',
       category: '貴金屬避險',
       wantgooUrl: 'https://www.wantgoo.com/global/gold',
-      points: [3877.15, 3876.40, 3875.20, 3895.0, 3915.0, 3923.14, 3905.0, 3897.99],
+      points: [3883.43, 3883.89, 3901.23, 3890.0, 3875.0, 3860.43, 3870.88],
       role: '終極避險與央行儲備資產',
       desc: '各國央行去美元化儲備配置與抗通膨買盤支撐金價。與股票同步走揚反應實質利率向下與資產保值配置需求。'
     }
@@ -303,10 +303,9 @@
         const res = JSON.parse(JSON.stringify(DEFAULT_MARKET_INDICES));
         if (cached && typeof cached === 'object') {
           for (const [k, v] of Object.entries(cached)) {
-            // 剔除歷史版本殘留之過期舊價（如台指期 42522 或加權指數舊值）
-            if (k === 'wtxp' && v && v.price && v.price < 43500) continue;
-            if (k === 'taiex' && v && v.price && v.price < 42500) continue;
-            if (res[k]) res[k] = Object.assign(res[k], v);
+            if (res[k] && v && typeof v === 'object' && v.price) {
+              res[k] = Object.assign(res[k], v);
+            }
           }
         }
         return res;
@@ -5244,10 +5243,8 @@
         if (!state.marketIndices[k]) state.marketIndices[k] = JSON.parse(JSON.stringify(defVal));
       }
       localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
-      if (state.activeTab === 'tab-market-indices') {
-        renderMarketIndices();
-        renderStockTechnicalAnalysis();
-      }
+      renderMarketIndices();
+      renderStockTechnicalAnalysis();
     }
   }
 
@@ -7666,6 +7663,17 @@
             state.marketIndices.wtxp.high = highP;
             state.marketIndices.wtxp.low = lowP;
             updateIntradayPoints(state.marketIndices.wtxp, close, openP, highP, lowP, prevP);
+
+            // 若加權指數掃描器仍因延遲停留在昨收且無漲跌變動，以期貨點數即時校準大盤現貨
+            if (state.marketIndices.taiex && Math.abs(chgAbs) > 10 &&
+                (state.marketIndices.taiex.price === 43675.12 && Math.abs(state.marketIndices.taiex.change) < 1)) {
+              const prevTaiex = state.marketIndices.taiex.prevClose || 43675.12;
+              const calibratedTaiex = Number((prevTaiex + chgAbs).toFixed(2));
+              state.marketIndices.taiex.price = calibratedTaiex;
+              state.marketIndices.taiex.change = chgAbs;
+              state.marketIndices.taiex.changePct = Number(((chgAbs / prevTaiex) * 100).toFixed(2));
+              updateIntradayPoints(state.marketIndices.taiex, calibratedTaiex, state.marketIndices.taiex.open, state.marketIndices.taiex.high, Math.min(state.marketIndices.taiex.low, calibratedTaiex), prevTaiex);
+            }
           }
         }
       } catch (err) {}
@@ -7831,10 +7839,8 @@
       } catch (err) {}
 
       localStorage.setItem('fubon_market_indices', JSON.stringify(state.marketIndices));
-      if (state.activeTab === 'tab-market-indices') {
-        renderMarketIndices();
-        renderStockTechnicalAnalysis();
-      }
+      renderMarketIndices();
+      renderStockTechnicalAnalysis();
     } catch (e) {
       console.warn('fetchMarketIndicesDirect notice:', e);
     }

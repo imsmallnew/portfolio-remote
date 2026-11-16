@@ -138,17 +138,17 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
       name: "加權指數 (TAIEX)",
       symbol: "^TWII",
       icon: "🏛️",
-      price: 43675.12,
-      change: 583.25,
-      changePct: 1.35,
-      prevClose: 43091.87,
-      open: 43719.75,
-      high: 44489.48,
-      low: 43534.12,
+      price: 42482.49,
+      change: -1192.63,
+      changePct: -2.73,
+      prevClose: 43675.12,
+      open: 43512.42,
+      high: 43512.42,
+      low: 42375.97,
       unit: "點",
       category: "台股大盤",
       wantgooUrl: "https://www.wantgoo.com/index/0000",
-      points: [43091.87, 43719.75, 43534.12, 43980.0, 44260.0, 44489.48, 44100.0, 43850.0, 43675.12],
+      points: [43675.12, 43512.42, 43100.0, 42850.0, 42595.92, 42375.97, 42482.49],
       role: "台股大盤核心指標",
       desc: "代表台灣全體上市股票加權總市值表現，由台積電、聯發科與鴻海等權值核心主導。目前中長天期均線呈強勢多頭排列。"
     },
@@ -157,17 +157,17 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
       name: "台指期夜盤 (WTXP)",
       symbol: "TX (夜盤)",
       icon: "🌙",
-      price: txNightLastPrice || 44143.0,
-      change: txNightLastPrice && txNightRefPrice ? (txNightLastPrice - txNightRefPrice) : 304.0,
-      changePct: txNightLastPrice && txNightRefPrice ? ((txNightLastPrice - txNightRefPrice) / txNightRefPrice * 100) : 0.69,
+      price: txNightLastPrice || 43246.0,
+      change: txNightLastPrice && txNightRefPrice ? (txNightLastPrice - txNightRefPrice) : -593.0,
+      changePct: txNightLastPrice && txNightRefPrice ? ((txNightLastPrice - txNightRefPrice) / txNightRefPrice * 100) : -1.35,
       prevClose: txNightRefPrice || 43839.0,
       open: 43921.0,
-      high: txNightHighPrice || 44231.0,
-      low: txNightLowPrice || 43857.0,
+      high: txNightHighPrice || 44423.0,
+      low: txNightLowPrice || 42956.0,
       unit: "點",
       category: "台指期貨",
       wantgooUrl: "https://www.wantgoo.com/futures/wtxp&",
-      points: [43839.0, 43921.0, 43857.0, 43980.0, 44090.0, 44231.0, 44180.0, 44143.0],
+      points: [43839.0, 43921.0, 44423.0, 43850.0, 43400.0, 42956.0, 43246.0],
       role: "台股次日開盤先行指針",
       desc: "交易時段跨越歐美盤，主要反應美股科技股動能與台積電 ADR 盤後漲跌，為次日現貨開盤最關鍵的定價前瞻參考。"
     },
@@ -176,17 +176,17 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
       name: "美債10年期殖利率",
       symbol: "TVC:US10Y",
       icon: "📜",
-      price: 5.12,
-      change: -0.02,
-      changePct: -0.31,
+      price: 5.15,
+      change: 0.01,
+      changePct: 0.12,
       prevClose: 5.14,
-      open: 5.13,
-      high: 5.14,
-      low: 5.12,
+      open: 5.14,
+      high: 5.16,
+      low: 5.13,
       unit: "%",
       category: "美國公債 / 利率",
       wantgooUrl: "https://www.wantgoo.com/global/us10-yr",
-      points: [5.14, 5.13, 5.14, 5.13, 5.12, 5.12, 5.12],
+      points: [5.14, 5.14, 5.13, 5.15, 5.14, 5.16, 5.15],
       role: "全球資產定價之錨 (無風險利率)",
       desc: "反映全球資金機會成本與降息週期路徑。殖利率自高檔回落有利舒緩科技成長股估值折現壓力，若飆升突破 4.5%~4.6% 則會引發市場資金緊縮。"
     },
@@ -214,17 +214,17 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
       name: "美元兌台幣 (USD/TWD)",
       symbol: "FX_IDC:USDTWD",
       icon: "💵",
-      price: usdRate || 32.86,
-      change: -0.12,
-      changePct: -0.36,
-      prevClose: (usdRate || 32.86) + 0.12,
-      open: (usdRate || 32.86) + 0.12,
-      high: (usdRate || 32.86) + 0.12,
-      low: (usdRate || 32.86) - 0.03,
+      price: usdRate || 32.90,
+      change: 0.02,
+      changePct: 0.06,
+      prevClose: 32.88,
+      open: 32.88,
+      high: 32.94,
+      low: 32.86,
       unit: "TWD",
       category: "外匯匯率 / 熱錢動向",
       wantgooUrl: "https://www.wantgoo.com/global/usdtwd",
-      points: [(usdRate || 32.86) + 0.12, (usdRate || 32.86) + 0.12, (usdRate || 32.86) + 0.09, (usdRate || 32.86) - 0.03, usdRate || 32.86],
+      points: [32.88, 32.88, 32.89, 32.91, 32.93, 32.87, usdRate || 32.90],
       role: "外資熱錢進出台股風向球",
       desc: "台幣匯率與外資進出台股高度正相關。台幣升值（匯率走低）通常伴隨外資大幅匯入買超權值股；台幣走貶則引發外資調節提款匯出壓力。"
     },
@@ -328,6 +328,41 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
 
   let tsmNightChangePct = null;
 
+  // 3.1 官方臺灣證券交易所 (TWSE MIS) 加權指數零延遲即時行情
+  try {
+    const twseRes = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0&_=${Date.now()}`, {
+      headers: {
+        ...headers,
+        "Referer": "https://mis.twse.com.tw/stock/fibest.jsp?lang=zh_tw"
+      }
+    });
+    if (twseRes.ok) {
+      const misJson = await twseRes.json();
+      const info = misJson?.msgArray?.[0];
+      if (info) {
+        const liveP = parseFloat(info.z || info.y);
+        const prevP = parseFloat(info.y);
+        const openP = info.o ? parseFloat(info.o) : liveP;
+        const highP = info.h ? parseFloat(info.h) : liveP;
+        const lowP = info.l ? parseFloat(info.l) : liveP;
+        if (liveP > 0 && prevP > 0) {
+          const chg = Math.round((liveP - prevP) * 100) / 100;
+          const chgPct = Math.round((chg / prevP) * 10000) / 100;
+          marketIndices.taiex.price = liveP;
+          marketIndices.taiex.prevClose = prevP;
+          marketIndices.taiex.change = chg;
+          marketIndices.taiex.changePct = chgPct;
+          marketIndices.taiex.open = openP;
+          marketIndices.taiex.high = highP;
+          marketIndices.taiex.low = lowP;
+          if (marketIndices.taiex.points && marketIndices.taiex.points.length > 0) {
+            marketIndices.taiex.points[marketIndices.taiex.points.length - 1] = liveP;
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
   // 4. TradingView Taiwan Scanner (含大盤加權指數 TWSE:IX0001)
   const twScanTickers = [...twTickers];
   if (!twScanTickers.includes("TWSE:IX0001")) twScanTickers.push("TWSE:IX0001");
@@ -354,15 +389,18 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
             const prevClose = changeAbs ? Math.round((close - changeAbs) * 100) / 100 : close;
 
             if (ticker === "TWSE:IX0001") {
-              marketIndices.taiex.price = close;
-              marketIndices.taiex.change = changeAbs;
-              marketIndices.taiex.changePct = chgPct;
-              marketIndices.taiex.prevClose = prevClose;
-              if (cols[3]) marketIndices.taiex.open = parseFloat(cols[3]);
-              if (cols[4]) marketIndices.taiex.high = parseFloat(cols[4]);
-              if (cols[5]) marketIndices.taiex.low = parseFloat(cols[5]);
-              if (marketIndices.taiex.points) {
-                marketIndices.taiex.points[marketIndices.taiex.points.length - 1] = close;
+              // 若 TWSE MIS 尚未取得即時價，則由 TradingView Scanner 填補
+              if (!marketIndices.taiex.price || marketIndices.taiex.price === 43675.12) {
+                marketIndices.taiex.price = close;
+                marketIndices.taiex.change = changeAbs;
+                marketIndices.taiex.changePct = chgPct;
+                marketIndices.taiex.prevClose = prevClose;
+                if (cols[3]) marketIndices.taiex.open = parseFloat(cols[3]);
+                if (cols[4]) marketIndices.taiex.high = parseFloat(cols[4]);
+                if (cols[5]) marketIndices.taiex.low = parseFloat(cols[5]);
+                if (marketIndices.taiex.points) {
+                  marketIndices.taiex.points[marketIndices.taiex.points.length - 1] = close;
+                }
               }
               continue;
             }
@@ -516,6 +554,65 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
         if (item.d[4]) marketIndices.btc.high = parseFloat(item.d[4]);
         if (item.d[5]) marketIndices.btc.low = parseFloat(item.d[5]);
         if (marketIndices.btc.points) marketIndices.btc.points[marketIndices.btc.points.length - 1] = close;
+      }
+    }
+  } catch (e) {}
+
+  // 7.1 Bonds Scanner: 美債10年期殖利率 (TVC:US10Y)
+  try {
+    const bondRes = await fetch("https://scanner.tradingview.com/bonds/scan", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        symbols: { tickers: ["TVC:US10Y"] },
+        columns: ["close", "change", "change_abs", "open", "high", "low"]
+      })
+    });
+    if (bondRes.ok) {
+      const bData = await bondRes.json();
+      const item = bData?.data?.[0];
+      if (item?.d && item.d[0] !== null) {
+        const close = parseFloat(item.d[0]);
+        const chgPct = item.d[1] !== null ? parseFloat(item.d[1]) : 0.0;
+        const chgAbs = item.d[2] !== null ? parseFloat(item.d[2]) : 0.0;
+        marketIndices.us10y.price = close;
+        marketIndices.us10y.change = chgAbs;
+        marketIndices.us10y.changePct = chgPct;
+        marketIndices.us10y.prevClose = parseFloat((close - chgAbs).toFixed(3));
+        if (item.d[3]) marketIndices.us10y.open = parseFloat(item.d[3]);
+        if (item.d[4]) marketIndices.us10y.high = parseFloat(item.d[4]);
+        if (item.d[5]) marketIndices.us10y.low = parseFloat(item.d[5]);
+        if (marketIndices.us10y.points) marketIndices.us10y.points[marketIndices.us10y.points.length - 1] = close;
+      }
+    }
+  } catch (e) {}
+
+  // 7.2 Forex Scanner: 美元兌台幣 (FX_IDC:USDTWD)
+  try {
+    const fxRes = await fetch("https://scanner.tradingview.com/forex/scan", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        symbols: { tickers: ["FX_IDC:USDTWD"] },
+        columns: ["close", "change", "change_abs", "open", "high", "low"]
+      })
+    });
+    if (fxRes.ok) {
+      const fxData = await fxRes.json();
+      const item = fxData?.data?.[0];
+      if (item?.d && item.d[0] !== null) {
+        const close = parseFloat(item.d[0]);
+        const chgPct = item.d[1] !== null ? parseFloat(item.d[1]) : 0.0;
+        const chgAbs = item.d[2] !== null ? parseFloat(item.d[2]) : 0.0;
+        marketIndices.usdtwd.price = close;
+        marketIndices.usdtwd.change = chgAbs;
+        marketIndices.usdtwd.changePct = chgPct;
+        marketIndices.usdtwd.prevClose = parseFloat((close - chgAbs).toFixed(3));
+        if (item.d[3]) marketIndices.usdtwd.open = parseFloat(item.d[3]);
+        if (item.d[4]) marketIndices.usdtwd.high = parseFloat(item.d[4]);
+        if (item.d[5]) marketIndices.usdtwd.low = parseFloat(item.d[5]);
+        if (marketIndices.usdtwd.points) marketIndices.usdtwd.points[marketIndices.usdtwd.points.length - 1] = close;
+        usdRate = Math.round(close * 100) / 100;
       }
     }
   } catch (e) {}
