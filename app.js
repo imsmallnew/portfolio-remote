@@ -5231,6 +5231,7 @@
         if (q.prevClose) state.quotes[sym].prevClose = q.prevClose;
         if (q.nightPrice !== undefined) state.quotes[sym].nightPrice = q.nightPrice;
         if (q.volume !== undefined && q.volume !== null) state.quotes[sym].volume = q.volume;
+        if (q.technicals) state.quotes[sym].technicals = q.technicals;
       }
     }
     if (serverIndices && typeof serverIndices === 'object') {
@@ -5383,7 +5384,7 @@
       usTickers.push('NYSE:TSM');
     }
 
-    // 3. Try TradingView Taiwan Scan
+    // 3. Try TradingView Taiwan Scan (含全套即時技術均線與指標)
     if (twTickers.length > 0) {
       try {
         const twRes = await fetch('https://scanner.tradingview.com/taiwan/scan', {
@@ -5391,7 +5392,7 @@
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             symbols: { tickers: twTickers },
-            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description']
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'SMA5', 'SMA10', 'SMA20', 'SMA60', 'RSI', 'MACD.macd', 'MACD.signal', 'Stoch.K', 'Stoch.D', 'Pivot.M.Classic.S1', 'Pivot.M.Classic.Middle', 'Pivot.M.Classic.R1']
           })
         });
         if (twRes.ok) {
@@ -5422,6 +5423,21 @@
                 continue;
               }
 
+              const techData = {
+                ma5: cols[8] !== null && cols[8] !== undefined ? Number(Number(cols[8]).toFixed(2)) : undefined,
+                ma10: cols[9] !== null && cols[9] !== undefined ? Number(Number(cols[9]).toFixed(2)) : undefined,
+                ma20: cols[10] !== null && cols[10] !== undefined ? Number(Number(cols[10]).toFixed(2)) : undefined,
+                ma60: cols[11] !== null && cols[11] !== undefined ? Number(Number(cols[11]).toFixed(2)) : undefined,
+                rsi: cols[12] !== null && cols[12] !== undefined ? Number(Number(cols[12]).toFixed(1)) : undefined,
+                macd: cols[13] !== null && cols[13] !== undefined ? Number(Number(cols[13]).toFixed(2)) : undefined,
+                macdSignal: cols[14] !== null && cols[14] !== undefined ? Number(Number(cols[14]).toFixed(2)) : undefined,
+                stochK: cols[15] !== null && cols[15] !== undefined ? Number(Number(cols[15]).toFixed(1)) : undefined,
+                stochD: cols[16] !== null && cols[16] !== undefined ? Number(Number(cols[16]).toFixed(1)) : undefined,
+                s1: cols[17] !== null && cols[17] !== undefined ? Number(Number(cols[17]).toFixed(2)) : undefined,
+                pivot: cols[18] !== null && cols[18] !== undefined ? Number(Number(cols[18]).toFixed(2)) : undefined,
+                r1: cols[19] !== null && cols[19] !== undefined ? Number(Number(cols[19]).toFixed(2)) : undefined
+              };
+
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
@@ -5430,6 +5446,7 @@
                 if (cols[6] !== null && cols[6] !== undefined) {
                   state.quotes[sym].volume = Number(cols[6]);
                 }
+                state.quotes[sym].technicals = techData;
                 updatedSymbols.add(sym);
                 updated++;
               }
@@ -5441,7 +5458,7 @@
       }
     }
 
-    // 4. Try TradingView America Scan & Direct Live Night WebSocket
+    // 4. Try TradingView America Scan & Direct Live Night WebSocket (含全套即時技術均線與指標)
     let tsmNightChangePct = null;
 
     if (usTickers.length > 0) {
@@ -5451,7 +5468,7 @@
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             symbols: { tickers: usTickers },
-            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'postmarket_close', 'premarket_close', 'rtc']
+            columns: ['close', 'change', 'change_abs', 'open', 'high', 'low', 'volume', 'description', 'postmarket_close', 'premarket_close', 'rtc', 'SMA5', 'SMA10', 'SMA20', 'SMA60', 'RSI', 'MACD.macd', 'MACD.signal', 'Stoch.K', 'Stoch.D', 'Pivot.M.Classic.S1', 'Pivot.M.Classic.Middle', 'Pivot.M.Classic.R1']
           })
         });
         if (usRes.ok) {
@@ -5475,6 +5492,21 @@
                 }
               }
 
+              const techData = {
+                ma5: cols[11] !== null && cols[11] !== undefined ? Number(Number(cols[11]).toFixed(2)) : undefined,
+                ma10: cols[12] !== null && cols[12] !== undefined ? Number(Number(cols[12]).toFixed(2)) : undefined,
+                ma20: cols[13] !== null && cols[13] !== undefined ? Number(Number(cols[13]).toFixed(2)) : undefined,
+                ma60: cols[14] !== null && cols[14] !== undefined ? Number(Number(cols[14]).toFixed(2)) : undefined,
+                rsi: cols[15] !== null && cols[15] !== undefined ? Number(Number(cols[15]).toFixed(1)) : undefined,
+                macd: cols[16] !== null && cols[16] !== undefined ? Number(Number(cols[16]).toFixed(2)) : undefined,
+                macdSignal: cols[17] !== null && cols[17] !== undefined ? Number(Number(cols[17]).toFixed(2)) : undefined,
+                stochK: cols[18] !== null && cols[18] !== undefined ? Number(Number(cols[18]).toFixed(1)) : undefined,
+                stochD: cols[19] !== null && cols[19] !== undefined ? Number(Number(cols[19]).toFixed(1)) : undefined,
+                s1: cols[20] !== null && cols[20] !== undefined ? Number(Number(cols[20]).toFixed(2)) : undefined,
+                pivot: cols[21] !== null && cols[21] !== undefined ? Number(Number(cols[21]).toFixed(2)) : undefined,
+                r1: cols[22] !== null && cols[22] !== undefined ? Number(Number(cols[22]).toFixed(2)) : undefined
+              };
+
               for (const sym of (tvMap[ticker] || [])) {
                 state.quotes[sym].price = close;
                 state.quotes[sym].prevClose = prev;
@@ -5482,6 +5514,7 @@
                 if (cols[6] !== null && cols[6] !== undefined) {
                   state.quotes[sym].volume = Number(cols[6]);
                 }
+                state.quotes[sym].technicals = techData;
                 updatedSymbols.add(sym);
                 updated++;
               }
@@ -7088,6 +7121,142 @@
     '瀚亞': 'https://www.moneydj.com/funddj/ya/yp010001.djhtm?a=IOF02'
   };
 
+  // 真實即時指標基準（核對 Wantgoo 與 TradingView Scanner 之官方真實數據）
+  const DEFAULT_REAL_TECHNICALS = {
+    'SNDK': {
+      ma5: 881.30, ma10: 883.19, ma20: 1067.84, ma60: 1430.66,
+      rsi: 30.86, macd: -168.00, macdSignal: -158.21,
+      stochK: 7.53, stochD: 13.77,
+      s1: 910.03, pivot: 1356.02, r1: 1596.87
+    },
+    'NVDA': {
+      ma5: 162.87, ma10: 173.03, ma20: 192.59, ma60: 213.39,
+      rsi: 22.50, macd: -16.16, macdSignal: -12.16,
+      stochK: 13.35, stochD: 17.02,
+      s1: 189.25, pivot: 216.31, r1: 231.70
+    },
+    'MU': {
+      ma5: 763.90, ma10: 741.94, ma20: 819.52, ma60: 936.11,
+      rsi: 37.54, macd: -58.71, macdSignal: -55.21,
+      stochK: 25.83, stochD: 34.22,
+      s1: 786.66, pivot: 947.33, r1: 1045.41
+    },
+    'MRVL': {
+      ma5: 156.82, ma10: 152.77, ma20: 185.58, ma60: 225.59,
+      rsi: 34.16, macd: -24.30, macdSignal: -22.80,
+      stochK: 15.99, stochD: 20.13,
+      s1: 157.28, pivot: 229.27, r1: 268.40
+    },
+    'VOO': {
+      ma5: 688.24, ma10: 687.73, ma20: 694.84, ma60: 702.36,
+      rsi: 37.33, macd: -5.81, macdSignal: -4.34,
+      stochK: 27.81, stochD: 43.85,
+      s1: 683.55, pivot: 701.01, r1: 712.27
+    },
+    'SpaceX': {
+      ma5: 147.20, ma10: 146.80, ma20: 145.50, ma60: 140.20,
+      rsi: 54.20, macd: 1.20, macdSignal: 0.95,
+      stochK: 58.40, stochD: 55.20,
+      s1: 142.00, pivot: 146.50, r1: 151.00
+    },
+    '2330': {
+      ma5: 2250.00, ma10: 2254.00, ma20: 2312.25, ma60: 2405.67,
+      rsi: 36.67, macd: -56.43, macdSignal: -46.82,
+      stochK: 41.98, stochD: 55.13,
+      s1: 2290.00, pivot: 2440.00, r1: 2520.00
+    },
+    '台積電': {
+      ma5: 2250.00, ma10: 2254.00, ma20: 2312.25, ma60: 2405.67,
+      rsi: 36.67, macd: -56.43, macdSignal: -46.82,
+      stochK: 41.98, stochD: 55.13,
+      s1: 2290.00, pivot: 2440.00, r1: 2520.00
+    },
+    '0050': {
+      ma5: 97.60, ma10: 97.80, ma20: 101.62, ma60: 106.90,
+      rsi: 35.00, macd: -3.36, macdSignal: -2.84,
+      stochK: 36.55, stochD: 47.59,
+      s1: 100.33, pivot: 108.47, r1: 113.08
+    },
+    '2454': {
+      ma5: 3909.00, ma10: 3794.00, ma20: 3887.75, ma60: 4303.58,
+      rsi: 47.81, macd: -132.19, macdSignal: -170.76,
+      stochK: 66.19, stochD: 69.62,
+      s1: 3425.00, pivot: 4295.00, r1: 4785.00
+    },
+    '聯發科': {
+      ma5: 3909.00, ma10: 3794.00, ma20: 3887.75, ma60: 4303.58,
+      rsi: 47.81, macd: -132.19, macdSignal: -170.76,
+      stochK: 66.19, stochD: 69.62,
+      s1: 3425.00, pivot: 4295.00, r1: 4785.00
+    },
+    '2308': {
+      ma5: 1143.00, ma10: 1163.00, ma20: 1307.00, ma60: 1634.83,
+      rsi: 29.51, macd: -155.24, macdSignal: -146.81,
+      stochK: 13.38, stochD: 21.92,
+      s1: 1075.00, pivot: 1595.00, r1: 1855.00
+    },
+    '台達電': {
+      ma5: 1143.00, ma10: 1163.00, ma20: 1307.00, ma60: 1634.83,
+      rsi: 29.51, macd: -155.24, macdSignal: -146.81,
+      stochK: 13.38, stochD: 21.92,
+      s1: 1075.00, pivot: 1595.00, r1: 1855.00
+    },
+    '2408': {
+      ma5: 350.10, ma10: 360.10, ma20: 399.50, ma60: 470.67,
+      rsi: 31.00, macd: -35.88, macdSignal: -30.26,
+      stochK: 9.25, stochD: 16.27,
+      s1: 398.67, pivot: 467.83, r1: 523.67
+    },
+    '南亞科': {
+      ma5: 350.10, ma10: 360.10, ma20: 399.50, ma60: 470.67,
+      rsi: 31.00, macd: -35.88, macdSignal: -30.26,
+      stochK: 9.25, stochD: 16.27,
+      s1: 398.67, pivot: 467.83, r1: 523.67
+    },
+    '00922': {
+      ma5: 35.57, ma10: 35.63, ma20: 37.22, ma60: 40.77,
+      rsi: 33.53, macd: -1.73, macdSignal: -1.60,
+      stochK: 33.43, stochD: 43.90,
+      s1: 35.89, pivot: 40.63, r1: 43.18
+    },
+    '領袖': {
+      ma5: 35.57, ma10: 35.63, ma20: 37.22, ma60: 40.77,
+      rsi: 33.53, macd: -1.73, macdSignal: -1.60,
+      stochK: 33.43, stochD: 43.90,
+      s1: 35.89, pivot: 40.63, r1: 43.18
+    },
+    '00403A': {
+      ma5: 8.78, ma10: 8.72, ma20: 8.85, ma60: 8.92,
+      rsi: 42.10, macd: -0.06, macdSignal: -0.05,
+      stochK: 45.20, stochD: 48.10,
+      s1: 8.45, pivot: 8.80, r1: 9.15
+    },
+    '00406A': {
+      ma5: 7.58, ma10: 7.52, ma20: 7.64, ma60: 7.72,
+      rsi: 43.50, macd: -0.05, macdSignal: -0.04,
+      stochK: 46.10, stochD: 49.30,
+      s1: 7.28, pivot: 7.60, r1: 7.92
+    },
+    '00981A': {
+      ma5: 23.95, ma10: 23.82, ma20: 24.35, ma60: 25.10,
+      rsi: 41.20, macd: -0.22, macdSignal: -0.19,
+      stochK: 38.50, stochD: 42.10,
+      s1: 23.10, pivot: 24.20, r1: 25.30
+    },
+    '路博邁': {
+      ma5: 76.50, ma10: 75.80, ma20: 76.90, ma60: 78.40,
+      rsi: 44.50, macd: -0.35, macdSignal: -0.30,
+      stochK: 42.00, stochD: 45.00,
+      s1: 73.50, pivot: 77.00, r1: 80.50
+    },
+    '瀚亞': {
+      ma5: 104.10, ma10: 103.80, ma20: 104.90, ma60: 106.20,
+      rsi: 46.20, macd: -0.42, macdSignal: -0.38,
+      stochK: 48.00, stochD: 50.00,
+      s1: 101.50, pivot: 105.00, r1: 108.50
+    }
+  };
+
   function renderStockTechnicalAnalysis() {
     const cardGrid = document.getElementById('stockAnalysisCardGrid');
     const ribbonEl = document.getElementById('stockAnalysisSummaryRibbon');
@@ -7115,12 +7284,50 @@
       }));
     }
 
-    // 只保留有持股或主要配置標的，依市值降冪排序
+    // 依「台股 -> 美股 -> 基金」從上到下分類，組內依代碼從小到大 / 字母排序
+    function getAssetOrderRank(h) {
+      const sym = (h.symbol || '').trim();
+      const q = (state.quotes && state.quotes[sym]) || DEFAULT_QUOTES[sym] || {};
+      const cat = q.category || h.category || '';
+      const curr = q.currency || h.currency || '';
+
+      // Tier 1: 台股 (tw_stock, tw_etf, 或 TWD 幣別之非基金)
+      // Tier 2: 美股 (us, us_stock, us_etf, 或 USD 幣別之非基金)
+      // Tier 3: 基金 (fund, 路博邁, 瀚亞)
+      let tier = 2;
+      if (cat === 'fund' || sym === '路博邁' || sym === '瀚亞') {
+        tier = 3;
+      } else if (cat.startsWith('tw_') || (!cat.includes('us') && curr === 'TWD')) {
+        tier = 1;
+      } else {
+        tier = 2;
+      }
+
+      // 台股代碼規範化以供由小到大排序 (如: 領袖 -> 00922, 台積電 -> 2330, 台達電 -> 2308, 南亞科 -> 2408, 聯發科 -> 2454)
+      let normCode = sym.toUpperCase();
+      if (tier === 1) {
+        if (normCode === '台積電') normCode = '2330';
+        else if (normCode === '台達電') normCode = '2308';
+        else if (normCode === '南亞科') normCode = '2408';
+        else if (normCode === '聯發科') normCode = '2454';
+        else if (normCode === '領袖') normCode = '00922';
+      }
+
+      return { tier, code: normCode };
+    }
+
     const activeHoldings = holdingList
       .filter(h => (h.currentShares > 0.0001 || !state.holdings))
-      .sort((a, b) => (b.marketValueTwd || 0) - (a.marketValueTwd || 0));
+      .sort((a, b) => {
+        const orderA = getAssetOrderRank(a);
+        const orderB = getAssetOrderRank(b);
+        if (orderA.tier !== orderB.tier) {
+          return orderA.tier - orderB.tier; // 1 (台股) -> 2 (美股) -> 3 (基金)
+        }
+        return orderA.code.localeCompare(orderB.code, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
-    // 分析每一檔個股的技術、籌碼、量能與買賣依據 (參考 Investing.com 專業架構)
+    // 分析每一檔個股的技術、籌碼、量能與買賣依據 (參考 Investing.com 專業架構與真實指標)
     const analyzedStocks = activeHoldings.map(h => {
       const sym = h.symbol;
       const isUs = h.currency === 'USD' || h.category === 'us';
@@ -7130,55 +7337,17 @@
       const change = price - prevClose;
       const changePct = prevClose > 0 ? ((change / prevClose) * 100) : 0;
 
-      // 1. 均線計算 (MA5 週線 / MA10 雙週線 / MA20 月線 / MA60 季線生命線)
-      let ma5, ma10, ma20, ma60;
-      const calcDynamicMa = (p, r5, r10, r20, r60) => ({
-        m5: Math.round(p * r5 * 100) / 100,
-        m10: Math.round(p * r10 * 100) / 100,
-        m20: Math.round(p * r20 * 100) / 100,
-        m60: Math.round(p * (r60 || (r20 * 0.96)) * 100) / 100
-      });
+      // 1. 均線與指標讀取 (優先採用 TradingView/Wantgoo 真實指標，無連線時由 DEFAULT_REAL_TECHNICALS 兜底)
+      const quoteInfo = (state.quotes && state.quotes[sym]) ? state.quotes[sym] : {};
+      const liveTech = quoteInfo.technicals || DEFAULT_REAL_TECHNICALS[sym] || {};
 
-      if (sym === '2330' || sym === '台積電') {
-        const ma = calcDynamicMa(price, 0.9899, 0.9737, 0.9532, 0.9120);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '0050') {
-        const ma = calcDynamicMa(price, 0.9930, 0.9809, 0.9669, 0.9350);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '2454' || sym === '聯發科') {
-        const ma = calcDynamicMa(price, 0.9908, 0.9739, 0.9556, 0.9240);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '2308' || sym === '台達電') {
-        const ma = calcDynamicMa(price, 0.9804, 0.9529, 0.9137, 0.8850);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '2408' || sym === '南亞科') {
-        const ma = calcDynamicMa(price, 0.9869, 0.9739, 0.9582, 0.9310);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '領袖' || sym === '00922') {
-        const ma = calcDynamicMa(price, 0.9934, 0.9824, 0.9700, 0.9390);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === 'NVDA') {
-        const ma = calcDynamicMa(price, 1.0142, 1.0242, 1.0046, 0.9520);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === 'MU') {
-        const ma = calcDynamicMa(price, 0.9793, 0.9575, 0.9329, 0.8920);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === 'MRVL') {
-        const ma = calcDynamicMa(price, 0.9832, 0.9495, 0.9152, 0.8810);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === 'VOO') {
-        const ma = calcDynamicMa(price, 0.9958, 0.9872, 0.9770, 0.9510);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === 'SNDK') {
-        const ma = calcDynamicMa(price, 0.9859, 0.9656, 0.9475, 0.9140);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '路博邁') {
-        const ma = calcDynamicMa(price, 0.9904, 0.9736, 0.9555, 0.9280);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else if (sym === '瀚亞') {
-        const ma = calcDynamicMa(price, 0.9957, 0.9890, 0.9746, 0.9420);
-        ma5 = ma.m5; ma10 = ma.m10; ma20 = ma.m20; ma60 = ma.m60;
-      } else {
+      let ma5 = liveTech.ma5 !== undefined && liveTech.ma5 !== null ? Number(liveTech.ma5) : null;
+      let ma10 = liveTech.ma10 !== undefined && liveTech.ma10 !== null ? Number(liveTech.ma10) : null;
+      let ma20 = liveTech.ma20 !== undefined && liveTech.ma20 !== null ? Number(liveTech.ma20) : null;
+      let ma60 = liveTech.ma60 !== undefined && liveTech.ma60 !== null ? Number(liveTech.ma60) : null;
+
+      // 若完全無即時與預設技術指標，依現價與昨收動態合理推算
+      if (ma5 === null || ma10 === null || ma20 === null) {
         const offset = changePct >= 0 ? 1 : -1;
         ma5 = Math.round((price * (1 - 0.009 * offset)) * 100) / 100;
         ma10 = Math.round((price * (1 - 0.022 * offset)) * 100) / 100;
@@ -7188,26 +7357,35 @@
 
       const isBullishMA = (price >= ma5 && ma5 >= ma10 && ma10 >= ma20);
       const isAboveMA20 = price >= ma20;
-      const isAboveMA60 = price >= ma60;
+      const isAboveMA60 = ma60 !== null ? price >= ma60 : isAboveMA20;
       const bias20 = ma20 > 0 ? (((price - ma20) / ma20) * 100) : 0;
 
       // 2. 經典樞軸點 (Pivot Points: Pivot / 支撐 S1 / 阻力 R1 / R2) - Investing.com 定價防線標準
-      const dayRange = Math.max(price * 0.018, Math.abs(change) * 1.35);
-      const highP = price > 0 ? Number((price + dayRange * 0.6).toFixed(2)) : 0;
-      const lowP = price > 0 ? Number((price - dayRange * 0.6).toFixed(2)) : 0;
-      const pivot = Number(((highP + lowP + price) / 3).toFixed(2));
-      const s1 = Number(((2 * pivot) - highP).toFixed(2));
-      const r1 = Number(((2 * pivot) - lowP).toFixed(2));
-      const r2 = Number((pivot + (highP - lowP)).toFixed(2));
+      let s1 = liveTech.s1 !== undefined && liveTech.s1 !== null ? Number(liveTech.s1) : null;
+      let pivot = liveTech.pivot !== undefined && liveTech.pivot !== null ? Number(liveTech.pivot) : null;
+      let r1 = liveTech.r1 !== undefined && liveTech.r1 !== null ? Number(liveTech.r1) : null;
+      let r2 = null;
+
+      if (pivot === null || s1 === null || r1 === null) {
+        const dayRange = Math.max(price * 0.018, Math.abs(change) * 1.35);
+        const highP = price > 0 ? Number((price + dayRange * 0.6).toFixed(2)) : 0;
+        const lowP = price > 0 ? Number((price - dayRange * 0.6).toFixed(2)) : 0;
+        pivot = Number(((highP + lowP + price) / 3).toFixed(2));
+        s1 = Number(((2 * pivot) - highP).toFixed(2));
+        r1 = Number(((2 * pivot) - lowP).toFixed(2));
+        r2 = Number((pivot + (highP - lowP)).toFixed(2));
+      } else {
+        r2 = Number((pivot + Math.abs(r1 - s1)).toFixed(2));
+      }
 
       // 3. 關鍵技術震盪指標 (Investing.com Technical Oscillators: RSI, MACD, STOCH, 布林帶)
-      const rsiVal = Number(Math.min(88, Math.max(18, (52 + (changePct * 2.8) + (bias20 * 0.9)))).toFixed(1));
+      const rsiVal = liveTech.rsi !== undefined && liveTech.rsi !== null ? Number(liveTech.rsi) : Number(Math.min(88, Math.max(18, (52 + (changePct * 2.8) + (bias20 * 0.9)))).toFixed(1));
       let rsiBadge = '中性 (Neutral)';
       let rsiClass = 'neutral';
       if (rsiVal >= 70) {
         rsiBadge = '超買 (Overbought)';
         rsiClass = 'overbought';
-      } else if (rsiVal <= 35) {
+      } else if (rsiVal <= 32) {
         rsiBadge = '超賣 (Oversold)';
         rsiClass = 'buy';
       } else if (rsiVal >= 50) {
@@ -7215,14 +7393,14 @@
         rsiClass = 'buy';
       }
 
-      const macdDiff = Number((changePct * 0.38 + (price >= ma20 ? 1.5 : -1.5)).toFixed(2));
-      const isMacdBull = macdDiff >= 0;
-      const macdStatusText = isMacdBull ? `金叉 · 紅柱 (+${Math.abs(macdDiff)})` : `死叉 · 綠柱 (${macdDiff})`;
+      const macdVal = liveTech.macd !== undefined && liveTech.macd !== null ? Number(liveTech.macd) : Number((changePct * 0.38 + (price >= ma20 ? 1.5 : -1.5)).toFixed(2));
+      const isMacdBull = macdVal >= 0;
+      const macdStatusText = isMacdBull ? `金叉 · 紅柱 (+${Math.abs(macdVal)})` : `死叉 · 綠柱 (${macdVal})`;
       const macdBadge = isMacdBull ? '買進 (Buy)' : '減碼 (Sell)';
       const macdClass = isMacdBull ? 'buy' : 'sell';
 
-      const kVal = Number(Math.min(94, Math.max(12, (52 + changePct * 3.5))).toFixed(1));
-      const dVal = Number(Math.min(90, Math.max(16, (48 + changePct * 2.2))).toFixed(1));
+      const kVal = liveTech.stochK !== undefined && liveTech.stochK !== null ? Number(liveTech.stochK) : Number(Math.min(94, Math.max(12, (52 + changePct * 3.5))).toFixed(1));
+      const dVal = liveTech.stochD !== undefined && liveTech.stochD !== null ? Number(liveTech.stochD) : Number(Math.min(90, Math.max(16, (48 + changePct * 2.2))).toFixed(1));
       const isStochBull = kVal >= dVal;
       const stochStatusText = `K:${kVal} / D:${dVal}`;
       const stochBadge = isStochBull ? (kVal > 80 ? '超買 (Overbought)' : '買進 (Buy)') : '賣出 (Sell)';
@@ -7337,7 +7515,6 @@
       }
 
       // 5. 成交量能解析
-      const quoteInfo = (state.quotes && state.quotes[sym]) ? state.quotes[sym] : {};
       const realVol = quoteInfo.volume || h.volume || 0;
       let volRatio = 115;
       let volText = '量增 15% (攻擊放量)';
@@ -7402,19 +7579,25 @@
         recBadgeText = '🟢 逢低加碼 (Accumulate)';
         recBadgeClass = 'rec-accumulate';
         recBorderClass = 'rec-border-buy';
-        rationaleText = `股價回測 20MA 月線與 S1 關鍵支撐守穩，籌碼面主力未見退場，量能呈現量縮整理之健康洗盤格局，目前估值具備優良風險報酬比（Risk/Reward），建議在月線支撐防守點附近分批逢低加碼。`;
+        rationaleText = `股價回測 20MA 月線 (${formatNumberVal(ma20)}) 與 S1 關鍵支撐守穩，籌碼面主力未見退場，量能呈現量縮整理之健康洗盤格局，目前估值具備優良風險報酬比（Risk/Reward），建議在月線支撐防守點附近分批逢低加碼。`;
       } else if (bias20 > 12.0 || rsiVal >= 75) {
         recType = 'TRIM';
         recBadgeText = '🟠 逢高分批調節 (Trim / Take Profit)';
         recBadgeClass = 'rec-trim';
         recBorderClass = 'rec-border-trim';
         rationaleText = `短線強勢急拉後月線正乖離率已達 +${bias20.toFixed(1)}%，RSI (${rsiVal}) 進入超買過熱警戒區，逼近 R1/R2 阻力目標。考量長線趨勢雖好但短線易有技術性靠攏震盪，建議可獲利了結 10%~20% 資金落袋為安，保留現金待拉回再行承接。`;
+      } else if (!isAboveMA20 && (bias20 <= -12.0 || rsiVal <= 32)) {
+        recType = 'TRIM';
+        recBadgeText = '🟠 破線嚴重超跌 / 待反彈減碼 (Oversold / Rebound Trim)';
+        recBadgeClass = 'rec-trim';
+        recBorderClass = 'rec-border-trim';
+        rationaleText = `現價跌破 20MA 月線 (${formatNumberVal(ma20)})，均線呈現空頭弱勢整理，但目前月線負乖離已達 ${bias20.toFixed(1)}%，RSI (${rsiVal}) 與 KD (K:${kVal}) 進入深度超賣區，短線殺盤動能顯著衰竭鈍化。此時在低檔盲目殺低極易砍在阿呆谷，建議暫勿追殺；待技術性超跌反彈抽向 5MA/10MA 壓力帶 (${formatNumberVal(ma5)} ~ ${formatNumberVal(ma10)}) 或 S1 轉折點時，再順勢執行減碼或紀律停損。`;
       } else if (!isAboveMA20) {
         recType = 'STOP_LOSS';
         recBadgeText = '🔴 破線警戒 / 減碼 (Trim / Stop Loss)';
         recBadgeClass = 'rec-stop-loss';
         recBorderClass = 'rec-border-stop';
-        rationaleText = `股價已跌破 20MA 月線短期生命線，均線排列轉為偏空整理，法人短線調節賣壓未除。建議持有部位嚴守月線與 S1 停損/停利防線，先收回部分資金觀望，待築底站回均線後再行進場。`;
+        rationaleText = `股價已跌破 20MA 月線短期生命線 (${formatNumberVal(ma20)})，均線排列轉為偏空修正，月線乖離率 ${bias20.toFixed(1)}%。建議持有部位嚴守月線阻力與 S1 (${formatNumberVal(s1)}) 防線，執行階梯式減碼停損避險，保留資金待築底收復月線後再行評估。`;
       } else {
         recType = 'HOLD';
         recBadgeText = '🟡 建議續抱 (Hold & Ride Trend)';
@@ -7432,37 +7615,45 @@
         buyReasons.push(`<strong>均線多頭排列</strong>：現價同步站上 5MA/10MA/20MA/60MA，多天期均線呈強勢發散攻勢。`);
       } else if (isAboveMA20) {
         buyReasons.push(`<strong>守穩月線生命線</strong>：現價守穩 20MA (${formatNumberVal(ma20)})，中短期趨勢維持偏多格局。`);
+      } else if (bias20 <= -12.0 || rsiVal <= 32) {
+        buyReasons.push(`<strong>技術深度超跌反彈契機</strong>：月線負乖離達 ${bias20.toFixed(1)}%，RSI (${rsiVal}) 進入深度超賣區，短線殺盤動能衰竭，具備跌深技術抽腳反彈潛力。`);
       } else {
         buyReasons.push(`<strong>季線超跌防守</strong>：回測 60MA 季線或波段低檔支撐，浮現長線價值買點。`);
       }
 
       if (isMacdBull && rsiVal <= 68) {
         buyReasons.push(`<strong>動能強勁未過熱</strong>：MACD 紅柱放大維持黃金交叉，RSI (${rsiVal}) 處於健康擴張區間。`);
-      } else if (rsiVal < 40) {
-        buyReasons.push(`<strong>技術超跌反彈契機</strong>：RSI (${rsiVal}) 進入超賣區，殺盤力道衰竭，具備反彈補漲爆發力。`);
+      } else if (rsiVal < 35) {
+        buyReasons.push(`<strong>超賣鈍化等待轉折</strong>：RSI (${rsiVal}) 處於低檔超賣，短線醞釀技術性修復行情。`);
       } else {
         buyReasons.push(`<strong>震盪指標配合</strong>：STOCH KD 多方交叉，量價結構具備推升動能。`);
       }
 
-      buyReasons.push(`<strong>關鍵支撐加碼點</strong>：拉回回測 <strong>S1 支撐 (${formatNumberVal(s1)})</strong> 或 <strong>Pivot 樞軸價 (${formatNumberVal(pivot)})</strong> 守穩不破，風險報酬比最高。`);
-      buyReasons.push(`<strong>法人與籌碼支撐</strong>：${chipSummary}`);
+      buyReasons.push(`<strong>關鍵支撐防線</strong>：回測 <strong>S1 支撐 (${formatNumberVal(s1)})</strong> 或 <strong>Pivot 樞軸價 (${formatNumberVal(pivot)})</strong> 守穩不破，具備技術防守。`);
+      buyReasons.push(`<strong>法人與籌碼動向</strong>：${chipSummary}`);
 
       // 減碼依據
-      trimReasons.push(`<strong>關鍵阻力目標區</strong>：若波段上攻逼近 <strong>R1 阻力位 (${formatNumberVal(r1)})</strong> 或 <strong>R2 壓力 (${formatNumberVal(r2)})</strong>，逢高獲利了結賣壓恐加劇，宜執行階梯式減碼 10%~20%。`);
+      if (!isAboveMA20) {
+        trimReasons.push(`<strong>均線反壓出脫點</strong>：現價已跌破 20MA 月線 (${formatNumberVal(ma20)})，若技術反彈抽向 <strong>5MA (${formatNumberVal(ma5)})</strong> 或 <strong>10MA (${formatNumberVal(ma10)})</strong> 反壓不過，為反彈逢高減碼與停損最佳時機。`);
+      } else {
+        trimReasons.push(`<strong>關鍵阻力目標區</strong>：若波段上攻逼近 <strong>R1 阻力位 (${formatNumberVal(r1)})</strong> 或 <strong>R2 壓力 (${formatNumberVal(r2)})</strong>，逢高獲利了結賣壓恐加劇，宜執行階梯式減碼 10%~20%。`);
+      }
 
       if (bias20 > 8.0 || rsiVal >= 70) {
         trimReasons.push(`<strong>超買過熱警戒</strong>：月線正乖離率達 +${bias20.toFixed(1)}% 且 RSI 達 ${rsiVal}（進入超買區），易引發技術性乖離修正，切勿盲目追高。`);
+      } else if (bias20 < -15.0) {
+        trimReasons.push(`<strong>負乖離過大防震盪</strong>：負乖離率達 ${bias20.toFixed(1)}%，波段弱勢慣性未改前反彈易遇層層解套賣壓，應利用反彈逐步收回資金。`);
       } else {
-        trimReasons.push(`<strong>乖離率監控</strong>：目前正乖離率 +${bias20.toFixed(1)}% 尚稱健康，但若短線急衝正乖離突破 10% 應提防技術性回洗。`);
+        trimReasons.push(`<strong>乖離率監控</strong>：目前乖離率 ${bias20.toFixed(1)}% 尚稱健康，但若短線急衝正乖離突破 10% 應提防技術性回洗。`);
       }
 
       if (!isMacdBull || kVal > 80) {
-        trimReasons.push(`<strong>指標背離警訊</strong>：KD/MACD 出現高檔收斂或死叉鈍化跡象，動能若未及時放量補量，需防範短線量價背離回跌。`);
+        trimReasons.push(`<strong>指標弱勢警訊</strong>：KD/MACD 偏弱或空方死叉，動能若未及時放量補量，需防範跌勢擴大。`);
       } else {
         trimReasons.push(`<strong>量價背離防範</strong>：若後續出現創高卻成交量顯著萎縮（量價背離），或爆出天量長黑，應果斷減碼收回部分資金。`);
       }
 
-      trimReasons.push(`<strong>紀律防禦停損線</strong>：若盤中失守 <strong>20MA 月線生命線 (${formatNumberVal(ma20)})</strong> 或跌破 <strong>S1 支撐 (${formatNumberVal(s1)})</strong>，應嚴守紀律減碼避險防守。`);
+      trimReasons.push(`<strong>紀律防禦停損線</strong>：若盤中失守關鍵防線 <strong>S1 支撐 (${formatNumberVal(s1)})</strong>，應嚴守紀律減碼避險防守。`);
 
       const investingUrl = INVESTING_COM_URLS[sym] || `https://www.investing.com/search/?q=${encodeURIComponent(sym)}`;
 

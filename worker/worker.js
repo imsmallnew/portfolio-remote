@@ -374,7 +374,7 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           symbols: { tickers: twScanTickers },
-          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description"]
+          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description", "SMA5", "SMA10", "SMA20", "SMA60", "RSI", "MACD.macd", "MACD.signal", "Stoch.K", "Stoch.D", "Pivot.M.Classic.S1", "Pivot.M.Classic.Middle", "Pivot.M.Classic.R1"]
         })
       });
       if (twRes.ok) {
@@ -409,12 +409,28 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
               ? Math.round(close * (1.0 + txNightChangePct) * (close >= 100 ? 10 : 100)) / (close >= 100 ? 10 : 100)
               : close;
 
+            const techData = {
+              ma5: cols[8] !== null && cols[8] !== undefined ? Math.round(parseFloat(cols[8]) * 100) / 100 : undefined,
+              ma10: cols[9] !== null && cols[9] !== undefined ? Math.round(parseFloat(cols[9]) * 100) / 100 : undefined,
+              ma20: cols[10] !== null && cols[10] !== undefined ? Math.round(parseFloat(cols[10]) * 100) / 100 : undefined,
+              ma60: cols[11] !== null && cols[11] !== undefined ? Math.round(parseFloat(cols[11]) * 100) / 100 : undefined,
+              rsi: cols[12] !== null && cols[12] !== undefined ? Math.round(parseFloat(cols[12]) * 10) / 10 : undefined,
+              macd: cols[13] !== null && cols[13] !== undefined ? Math.round(parseFloat(cols[13]) * 100) / 100 : undefined,
+              macdSignal: cols[14] !== null && cols[14] !== undefined ? Math.round(parseFloat(cols[14]) * 100) / 100 : undefined,
+              stochK: cols[15] !== null && cols[15] !== undefined ? Math.round(parseFloat(cols[15]) * 10) / 10 : undefined,
+              stochD: cols[16] !== null && cols[16] !== undefined ? Math.round(parseFloat(cols[16]) * 10) / 10 : undefined,
+              s1: cols[17] !== null && cols[17] !== undefined ? Math.round(parseFloat(cols[17]) * 100) / 100 : undefined,
+              pivot: cols[18] !== null && cols[18] !== undefined ? Math.round(parseFloat(cols[18]) * 100) / 100 : undefined,
+              r1: cols[19] !== null && cols[19] !== undefined ? Math.round(parseFloat(cols[19]) * 100) / 100 : undefined
+            };
+
             for (const sym of (tvMap[ticker] || [])) {
               results[sym] = {
                 price: close,
                 prevClose: prevClose,
                 nightPrice: nightP,
                 volume: cols[6] !== null ? parseFloat(cols[6]) : null,
+                technicals: techData,
                 source: "TradingView",
                 updatedAt: new Date().toISOString()
               };
@@ -433,7 +449,7 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           symbols: { tickers: usTickers },
-          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description", "postmarket_close", "premarket_close", "rtc"]
+          columns: ["close", "change", "change_abs", "open", "high", "low", "volume", "description", "postmarket_close", "premarket_close", "rtc", "SMA5", "SMA10", "SMA20", "SMA60", "RSI", "MACD.macd", "MACD.signal", "Stoch.K", "Stoch.D", "Pivot.M.Classic.S1", "Pivot.M.Classic.Middle", "Pivot.M.Classic.R1"]
         })
       });
       if (usRes.ok) {
@@ -455,12 +471,28 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
               tsmNightChangePct = (parseFloat(liveNight) - close) / close;
             }
 
+            const techData = {
+              ma5: cols[11] !== null && cols[11] !== undefined ? Math.round(parseFloat(cols[11]) * 100) / 100 : undefined,
+              ma10: cols[12] !== null && cols[12] !== undefined ? Math.round(parseFloat(cols[12]) * 100) / 100 : undefined,
+              ma20: cols[13] !== null && cols[13] !== undefined ? Math.round(parseFloat(cols[13]) * 100) / 100 : undefined,
+              ma60: cols[14] !== null && cols[14] !== undefined ? Math.round(parseFloat(cols[14]) * 100) / 100 : undefined,
+              rsi: cols[15] !== null && cols[15] !== undefined ? Math.round(parseFloat(cols[15]) * 10) / 10 : undefined,
+              macd: cols[16] !== null && cols[16] !== undefined ? Math.round(parseFloat(cols[16]) * 100) / 100 : undefined,
+              macdSignal: cols[17] !== null && cols[17] !== undefined ? Math.round(parseFloat(cols[17]) * 100) / 100 : undefined,
+              stochK: cols[18] !== null && cols[18] !== undefined ? Math.round(parseFloat(cols[18]) * 10) / 10 : undefined,
+              stochD: cols[19] !== null && cols[19] !== undefined ? Math.round(parseFloat(cols[19]) * 10) / 10 : undefined,
+              s1: cols[20] !== null && cols[20] !== undefined ? Math.round(parseFloat(cols[20]) * 100) / 100 : undefined,
+              pivot: cols[21] !== null && cols[21] !== undefined ? Math.round(parseFloat(cols[21]) * 100) / 100 : undefined,
+              r1: cols[22] !== null && cols[22] !== undefined ? Math.round(parseFloat(cols[22]) * 100) / 100 : undefined
+            };
+
             for (const sym of (tvMap[ticker] || [])) {
               results[sym] = {
                 price: close,
                 prevClose: prevClose,
                 nightPrice: nightP,
                 volume: cols[6] !== null ? parseFloat(cols[6]) : null,
+                technicals: techData,
                 source: "TradingView (BOATS 夜盤)",
                 updatedAt: new Date().toISOString()
               };
