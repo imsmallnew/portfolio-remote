@@ -5964,6 +5964,62 @@ body[data-show-reserves="false"] .sensitive-reserves {
   gap: 6px;
 }
 
+/* 觀測站可折疊樣式與標籤超連結 */
+.events-radar-collapsible-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity 0.2s ease;
+}
+
+.macro-events-radar-card.is-collapsed .events-radar-collapsible-body {
+  display: none !important;
+}
+
+.macro-events-radar-card.is-collapsed .events-radar-toggle-arrow {
+  transform: rotate(-90deg);
+}
+
+.news-tag-link {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #38bdf8;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.news-tag-link:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.5);
+  text-decoration: underline;
+}
+
+.news-external-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.73rem;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 4px;
+  align-self: flex-start;
+  transition: color var(--transition-fast);
+}
+
+.news-external-link-btn:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
 
 
 

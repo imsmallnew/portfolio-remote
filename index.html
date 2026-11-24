@@ -1297,15 +1297,19 @@
 
         <!-- 即時重磅焦點事件、社群輿情與三大法人觀測站 (Major Events & Sentiment Radar) -->
         <div class="macro-events-radar-card" id="macroEventsRadarCard">
-          <div class="events-radar-header">
+          <div class="events-radar-header" id="eventsRadarToggleHeader" style="cursor: pointer;" title="點擊展開或收合重大事件與輿情觀測站">
             <div class="events-radar-title-group">
               <div class="events-radar-icon">🔥</div>
               <div>
-                <h3 class="events-radar-title">即時重磅事件與社群焦點輿情觀測站</h3>
+                <h3 class="events-radar-title">
+                  <span>即時重磅事件與社群焦點輿情觀測站</span>
+                  <span class="events-radar-toggle-arrow" id="eventsRadarToggleArrow" style="font-size: 0.8rem; margin-left: 6px; transition: transform var(--transition-fast);">▼</span>
+                </h3>
                 <p class="events-radar-subtitle">川普推特發文 (@realDonaldTrump) · 巴逆逆反指標 · 哲哲多空觀點 · 證交所三大法人買賣日報 · 關鍵字焦點新聞</p>
               </div>
             </div>
-            <div class="events-radar-actions">
+            <div class="events-radar-actions" onclick="event.stopPropagation()">
+              <span id="eventsRadarUpdatedAt" class="mono text-tertiary-xs" style="color:var(--text-tertiary); font-size:0.75rem; margin-right:8px;">最後更新時間: 2026-11-24 16:52:30</span>
               <button type="button" class="btn btn-secondary btn-xs" id="btnRefreshEventsRadar" title="重新整理最新焦點事件與社群情報">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M23 4v6h-6"></path>
@@ -1314,11 +1318,16 @@
                 </svg>
                 <span>更新輿情</span>
               </button>
+              <button type="button" class="btn btn-ghost btn-xs" id="btnToggleEventsRadar" title="展開或收合觀測專區">
+                <span id="eventsRadarToggleBtnText">收合</span>
+              </button>
             </div>
           </div>
 
-          <!-- 4 大即時焦點情報樞紐卡片網格 -->
-          <div class="events-hub-grid" id="eventsHubGrid">
+          <!-- 可折疊的主體內容容器 -->
+          <div class="events-radar-collapsible-body" id="eventsRadarCollapsibleBody">
+            <!-- 4 大即時焦點情報樞紐卡片網格 -->
+            <div class="events-hub-grid" id="eventsHubGrid">
             <!-- 1. 川普政策焦點卡 -->
             <div class="events-hub-card" id="hubCardTrump">
               <div class="hub-card-header">
@@ -1445,6 +1454,7 @@
             <!-- Injected by renderMajorEventsRadar() -->
           </div>
         </div>
+      </div>
 
         <!-- 9 大大盤與總經指標卡片網格 -->
         <div class="market-indices-grid" id="marketIndicesGrid">

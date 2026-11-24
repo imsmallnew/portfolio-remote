@@ -6961,12 +6961,121 @@
     return state.institutionalInvestors || null;
   }
 
+  function formatCurrentEventsTimestamp() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const y = d.getFullYear();
+    const m = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const h = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    const s = pad(d.getSeconds());
+    return `${y}-${m}-${day} ${h}:${min}:${s}`;
+  }
+
+  function getKeywordSearchUrl(tag) {
+    const clean = tag.replace(/^#/, '').trim();
+    const directUrls = {
+      '川普關稅': 'https://news.google.com/search?q=' + encodeURIComponent('川普 關稅 台灣 半導體') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      'USMCA': 'https://news.google.com/search?q=' + encodeURIComponent('川普 USMCA 墨西哥 關稅') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '晶片法案': 'https://news.google.com/search?q=' + encodeURIComponent('美國 晶片法案 台積電') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '美墨加協定': 'https://news.google.com/search?q=' + encodeURIComponent('川普 美墨加協定 關稅') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '三大法人': 'https://www.twse.com.tw/zh/trading/foreign/bfi82u.html',
+      '外資提款': 'https://news.google.com/search?q=' + encodeURIComponent('台股 外資 賣超 提款') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '投信護盤': 'https://news.google.com/search?q=' + encodeURIComponent('投信 買超 護盤 台股') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '台積電': 'https://www.wantgoo.com/stock/2330',
+      '期貨空單': 'https://www.wantgoo.com/futures/wtxp&',
+      '巴逆逆': 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+      '反指標神人': 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+      '東方神秘力量': 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+      '散戶恐慌': 'https://news.google.com/search?q=' + encodeURIComponent('台股 散戶 恐慌 融資') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant',
+      '阿呆谷': 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+      '郭哲榮': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      '哲哲': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      '美債送分題': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      '三萬點起點': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      '預告在前': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      '新台幣匯率': 'https://www.wantgoo.com/global/usdtwd',
+      '強勢美元': 'https://www.wantgoo.com/global/dxy',
+      '美債殖利率': 'https://www.wantgoo.com/global/us10y',
+      '央行防線': 'https://news.google.com/search?q=' + encodeURIComponent('央行 新台幣 匯率 防線') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant'
+    };
+    return directUrls[clean] || ('https://news.google.com/search?q=' + encodeURIComponent(clean + ' 股市') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant');
+  }
+
+  function getSourceDirectUrl(category) {
+    const urls = {
+      'trump': 'https://x.com/realDonaldTrump',
+      'twse': 'https://www.twse.com.tw/zh/trading/foreign/bfi82u.html',
+      'banini': 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+      'zhezhe': 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+      'macro': 'https://www.wantgoo.com/global/usdtwd'
+    };
+    return urls[category] || 'https://news.google.com/search?q=' + encodeURIComponent('台股 重大事件') + '&hl=zh-TW&gl=TW&ceid=TW:zh-Hant';
+  }
+
   function renderMajorEventsRadar() {
     const newsContainer = document.getElementById('eventsNewsList');
     const tabsContainer = document.getElementById('eventsFilterTabs');
     const btnRefresh = document.getElementById('btnRefreshEventsRadar');
     const twseDetailEl = document.getElementById('hubTwseDetailText');
     const twseDateEl = document.getElementById('hubTwseDateLabel');
+    const radarCard = document.getElementById('macroEventsRadarCard');
+    const headerToggle = document.getElementById('eventsRadarToggleHeader');
+    const btnToggle = document.getElementById('btnToggleEventsRadar');
+    const btnToggleText = document.getElementById('eventsRadarToggleBtnText');
+    const timestampEl = document.getElementById('eventsRadarUpdatedAt');
+
+    // Update timestamp on first render if empty
+    if (timestampEl && !timestampEl.dataset.initialized) {
+      timestampEl.dataset.initialized = 'true';
+      timestampEl.textContent = `最後更新時間: ${formatCurrentEventsTimestamp()}`;
+    }
+
+    // Initialize or toggle collapse state
+    const setCollapsedState = (isCollapsed) => {
+      if (!radarCard) return;
+      if (isCollapsed) {
+        radarCard.classList.add('is-collapsed');
+        if (btnToggleText) btnToggleText.textContent = '展開';
+      } else {
+        radarCard.classList.remove('is-collapsed');
+        if (btnToggleText) btnToggleText.textContent = '收合';
+      }
+      try {
+        localStorage.setItem('fubon_events_radar_collapsed', isCollapsed ? '1' : '0');
+      } catch (e) {}
+    };
+
+    // Restore saved collapse state on initial load
+    if (radarCard && !radarCard.dataset.collapseInitialized) {
+      radarCard.dataset.collapseInitialized = 'true';
+      const savedCollapsed = localStorage.getItem('fubon_events_radar_collapsed') === '1';
+      if (savedCollapsed) {
+        setCollapsedState(true);
+      }
+    }
+
+    const toggleCollapse = (e) => {
+      if (e && (e.target.closest('#btnRefreshEventsRadar') || e.target.closest('#eventsRadarUpdatedAt'))) {
+        return;
+      }
+      if (!radarCard) return;
+      const isCurrentlyCollapsed = radarCard.classList.contains('is-collapsed');
+      setCollapsedState(!isCurrentlyCollapsed);
+    };
+
+    if (headerToggle && !headerToggle.dataset.bound) {
+      headerToggle.dataset.bound = 'true';
+      headerToggle.addEventListener('click', toggleCollapse);
+    }
+    if (btnToggle && !btnToggle.dataset.bound) {
+      btnToggle.dataset.bound = 'true';
+      btnToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleCollapse(e);
+      });
+    }
 
     // Update TWSE live numbers in Hub Card if available
     const inst = state.institutionalInvestors;
@@ -6984,10 +7093,14 @@
     // Bind Refresh Button
     if (btnRefresh && !btnRefresh.dataset.bound) {
       btnRefresh.dataset.bound = 'true';
-      btnRefresh.addEventListener('click', async () => {
+      btnRefresh.addEventListener('click', async (e) => {
+        e.stopPropagation();
         btnRefresh.classList.add('is-loading');
         btnRefresh.innerHTML = `<span style="display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; vertical-align:middle; margin-right:4px;"></span>更新中...`;
         await fetchTwseBfi82uDirect();
+        if (timestampEl) {
+          timestampEl.textContent = `最後更新時間: ${formatCurrentEventsTimestamp()}`;
+        }
         renderMajorEventsRadar();
         renderMarketIndices();
         btnRefresh.classList.remove('is-loading');
@@ -7029,7 +7142,7 @@
         <div class="events-news-item" id="news-${it.id}">
           <div class="news-item-top">
             <div class="news-item-tags">
-              ${it.tags.map(t => `<span class="news-tag">${escapeHtml(t)}</span>`).join('')}
+              ${it.tags.map(t => `<a href="${getKeywordSearchUrl(t)}" target="_blank" rel="noopener noreferrer" class="news-tag news-tag-link" title="點擊搜尋關鍵字相關最新報導">${escapeHtml(t)} ↗</a>`).join('')}
             </div>
             <div class="news-item-meta">
               <span class="${it.impactClass}" style="font-weight:700;">${it.impactBadge}</span>
@@ -7040,6 +7153,11 @@
           <h4 class="news-item-title">${escapeHtml(it.title)}</h4>
           <p class="news-item-content">${escapeHtml(it.content)}</p>
           <div class="news-item-impact">${escapeHtml(it.analysis)}</div>
+          <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+            <a href="${it.sourceUrl || getSourceDirectUrl(it.category)}" target="_blank" rel="noopener noreferrer" class="news-external-link-btn" title="查看原始社群貼文或官方公開數據">
+              🔗 查看最新貼文／官方新聞數據原文 ↗
+            </a>
+          </div>
         </div>
       `).join('');
     }
@@ -7191,23 +7309,11 @@
       riskMode = '市場保守防禦 (Risk-Off)';
     }
 
-    // 組合三段式深度解讀 HTML (9大總經 + 重大政經社群焦點 + 目前股市發展總結)
-    const inst = state.institutionalInvestors;
-    const foreignDiffYi = inst && inst.foreign ? `${(inst.foreign.diff / 1e8).toFixed(1)} 億` : '-503.9 億';
-    const trustDiffYi = inst && inst.trust ? `+${(inst.trust.diff / 1e8).toFixed(1)} 億` : '+84.0 億';
-
+    // 組合量化走勢與股市發展實戰指南 HTML (9大總經走勢 + 目前股市發展總結)
     const insightsHtml = `
       <div class="macro-summary-section">
         <div class="macro-summary-section-title">📊 9 大總經與大盤關鍵量化走勢</div>
         ${insights.map(s => `<p class="mb-1" style="font-size:0.82rem; line-height:1.5;">${s}</p>`).join('')}
-      </div>
-
-      <div class="macro-summary-section">
-        <div class="macro-summary-section-title">🔥 重大政經焦點與社群輿情深度共振</div>
-        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🏛️ <strong>川普關稅放話 (@realDonaldTrump)</strong>：宣布對墨加25%、對中加徵10%關稅並點名台灣晶片保護費，推升強勢美元，致使新興市場與台股短線承受匯率避險賣壓。</p>
-        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🏦 <strong>三大法人籌碼結構 (TWSE BFI82U)</strong>：外資期現貨偏空避險（單日賣超 ${foreignDiffYi}、空單維持高檔）；但本土投信逆勢加碼 ${trustDiffYi} 連買護盤，呈現典型「外資大提款、內資接籌碼」之土洋對作整理格局。</p>
-        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🧙‍♀️ <strong>巴逆逆神秘反指標 (DieWithoutBang)</strong>：粉專最新發文自嘲「吃土認賠、庫存又砍在阿呆谷」，散戶恐慌殺低情緒高漲。歷史經驗顯示散戶極端絕望常為波段窒息量轉折點，醞釀跌深技術抽腳契機。</p>
-        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🎯 <strong>郭哲榮 (哲哲) 多頭信心 (YouTube 社群)</strong>：哲哲高調喊出「兩萬點是起點直奔三萬點，長天期美債是送分題」，有效穩固內資被動買盤信心，防止市場陷入非理性恐慌多殺多。</p>
       </div>
 
       <div class="macro-summary-section">
