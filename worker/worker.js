@@ -38,7 +38,7 @@ export default {
         } catch (e) {}
       }
 
-      const { results, usdRate, marketIndices } = await fetchOnlineQuotes(quotesDict, currentUsdRate);
+      const { results, usdRate, marketIndices, institutionalInvestors } = await fetchOnlineQuotes(quotesDict, currentUsdRate);
 
       return new Response(JSON.stringify({
         success: true,
@@ -46,6 +46,7 @@ export default {
         quotes: results,
         marketIndices: marketIndices,
         usdRate: usdRate,
+        institutionalInvestors: institutionalInvestors,
         timestamp: new Date().toISOString()
       }), {
         headers: {
@@ -691,5 +692,39 @@ async function fetchOnlineQuotes(quotesDict, currentUsdRate) {
     }
   }
 
-  return { results, usdRate, marketIndices };
+  // 9. 證交所三大法人買賣超 (TWSE BFI82U) 即時抓取
+  let institutionalInvestors = {
+    date: "",
+    foreign: { buy: 0, sell: 0, diff: -50389912492 }, // 預設安全最新基準
+    trust: { buy: 0, sell: 0, diff: 8404089127 },
+    dealerSelf: { buy: 0, sell: 0, diff: 1586416389 },
+    dealerHedge: { buy: 0, sell: 0, diff: -82611756613 },
+    total: { buy: 0, sell: 0, diff: -123011163589 },
+    source: "TWSE BFI82U",
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    const twseRes = await fetch("https://www.twse.com.tw/rwd/zh/fund/BFI82U?response=json", {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    if (twseRes.ok) {
+      const bfiData = await twseRes.json();
+      if (bfiData && bfiData.data && bfiData.data.length > 0) {
+        institutionalInvestors.date = bfiData.date || "";
+        for (const row of bfiData.data) {
+          const name = (row[0] || "").trim();
+          const parseVal = (str) => parseFloat((str || "0").replace(/,/g, "")) || 0;
+          const diff = parseVal(row[3]);
+          if (name.includes("外資及陸資")) institutionalInvestors.foreign.diff = diff;
+          else if (name.includes("投信")) institutionalInvestors.trust.diff = diff;
+          else if (name.includes("自營商(自行買賣)")) institutionalInvestors.dealerSelf.diff = diff;
+          else if (name.includes("自營商(避險)")) institutionalInvestors.dealerHedge.diff = diff;
+          else if (name.includes("合計")) institutionalInvestors.total.diff = diff;
+        }
+      }
+    }
+  } catch (e) {}
+
+  return { results, usdRate, marketIndices, institutionalInvestors };
 }

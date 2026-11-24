@@ -1295,6 +1295,157 @@
           </div>
         </div>
 
+        <!-- 即時重磅焦點事件、社群輿情與三大法人觀測站 (Major Events & Sentiment Radar) -->
+        <div class="macro-events-radar-card" id="macroEventsRadarCard">
+          <div class="events-radar-header">
+            <div class="events-radar-title-group">
+              <div class="events-radar-icon">🔥</div>
+              <div>
+                <h3 class="events-radar-title">即時重磅事件與社群焦點輿情觀測站</h3>
+                <p class="events-radar-subtitle">川普推特發文 (@realDonaldTrump) · 巴逆逆反指標 · 哲哲多空觀點 · 證交所三大法人買賣日報 · 關鍵字焦點新聞</p>
+              </div>
+            </div>
+            <div class="events-radar-actions">
+              <button type="button" class="btn btn-secondary btn-xs" id="btnRefreshEventsRadar" title="重新整理最新焦點事件與社群情報">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6"></path>
+                  <path d="M1 20v-6h6"></path>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>更新輿情</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 大即時焦點情報樞紐卡片網格 -->
+          <div class="events-hub-grid" id="eventsHubGrid">
+            <!-- 1. 川普政策焦點卡 -->
+            <div class="events-hub-card" id="hubCardTrump">
+              <div class="hub-card-header">
+                <div class="hub-card-title-row">
+                  <span class="hub-card-icon">🏛️</span>
+                  <div>
+                    <div class="hub-card-name">川普社群政策發文</div>
+                    <div class="hub-card-author">@realDonaldTrump (X / Truth)</div>
+                  </div>
+                </div>
+                <span class="hub-card-badge badge-down" id="badgeTrumpStatus">關稅極限施壓</span>
+              </div>
+              <div class="hub-card-body">
+                <div>宣稱對墨加加徵25%關稅、對中加徵10%額外關稅；並點名台灣半導體應繳保護費，引發科技權值劇烈波動。</div>
+                <div class="hub-card-impact" style="color:#fb923c;">
+                  <strong>⚡ 盤勢影響：</strong>短線壓抑高估值晶片股，推升強勢美元與外資避險賣壓。
+                </div>
+              </div>
+              <div class="hub-card-footer">
+                <span class="hub-card-stat" style="color:var(--text-tertiary);">國際政經焦點</span>
+                <a href="https://x.com/realDonaldTrump" target="_blank" rel="noopener noreferrer" class="hub-link-btn" title="前往川普官方 X (Twitter) 發文專頁">
+                  <span>直達 @realDonaldTrump</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- 2. 巴逆逆反指標卡 -->
+            <div class="events-hub-card" id="hubCardBanini">
+              <div class="hub-card-header">
+                <div class="hub-card-title-row">
+                  <span class="hub-card-icon">🧙‍♀️</span>
+                  <div>
+                    <div class="hub-card-name">巴逆逆反向指標</div>
+                    <div class="hub-card-author">吃土鋁繩-巴逆逆 (Facebook)</div>
+                  </div>
+                </div>
+                <span class="hub-card-badge badge-up" id="badgeBaniniStatus">散戶恐慌見底訊號</span>
+              </div>
+              <div class="hub-card-body">
+                <div>最新發文哀號「吃土了、又砍在阿呆谷、東方神秘力量不講武德」，散戶投降融資斷頭氣氛濃厚。</div>
+                <div class="hub-card-impact" style="color:#34d399;">
+                  <strong>🎯 反指標判定：</strong>散戶極端絕望常為波段窒息量轉折點，醞釀技術抽腳。
+                </div>
+              </div>
+              <div class="hub-card-footer">
+                <span class="hub-card-stat" style="color:#10b981;">神秘東方護盤中</span>
+                <a href="https://www.facebook.com/DieWithoutBang/?locale=zh_TW" target="_blank" rel="noopener noreferrer" class="hub-link-btn" title="前往巴逆逆官方 Facebook 粉專">
+                  <span>直達巴逆逆粉專</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- 3. 哲哲名師觀點卡 -->
+            <div class="events-hub-card" id="hubCardZhezhe">
+              <div class="hub-card-header">
+                <div class="hub-card-title-row">
+                  <span class="hub-card-icon">🎯</span>
+                  <div>
+                    <div class="hub-card-name">郭哲榮 (哲哲) 戰情</div>
+                    <div class="hub-card-author">摩爾證券投顧 (YouTube)</div>
+                  </div>
+                </div>
+                <span class="hub-card-badge badge-up" id="badgeZhezheStatus">兩萬起點 · 奔三萬點</span>
+              </div>
+              <div class="hub-card-body">
+                <div>社群貼文強調「預告在前，印證在後！兩萬點是起點直奔三萬點；美債是天上掉下來的送分題，大跌你敢買嗎？」</div>
+                <div class="hub-card-impact" style="color:#38bdf8;">
+                  <strong>📢 信心效應：</strong>多頭死多軍軍心大振，內資散戶高股息與美債ETF買盤源源不絕。
+                </div>
+              </div>
+              <div class="hub-card-footer">
+                <span class="hub-card-stat" style="color:#38bdf8;">多頭信心定海神針</span>
+                <a href="https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts" target="_blank" rel="noopener noreferrer" class="hub-link-btn" title="前往哲哲 YouTube 社群貼文">
+                  <span>直達哲哲頻道社群</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- 4. 三大法人買賣超卡 -->
+            <div class="events-hub-card" id="hubCardTwse">
+              <div class="hub-card-header">
+                <div class="hub-card-title-row">
+                  <span class="hub-card-icon">🏦</span>
+                  <div>
+                    <div class="hub-card-name">三大法人買賣超日報</div>
+                    <div class="hub-card-author">證交所官方即時 (BFI82U)</div>
+                  </div>
+                </div>
+                <span class="hub-card-badge badge-neutral" id="badgeTwseStatus">土洋劇烈對作</span>
+              </div>
+              <div class="hub-card-body">
+                <div id="hubTwseDetailText">外資賣超 503.9億 (期貨空單避險)；投信連買 84.0億 (逢低逆勢護盤)；自營避險賣超 826.1億，合計賣超 1230.1億。</div>
+                <div class="hub-card-impact" style="color:#94a3b8;">
+                  <strong>⚖️ 籌碼結構：</strong>外資匯出提款但本土投信死守，加權指數量縮回測季線支撐。
+                </div>
+              </div>
+              <div class="hub-card-footer">
+                <span class="hub-card-stat mono" id="hubTwseDateLabel" style="color:var(--text-tertiary);">TWSE 今日盤後</span>
+                <a href="https://www.twse.com.tw/zh/trading/foreign/bfi82u.html" target="_blank" rel="noopener noreferrer" class="hub-link-btn" title="前往證交所三大法人買賣金額統計表">
+                  <span>直達證交所買賣表</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 即時關鍵字與新聞焦點動態彙整流 -->
+          <div class="events-feed-header">
+            <div class="events-feed-tabs" id="eventsFilterTabs">
+              <button type="button" class="events-feed-pill active" data-filter="all">全部焦點 (5)</button>
+              <button type="button" class="events-feed-pill" data-filter="trump">🏛️ 川普政策 (@realDonaldTrump)</button>
+              <button type="button" class="events-feed-pill" data-filter="banini">🧙‍♀️ 巴逆逆反指標 (DieWithoutBang)</button>
+              <button type="button" class="events-feed-pill" data-filter="zhezhe">🎯 哲哲觀點 (郭哲榮分析師)</button>
+              <button type="button" class="events-feed-pill" data-filter="twse">🏦 三大法人籌碼 (BFI82U)</button>
+              <button type="button" class="events-feed-pill" data-filter="macro">📰 財經關鍵焦點</button>
+            </div>
+          </div>
+
+          <!-- 新聞項目動態容器 -->
+          <div class="events-news-grid" id="eventsNewsList">
+            <!-- Injected by renderMajorEventsRadar() -->
+          </div>
+        </div>
+
         <!-- 9 大大盤與總經指標卡片網格 -->
         <div class="market-indices-grid" id="marketIndicesGrid">
           <!-- 9 Cards rendered dynamically by renderMarketIndices() -->

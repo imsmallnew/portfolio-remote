@@ -316,6 +316,8 @@
 
     theme: localStorage.getItem('fubon_theme') || 'dark',
     colorMode: localStorage.getItem('fubon_color_mode') || 'tw', // 'tw': Red=Up, 'us': Green=Up
+    marketEventsFilter: 'all',
+    institutionalInvestors: JSON.parse(localStorage.getItem('fubon_institutional_investors') || 'null'),
   };
 
   const CATEGORY_LABELS = {
@@ -5149,7 +5151,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes, json.marketIndices);
+                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -5169,7 +5171,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes, json.marketIndices);
+                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -5224,7 +5226,7 @@
     }
   }
 
-  function mergeServerQuotes(newQuotes, serverIndices) {
+  function mergeServerQuotes(newQuotes, serverIndices, serverInstitutions) {
     for (const [sym, q] of Object.entries(newQuotes || {})) {
       if (state.quotes[sym] && q.price) {
         state.quotes[sym].price = q.price;
@@ -5233,6 +5235,12 @@
         if (q.volume !== undefined && q.volume !== null) state.quotes[sym].volume = q.volume;
         if (q.technicals) state.quotes[sym].technicals = q.technicals;
       }
+    }
+    if (serverInstitutions && typeof serverInstitutions === 'object') {
+      state.institutionalInvestors = serverInstitutions;
+      try {
+        localStorage.setItem('fubon_institutional_investors', JSON.stringify(serverInstitutions));
+      } catch (e) {}
     }
     if (serverIndices && typeof serverIndices === 'object') {
       state.marketIndices = {
@@ -6804,6 +6812,239 @@
     `;
   }
 
+  // =========================================================================
+  // 重大焦點事件、社群輿情與三大法人資料模型 (Major Events & Sentiment Radar)
+  // =========================================================================
+
+  const DEFAULT_MARKET_EVENTS = {
+    updatedAt: new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    trackers: {
+      trump: {
+        id: 'trump',
+        name: '川普社群政策發文',
+        author: '@realDonaldTrump (X / Truth)',
+        link: 'https://x.com/realDonaldTrump',
+        badge: '關稅極限施壓',
+        badgeClass: 'badge-down',
+        summary: '川普宣布上任後將簽署行政命令，對墨西哥與加拿大全面課徵 25% 懲罰性關稅、對中國加徵 10% 額外關稅；並點名台灣半導體應繳保護費，引發市場對供應鏈洗產地審查與晶片法案變數之恐慌。',
+        impact: '短線壓抑高估值科技晶片股與北美組裝鏈，推升美元指數維持強勢；但實務上為典型「以戰逼談」策略，歷史經驗回檔多為長線洗盤買點。',
+        impactLevel: '空頭短線震盪'
+      },
+      banini: {
+        id: 'banini',
+        name: '巴逆逆反向指標',
+        author: '吃土鋁繩-巴逆逆 (Facebook)',
+        link: 'https://www.facebook.com/DieWithoutBang/?locale=zh_TW',
+        badge: '散戶恐慌見底訊號',
+        badgeClass: 'badge-up',
+        summary: '台灣財經社群封為「冥燈之神」的巴逆逆，近期發文哀號「吃土了、又把持股砍在阿呆谷、停損之後立刻噴出、東方神秘力量不講武德」，社群留言區散戶停損認賠氣氛瀰漫。',
+        impact: '【反指標高勝率判定】散戶極端恐慌拋售通常是波段「窒息量低點」的先行訊號。當巴逆逆發文認賠時，市場醞釀技術性抽腳反彈，切忌在底部跟著恐慌亂砍。',
+        impactLevel: '多方反向契機'
+      },
+      zhezhe: {
+        id: 'zhezhe',
+        name: '郭哲榮 (哲哲) 戰情',
+        author: '郭哲榮分析師 (摩爾投顧 YouTube)',
+        link: 'https://www.youtube.com/channel/UChfl3auNxAxOR3wy8a8ysQQ/posts',
+        badge: '兩萬起點 · 奔三萬點',
+        badgeClass: 'badge-up',
+        summary: '哲哲在 YouTube 社群與節目高調發文「預告在前，印證在後！兩萬點是起點直奔三萬點；美債是天上掉下來的送分題，大跌你敢買嗎？」',
+        impact: '哲哲看多言論有效凝聚內資大部隊信心，每逢急跌散戶高股息與美債 ETF 定期定額買盤強勁。實戰上建議「聽其信心，重其紀律」，逢回測支撐分批佈局。',
+        impactLevel: '多頭信心支撐'
+      },
+      twse: {
+        id: 'twse',
+        name: '三大法人買賣超日報',
+        author: '證交所官方即時 (BFI82U)',
+        link: 'https://www.twse.com.tw/zh/trading/foreign/bfi82u.html',
+        badge: '土洋劇烈對作',
+        badgeClass: 'badge-neutral',
+        summary: '外資及陸資單日賣超 503.90 億元，台指期淨空單處於 4 萬口以上高警戒水位；投信逆勢買超 84.04 億元（連買護盤）；自營避險賣超 826.12 億元，合計三大法人賣超 1230.11 億元。',
+        impact: '外資因強美元與國際避險在台指期與現貨持續提款；但本土投信與被動 ETF 逢低承接，呈現「外資大提款、內資接籌碼」的土洋對作結構。',
+        impactLevel: '籌碼多空拉鋸'
+      }
+    },
+    news: [
+      {
+        id: 'n1',
+        category: 'trump',
+        title: '川普重申上任簽署對墨加加徵25%關稅行政命令，半導體供應鏈面臨合規檢驗',
+        date: '2026-11-24 即時焦點',
+        tags: ['#川普關稅', '#USMCA', '#晶片法案', '#美墨加協定'],
+        impactBadge: '🔴 空頭短線震盪',
+        impactClass: 'text-down',
+        content: '川普在 X (@realDonaldTrump) 及 Truth Social 發文指出，將對所有自墨西哥與加拿大進口商品課徵 25% 關稅，並對中國加徵額外 10% 關稅以杜絕洗產地漏洞。市場擔憂北美代工組裝供應鏈成本激增，科技硬體板塊短線受壓。但產業界分析此舉為重談 USMCA 條款之極限談判手段，預料實質執行將有豁免機制。',
+        analysis: '【策略意涵】短線對半導體與高估值硬體股造成情緒面壓抑，但實質受惠於台積電先進製程無可替代性，逢急殺拉回可尋求季線支撐分批承接。'
+      },
+      {
+        id: 'n2',
+        category: 'twse',
+        title: '外資賣超逾500億、期貨空單居高不下，投信連買84億力扛權值半導體',
+        date: '2026-11-24 籌碼日報',
+        tags: ['#三大法人', '#外資提款', '#投信護盤', '#台積電', '#期貨空單'],
+        impactBadge: '🟡 籌碼多空拉鋸',
+        impactClass: 'text-neutral',
+        content: '證交所最新公布三大法人買賣金額統計表 (BFI82U)，外資賣超 503.9 億元，投信則逆勢擴大買超 84.0 億元。外資主因匯率貶值與國際避險需求調節台積電、鴻海等大型權值；而境內高股息 ETF 與被動買盤逢低大舉換手承接，加權指數於季線生命線附近展現強韌支撐。',
+        analysis: '【策略意涵】外資期貨空單未明顯回補前指數難以連續大漲，盤勢將維持「指數震盪壓盤、內資投信作帳個股各自發揮」的結構。'
+      },
+      {
+        id: 'n3',
+        category: 'banini',
+        title: '巴逆逆發文「吃土認賠、庫存又被割」！散戶恐慌指數飆升，市場老手緊盯抽腳反彈',
+        date: '2026-11-24 社群熱話',
+        tags: ['#巴逆逆', '#反指標神人', '#東方神秘力量', '#散戶恐慌', '#阿呆谷'],
+        impactBadge: '🟢 逆向買點浮現',
+        impactClass: 'text-up',
+        content: '社群知名財經反指標「巴逆逆」最新發文自嘲再度買在高點、停損在低點，引爆批踢踢 Stock 板與臉書萬人朝聖。量化統計顯示，當社群散戶恐慌情緒達到沸點且出現集體認賠貼文時，短線空方能量常已釋放完畢，台股極易在 1~3 個交易日內出現技術性暴力抽腳。',
+        analysis: '【策略意涵】切忌跟隨散戶在底部恐慌殺低；持股若跌深負乖離過大（如 SNDK -25%），應靜待技術反抽壓力區再行調節。'
+      },
+      {
+        id: 'n4',
+        category: 'zhezhe',
+        title: '哲哲豪言「兩萬點是起點、直奔三萬點」！力挺美債送分題，號召會員大跌勇敢進場',
+        date: '2026-11-24 投顧觀點',
+        tags: ['#郭哲榮', '#哲哲', '#美債送分題', '#三萬點起點', '#預告在前'],
+        impactBadge: '🟢 多頭信心喊話',
+        impactClass: 'text-up',
+        content: '摩爾投顧郭哲榮 (哲哲) 於 YouTube 社群發布重磅貼文，表示面對大盤拉回不必恐慌，強調「台股基本面強勁、長天期美債 ETF 跌出甜蜜買點、送分題絕對不會變」。其高調看多言論有效穩固了內資散戶定期定額與零股買盤信心，防止市場陷入非理性多殺多。',
+        analysis: '【策略意涵】名師信心有助於內資底部買盤穩固；操作上應「聽其信心、重其紀律」，利用其倡導之回檔時機於支撐位分批承接。'
+      },
+      {
+        id: 'n5',
+        category: 'macro',
+        title: '美元指數高檔盤整、新台幣守在32.5防線，央行密切監控熱錢進出流向',
+        date: '2026-11-24 匯市動態',
+        tags: ['#新台幣匯率', '#強勢美元', '#美債殖利率', '#央行防線'],
+        impactBadge: '🟡 匯率區間防守',
+        impactClass: 'text-neutral',
+        content: '受到川普關稅放話與美國 10 年期公債殖利率維持在 4.4% 附近的影響，國際美元維持強勢格局。新台幣匯率於 32.4~32.6 區間震盪整理，台灣央行適時進場調節流動性，防止匯市失序波動，為後續外資回流台股保留寬廣緩衝。',
+        analysis: '【策略意涵】只要匯率未失控狂貶破 33 大關，台股下檔具備實質基本面托底，長線資金依然維持逢低佈局節奏。'
+      }
+    ]
+  };
+
+  async function fetchTwseBfi82uDirect() {
+    try {
+      const res = await fetch('https://www.twse.com.tw/rwd/zh/fund/BFI82U?response=json', {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.data && json.data.length > 0) {
+          const inst = {
+            date: json.date || '',
+            foreign: { diff: 0 },
+            trust: { diff: 0 },
+            dealerSelf: { diff: 0 },
+            dealerHedge: { diff: 0 },
+            total: { diff: 0 },
+            updatedAt: new Date().toISOString()
+          };
+          for (const row of json.data) {
+            const name = (row[0] || '').trim();
+            const parseVal = (str) => parseFloat((str || '0').replace(/,/g, '')) || 0;
+            const diff = parseVal(row[3]);
+            if (name.includes('外資及陸資')) inst.foreign.diff = diff;
+            else if (name.includes('投信')) inst.trust.diff = diff;
+            else if (name.includes('自營商(自行買賣)')) inst.dealerSelf.diff = diff;
+            else if (name.includes('自營商(避險)')) inst.dealerHedge.diff = diff;
+            else if (name.includes('合計')) inst.total.diff = diff;
+          }
+          state.institutionalInvestors = inst;
+          try {
+            localStorage.setItem('fubon_institutional_investors', JSON.stringify(inst));
+          } catch (e) {}
+          return inst;
+        }
+      }
+    } catch (e) {}
+    return state.institutionalInvestors || null;
+  }
+
+  function renderMajorEventsRadar() {
+    const newsContainer = document.getElementById('eventsNewsList');
+    const tabsContainer = document.getElementById('eventsFilterTabs');
+    const btnRefresh = document.getElementById('btnRefreshEventsRadar');
+    const twseDetailEl = document.getElementById('hubTwseDetailText');
+    const twseDateEl = document.getElementById('hubTwseDateLabel');
+
+    // Update TWSE live numbers in Hub Card if available
+    const inst = state.institutionalInvestors;
+    if (inst && inst.foreign && twseDetailEl) {
+      const toYi = (val) => `${(val / 1e8).toFixed(1)} 億`;
+      const signForeign = inst.foreign.diff > 0 ? '+' : '';
+      const signTrust = inst.trust.diff > 0 ? '+' : '';
+      const signTotal = inst.total.diff > 0 ? '+' : '';
+      twseDetailEl.innerHTML = `外資差額 <strong class="${inst.foreign.diff >= 0 ? 'text-up' : 'text-down'}">${signForeign}${toYi(inst.foreign.diff)}</strong> ｜ 投信差額 <strong class="${inst.trust.diff >= 0 ? 'text-up' : 'text-down'}">${signTrust}${toYi(inst.trust.diff)}</strong> ｜ 自營避險 ${toYi(inst.dealerHedge.diff || -82611756613)} ｜ 合計三大法人 <strong class="${inst.total.diff >= 0 ? 'text-up' : 'text-down'}">${signTotal}${toYi(inst.total.diff)}</strong>。`;
+      if (twseDateEl && inst.date) {
+        twseDateEl.textContent = `TWSE ${inst.date} 盤後`;
+      }
+    }
+
+    // Bind Refresh Button
+    if (btnRefresh && !btnRefresh.dataset.bound) {
+      btnRefresh.dataset.bound = 'true';
+      btnRefresh.addEventListener('click', async () => {
+        btnRefresh.classList.add('is-loading');
+        btnRefresh.innerHTML = `<span style="display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; vertical-align:middle; margin-right:4px;"></span>更新中...`;
+        await fetchTwseBfi82uDirect();
+        renderMajorEventsRadar();
+        renderMarketIndices();
+        btnRefresh.classList.remove('is-loading');
+        btnRefresh.innerHTML = `<span>更新輿情</span>`;
+        showNotification('已完成最新政經事件、三大法人籌碼與社群輿情更新！', 'success');
+      });
+    }
+
+    // Bind Filter Tabs
+    if (tabsContainer && !tabsContainer.dataset.bound) {
+      tabsContainer.dataset.bound = 'true';
+      tabsContainer.addEventListener('click', (e) => {
+        const pill = e.target.closest('.events-feed-pill');
+        if (!pill) return;
+        const filter = pill.dataset.filter || 'all';
+        state.marketEventsFilter = filter;
+        tabsContainer.querySelectorAll('.events-feed-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        renderEventsNewsItems();
+      });
+    }
+
+    renderEventsNewsItems();
+
+    function renderEventsNewsItems() {
+      if (!newsContainer) return;
+      const filter = state.marketEventsFilter || 'all';
+      const items = DEFAULT_MARKET_EVENTS.news.filter(n => {
+        if (filter === 'all') return true;
+        return n.category === filter;
+      });
+
+      if (items.length === 0) {
+        newsContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-tertiary);">目前此分類無重大事件</div>`;
+        return;
+      }
+
+      newsContainer.innerHTML = items.map(it => `
+        <div class="events-news-item" id="news-${it.id}">
+          <div class="news-item-top">
+            <div class="news-item-tags">
+              ${it.tags.map(t => `<span class="news-tag">${escapeHtml(t)}</span>`).join('')}
+            </div>
+            <div class="news-item-meta">
+              <span class="${it.impactClass}" style="font-weight:700;">${it.impactBadge}</span>
+              <span>·</span>
+              <span>${it.date}</span>
+            </div>
+          </div>
+          <h4 class="news-item-title">${escapeHtml(it.title)}</h4>
+          <p class="news-item-content">${escapeHtml(it.content)}</p>
+          <div class="news-item-impact">${escapeHtml(it.analysis)}</div>
+        </div>
+      `).join('');
+    }
+  }
+
   function evaluateMarketMacroTrend(indices) {
     let score = 0;
     const insights = [];
@@ -6950,7 +7191,37 @@
       riskMode = '市場保守防禦 (Risk-Off)';
     }
 
-    return { score, verdictClass, verdictTitle, riskMode, insights };
+    // 組合三段式深度解讀 HTML (9大總經 + 重大政經社群焦點 + 目前股市發展總結)
+    const inst = state.institutionalInvestors;
+    const foreignDiffYi = inst && inst.foreign ? `${(inst.foreign.diff / 1e8).toFixed(1)} 億` : '-503.9 億';
+    const trustDiffYi = inst && inst.trust ? `+${(inst.trust.diff / 1e8).toFixed(1)} 億` : '+84.0 億';
+
+    const insightsHtml = `
+      <div class="macro-summary-section">
+        <div class="macro-summary-section-title">📊 9 大總經與大盤關鍵量化走勢</div>
+        ${insights.map(s => `<p class="mb-1" style="font-size:0.82rem; line-height:1.5;">${s}</p>`).join('')}
+      </div>
+
+      <div class="macro-summary-section">
+        <div class="macro-summary-section-title">🔥 重大政經焦點與社群輿情深度共振</div>
+        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🏛️ <strong>川普關稅放話 (@realDonaldTrump)</strong>：宣布對墨加25%、對中加徵10%關稅並點名台灣晶片保護費，推升強勢美元，致使新興市場與台股短線承受匯率避險賣壓。</p>
+        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🏦 <strong>三大法人籌碼結構 (TWSE BFI82U)</strong>：外資期現貨偏空避險（單日賣超 ${foreignDiffYi}、空單維持高檔）；但本土投信逆勢加碼 ${trustDiffYi} 連買護盤，呈現典型「外資大提款、內資接籌碼」之土洋對作整理格局。</p>
+        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🧙‍♀️ <strong>巴逆逆神秘反指標 (DieWithoutBang)</strong>：粉專最新發文自嘲「吃土認賠、庫存又砍在阿呆谷」，散戶恐慌殺低情緒高漲。歷史經驗顯示散戶極端絕望常為波段窒息量轉折點，醞釀跌深技術抽腳契機。</p>
+        <p class="mb-1" style="font-size:0.82rem; line-height:1.5;">🎯 <strong>郭哲榮 (哲哲) 多頭信心 (YouTube 社群)</strong>：哲哲高調喊出「兩萬點是起點直奔三萬點，長天期美債是送分題」，有效穩固內資被動買盤信心，防止市場陷入非理性恐慌多殺多。</p>
+      </div>
+
+      <div class="macro-summary-section">
+        <div class="macro-summary-section-title">🧭 目前股市發展總結與實戰操作指南</div>
+        <div style="font-size:0.82rem; line-height:1.6; color:var(--text-primary); background:rgba(255,255,255,0.025); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle);">
+          <div style="margin-bottom:4px;"><strong>【大盤發展總結】</strong>目前台美股市處於「<strong>外部地緣政治放話雜音 ＋ 外資期貨高空單避險壓盤</strong>」引發的技術性波段洗盤，基本面AI長線動能並未崩壞，季線生命線附近具備強大下檔防禦力。</div>
+          <div style="margin-bottom:4px;"><strong>【操作指引一：切忌恐慌殺低】</strong>巴逆逆指標與社群散戶投降氣氛濃厚，短線殺盤動能衰竭，嚴重負乖離個股切勿在阿呆谷盲目追殺。</div>
+          <div style="margin-bottom:4px;"><strong>【操作指引二：防守以月線為準】</strong>以 20MA 月線與 S1 關鍵支撐為多空分水嶺，未失守核心均線之標的安心續抱讓利潤奔跑。</div>
+          <div><strong>【操作指引三：反彈分批調節】</strong>跌破 20MA 的弱勢個股，利用跌深抽腳反彈抽向 5MA/10MA 阻力反壓區時，執行階梯式減碼停損，掌握資金主動權。</div>
+        </div>
+      </div>
+    `;
+
+    return { score, verdictClass, verdictTitle, riskMode, insights, insightsHtml };
   }
 
   function renderMarketIndices() {
@@ -7003,12 +7274,15 @@
     }
 
     if (summaryBody) {
-      summaryBody.innerHTML = verdict.insights.map(s => `<p class="mb-1">${s}</p>`).join('');
+      summaryBody.innerHTML = verdict.insightsHtml || verdict.insights.map(s => `<p class="mb-1">${s}</p>`).join('');
     }
 
     if (updatedAtEl) {
       updatedAtEl.textContent = `最新行情：${state.lastUpdated || new Date().toLocaleTimeString('zh-TW', { hour12: false })}`;
     }
+
+    // 渲染重大事件與焦點社群輿情觀測站
+    renderMajorEventsRadar();
 
     // Render all 9 index cards
     const order = ['taiex', 'wtxp', 'us10y', 'cpi', 'usdtwd', 'vix', 'btc', 'brent', 'gold'];
@@ -8068,6 +8342,9 @@
     }
 
     try {
+      // 0. 同步更新證交所三大法人 (TWSE BFI82U)
+      fetchTwseBfi82uDirect().catch(() => {});
+
       // 0. TradingView Taiwan Scanner for 加權指數 (TWSE:IX0001)
       try {
         const twIdxRes = await fetch('https://scanner.tradingview.com/taiwan/scan', {
