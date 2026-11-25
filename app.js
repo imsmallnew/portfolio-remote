@@ -318,6 +318,7 @@
     colorMode: localStorage.getItem('fubon_color_mode') || 'tw', // 'tw': Red=Up, 'us': Green=Up
     marketEventsFilter: 'all',
     institutionalInvestors: JSON.parse(localStorage.getItem('fubon_institutional_investors') || 'null'),
+    marketEvents: JSON.parse(localStorage.getItem('fubon_market_events') || 'null'),
   };
 
   const CATEGORY_LABELS = {
@@ -5151,7 +5152,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors);
+                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors, json.marketEvents);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -5171,7 +5172,7 @@
             if (res.ok) {
               const json = await res.json();
               if (json.success && json.quotes) {
-                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors);
+                mergeServerQuotes(json.quotes, json.marketIndices, json.institutionalInvestors, json.marketEvents);
                 if (json.usdRate) state.usdRate = json.usdRate;
                 return json.updatedCount || Object.keys(json.quotes).length;
               }
@@ -5226,7 +5227,7 @@
     }
   }
 
-  function mergeServerQuotes(newQuotes, serverIndices, serverInstitutions) {
+  function mergeServerQuotes(newQuotes, serverIndices, serverInstitutions, serverMarketEvents) {
     for (const [sym, q] of Object.entries(newQuotes || {})) {
       if (state.quotes[sym] && q.price) {
         state.quotes[sym].price = q.price;
@@ -5240,6 +5241,12 @@
       state.institutionalInvestors = serverInstitutions;
       try {
         localStorage.setItem('fubon_institutional_investors', JSON.stringify(serverInstitutions));
+      } catch (e) {}
+    }
+    if (serverMarketEvents && typeof serverMarketEvents === 'object') {
+      state.marketEvents = serverMarketEvents;
+      try {
+        localStorage.setItem('fubon_market_events', JSON.stringify(serverMarketEvents));
       } catch (e) {}
     }
     if (serverIndices && typeof serverIndices === 'object') {
@@ -6961,6 +6968,94 @@
     return state.institutionalInvestors || null;
   }
 
+  // =========================================================================
+  // 即時市場焦點事件、社群輿情與三大法人動態獲取引擎 (Live Sentiment Aggregator)
+  // =========================================================================
+
+  async function fetchLiveMarketEvents() {
+    let fetched = false;
+
+    // 1. 優先嘗試 Cloudflare Worker 即時聚合端點
+    const workerUrl = window.REMOTE_ACCESS_CONFIG?.workerQuoteUrl;
+    const endpoints = [];
+    if (workerUrl && workerUrl.startsWith('http')) {
+      const base = workerUrl.replace(/\/quotes\/refresh|\/api\/quotes\/refresh|\/?$/, '');
+      endpoints.push(`${base}/api/sentiment/latest`);
+    }
+    endpoints.push(IS_FILE_MODE ? 'http://localhost:8088/api/sentiment/latest' : '/api/sentiment/latest');
+
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.marketEvents) {
+            state.marketEvents = json.marketEvents;
+            if (json.institutionalInvestors) {
+              state.institutionalInvestors = json.institutionalInvestors;
+            }
+            try {
+              localStorage.setItem('fubon_market_events', JSON.stringify(json.marketEvents));
+            } catch (e) {}
+            fetched = true;
+            break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 2. 前端純瀏覽器直連後備方案 (無 Worker 或 Worker 離線時保證即時性)
+    if (!fetched) {
+      if (!state.marketEvents) {
+        state.marketEvents = JSON.parse(JSON.stringify(DEFAULT_MARKET_EVENTS));
+      }
+      // A. 直連臺灣證券交易所 BFI82U 三大法人
+      try {
+        await fetchTwseBfi82uDirect();
+      } catch (e) {}
+
+      // B. 透過官方開放 rss2json 抓取哲哲 YouTube 最新影片
+      try {
+        const ytRes = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.youtube.com/feeds/videos.xml?channel_id=UChfl3auNxAxOR3wy8a8ysQQ'));
+        if (ytRes.ok) {
+          const data = await ytRes.json();
+          if (data.status === 'ok' && data.items && data.items.length > 0) {
+            const first = data.items[0];
+            const ytTitle = first.title || '';
+            const ytLink = first.link || '';
+            const pubDate = (first.pubDate || '').slice(0, 16);
+            if (ytTitle) {
+              state.marketEvents.trackers.zhezhe.summary = `最新節目發布【${ytTitle}】！哲哲高調喊話預告在前印證在後，號召大跌勇敢進場承接優質股與美債送分題。`;
+              state.marketEvents.trackers.zhezhe.link = ytLink;
+              state.marketEvents.trackers.zhezhe.date = pubDate || '今日最新';
+
+              const ytItem = {
+                id: 'yt-zhezhe-latest',
+                category: 'zhezhe',
+                title: `哲哲最新發布：${ytTitle}`,
+                date: pubDate || '今日最新',
+                tags: ['#郭哲榮', '#哲哲', '#摩爾投顧', '#美債送分題', '#三萬點起點'],
+                impactBadge: '🟢 多頭信心喊話',
+                impactClass: 'text-up',
+                content: `郭哲榮分析師於 YouTube 官方頻道發布最新節目【${ytTitle}】，強調基本面並未反轉，跌深即是最大的利多，持續鼓舞內資多頭部隊信心。`,
+                analysis: '【策略意涵】名師信心有助於穩定市場籌碼，逢拉回測支撐可分批佈局。',
+                sourceUrl: ytLink
+              };
+              const existsIdx = state.marketEvents.news.findIndex(n => n.id === 'yt-zhezhe-latest');
+              if (existsIdx >= 0) {
+                state.marketEvents.news[existsIdx] = ytItem;
+              } else {
+                state.marketEvents.news.unshift(ytItem);
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    return state.marketEvents;
+  }
+
   function formatCurrentEventsTimestamp() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, '0');
@@ -7077,7 +7172,71 @@
       });
     }
 
-    // Update TWSE live numbers in Hub Card if available
+    // 取得當前即時情報模型
+    const events = state.marketEvents || DEFAULT_MARKET_EVENTS;
+    const trackers = events.trackers || DEFAULT_MARKET_EVENTS.trackers;
+
+    // 1. 川普政策焦點卡動態更新
+    const hubTrump = document.getElementById('hubCardTrump');
+    if (hubTrump && trackers.trump) {
+      const badge = hubTrump.querySelector('.hub-card-badge');
+      const bodyDiv = hubTrump.querySelector('.hub-card-body > div:first-child');
+      const impactDiv = hubTrump.querySelector('.hub-card-impact');
+      const statSpan = hubTrump.querySelector('.hub-card-stat');
+      const linkBtn = hubTrump.querySelector('.hub-link-btn');
+      if (badge && trackers.trump.badge) {
+        badge.textContent = trackers.trump.badge;
+        badge.className = `hub-card-badge ${trackers.trump.badgeClass || 'badge-down'}`;
+      }
+      if (bodyDiv && trackers.trump.summary) bodyDiv.textContent = trackers.trump.summary;
+      if (impactDiv && trackers.trump.impact) {
+        impactDiv.innerHTML = `<strong>⚡ 盤勢影響：</strong>${trackers.trump.impact.replace(/^⚡\s*盤勢影響：/, '')}`;
+      }
+      if (statSpan && trackers.trump.date) statSpan.textContent = trackers.trump.date;
+      if (linkBtn && trackers.trump.link) linkBtn.href = trackers.trump.link;
+    }
+
+    // 2. 巴逆逆反指標卡動態更新
+    const hubBanini = document.getElementById('hubCardBanini');
+    if (hubBanini && trackers.banini) {
+      const badge = hubBanini.querySelector('.hub-card-badge');
+      const bodyDiv = hubBanini.querySelector('.hub-card-body > div:first-child');
+      const impactDiv = hubBanini.querySelector('.hub-card-impact');
+      const statSpan = hubBanini.querySelector('.hub-card-stat');
+      const linkBtn = hubBanini.querySelector('.hub-link-btn');
+      if (badge && trackers.banini.badge) {
+        badge.textContent = trackers.banini.badge;
+        badge.className = `hub-card-badge ${trackers.banini.badgeClass || 'badge-up'}`;
+      }
+      if (bodyDiv && trackers.banini.summary) bodyDiv.textContent = trackers.banini.summary;
+      if (impactDiv && trackers.banini.impact) {
+        impactDiv.innerHTML = `<strong>🎯 反指標判定：</strong>${trackers.banini.impact.replace(/^🎯\s*反指標判定：/, '')}`;
+      }
+      if (statSpan && trackers.banini.date) statSpan.textContent = trackers.banini.date;
+      if (linkBtn && trackers.banini.link) linkBtn.href = trackers.banini.link;
+    }
+
+    // 3. 哲哲名師觀點卡動態更新
+    const hubZhezhe = document.getElementById('hubCardZhezhe');
+    if (hubZhezhe && trackers.zhezhe) {
+      const badge = hubZhezhe.querySelector('.hub-card-badge');
+      const bodyDiv = hubZhezhe.querySelector('.hub-card-body > div:first-child');
+      const impactDiv = hubZhezhe.querySelector('.hub-card-impact');
+      const statSpan = hubZhezhe.querySelector('.hub-card-stat');
+      const linkBtn = hubZhezhe.querySelector('.hub-link-btn');
+      if (badge && trackers.zhezhe.badge) {
+        badge.textContent = trackers.zhezhe.badge;
+        badge.className = `hub-card-badge ${trackers.zhezhe.badgeClass || 'badge-up'}`;
+      }
+      if (bodyDiv && trackers.zhezhe.summary) bodyDiv.textContent = trackers.zhezhe.summary;
+      if (impactDiv && trackers.zhezhe.impact) {
+        impactDiv.innerHTML = `<strong>📢 信心效應：</strong>${trackers.zhezhe.impact.replace(/^📢\s*信心效應：/, '')}`;
+      }
+      if (statSpan && trackers.zhezhe.date) statSpan.textContent = trackers.zhezhe.date;
+      if (linkBtn && trackers.zhezhe.link) linkBtn.href = trackers.zhezhe.link;
+    }
+
+    // 4. 三大法人動態卡片更新
     const inst = state.institutionalInvestors;
     if (inst && inst.foreign && twseDetailEl) {
       const toYi = (val) => `${(val / 1e8).toFixed(1)} 億`;
@@ -7090,14 +7249,14 @@
       }
     }
 
-    // Bind Refresh Button
+    // 綁定「更新輿情」按鈕事件
     if (btnRefresh && !btnRefresh.dataset.bound) {
       btnRefresh.dataset.bound = 'true';
       btnRefresh.addEventListener('click', async (e) => {
         e.stopPropagation();
         btnRefresh.classList.add('is-loading');
-        btnRefresh.innerHTML = `<span style="display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; vertical-align:middle; margin-right:4px;"></span>更新中...`;
-        await fetchTwseBfi82uDirect();
+        btnRefresh.innerHTML = `<span style="display:inline-block; width:10px; height:10px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; vertical-align:middle; margin-right:4px;"></span>抓取最新輿情中...`;
+        await fetchLiveMarketEvents();
         if (timestampEl) {
           timestampEl.textContent = `最後更新時間: ${formatCurrentEventsTimestamp()}`;
         }
@@ -7105,11 +7264,11 @@
         renderMarketIndices();
         btnRefresh.classList.remove('is-loading');
         btnRefresh.innerHTML = `<span>更新輿情</span>`;
-        showNotification('已完成最新政經事件、三大法人籌碼與社群輿情更新！', 'success');
+        showNotification('已完成最新政經事件、三大法人籌碼與社群輿情抓取！', 'success');
       });
     }
 
-    // Bind Filter Tabs
+    // 綁定分類頁籤事件
     if (tabsContainer && !tabsContainer.dataset.bound) {
       tabsContainer.dataset.bound = 'true';
       tabsContainer.addEventListener('click', (e) => {
@@ -7125,10 +7284,20 @@
 
     renderEventsNewsItems();
 
+    // 背景非同步預先抓取最新實時輿情 (僅在初始無資料或首次載入時觸發)
+    if (!state.marketEventsInitialized) {
+      state.marketEventsInitialized = true;
+      fetchLiveMarketEvents().then(() => {
+        renderMajorEventsRadar();
+      });
+    }
+
     function renderEventsNewsItems() {
       if (!newsContainer) return;
+      const currentEvents = state.marketEvents || DEFAULT_MARKET_EVENTS;
+      const allNews = (currentEvents.news && currentEvents.news.length > 0) ? currentEvents.news : DEFAULT_MARKET_EVENTS.news;
       const filter = state.marketEventsFilter || 'all';
-      const items = DEFAULT_MARKET_EVENTS.news.filter(n => {
+      const items = allNews.filter(n => {
         if (filter === 'all') return true;
         return n.category === filter;
       });
